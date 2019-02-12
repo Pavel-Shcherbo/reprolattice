@@ -1,0 +1,8 @@
+{
+  "name": "inventory-recovers-after-service-error",
+  "application": {"expected_json": {"available": 7}, "expected_exit": 0},
+  "interactions": [
+    {"request": {"method": "GET", "path": "/inventory/part-42"}, "response": {"status": 503, "json": {"error": "temporarily unavailable"}}},
+    {"request": {"method": "GET", "path": "/inventory/part-42"}, "response": {"status": 200, "json": {"available": 7}}}
+  ]
+}
