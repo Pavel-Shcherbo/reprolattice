@@ -1,0 +1,1 @@
+"""Portable HTTP failure scenarios."""
