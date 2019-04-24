@@ -85,3 +85,80 @@ def validate(fixture):
     return copy.deepcopy(interactions)
 
 
+def make_server(fixture, port=0):
+    interactions = validate(fixture)
+    state = {"consumed": 0, "unexpected": 0, "total": len(interactions)}
+    lock = threading.Lock()
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.0"
+
+        def log_message(self, *_):
+            pass
+
+        def respond(self, status, body, headers=None):
+            payload = b"" if status in {204, 304} else json.dumps(body).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            for key, value in (headers or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(payload)
+
+        def handle_request(self):
+            self.connection.settimeout(3)
+            try:
+                size = int(self.headers.get("Content-Length", "0"))
+                if (
+                    size < 0
+                    or size > 1024 * 1024
+                    or self.headers.get("Transfer-Encoding")
+                ):
+                    raise ValueError("unsupported request framing")
+                raw = self.rfile.read(size)
+                body = json.loads(raw) if raw else None
+            except (ValueError, TimeoutError):
+                with lock:
+                    state["unexpected"] += 1
+                self.respond(400, {"error": "expected bounded JSON body"})
+                return
+            with lock:
+                item = (
+                    interactions[state["consumed"]]
+                    if state["consumed"] < len(interactions)
+                    else None
+                )
+                expected = item["request"] if item else {}
+                matches = (
+                    item
+                    and self.command == expected["method"]
+                    and self.path == expected["path"]
+                )
+                if matches and "json" in expected:
+                    matches = body == expected["json"]
+                if matches:
+                    state["consumed"] += 1
+                    response = item["response"]
+                else:
+                    state["unexpected"] += 1
+                    response = {
+                        "status": 409,
+                        "json": {
+                            "error": "request does not match next fixture interaction"
+                        },
+                    }
+            self.respond(
+                response.get("status", 200),
+                response.get("json"),
+                response.get("headers"),
+            )
+
+        do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = do_OPTIONS = (
+            handle_request
+        )
+
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.daemon_threads = True
+    return server, state
