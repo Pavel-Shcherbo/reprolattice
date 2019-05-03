@@ -18,3 +18,14 @@ class HarnessTests(unittest.TestCase):
         self.assertFalse(report["checks"]["within_time_limit"])
         self.assertIsNotNone(report["application"]["returncode"])
 
+    def test_original_client_fails_and_corrected_client_passes(self):
+        fixture = json.loads((ROOT / "examples/retry.json").read_text())
+        command = [sys.executable, str(ROOT / "examples/inventory_client.py")]
+        broken = check_client(fixture, command + ["--faulty"])
+        fixed = check_client(fixture, command)
+        self.assertFalse(broken["passed"])
+        self.assertFalse(broken["checks"]["application_output"])
+        self.assertEqual(broken["consumed"], 1)
+        self.assertTrue(fixed["passed"])
+        self.assertEqual(fixed["application"]["output"], {"available": 7})
+
