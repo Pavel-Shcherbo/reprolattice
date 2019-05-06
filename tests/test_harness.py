@@ -29,3 +29,17 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(fixed["passed"])
         self.assertEqual(fixed["application"]["output"], {"available": 7})
 
+    def test_application_output_is_checked_even_without_protocol_errors(self):
+        fixture = {
+            "application": {"expected_json": {"ok": True}},
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/"},
+                    "response": {"json": {"ok": True}},
+                }
+            ],
+        }
+        result = check_client(fixture, [sys.executable, "-c", "print('{}')"])
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["unexpected"], 0)
+        self.assertFalse(result["checks"]["application_output"])
