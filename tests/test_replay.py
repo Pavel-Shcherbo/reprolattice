@@ -48,3 +48,13 @@ class ReplayTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_redaction_is_recursive_and_does_not_mutate_input(self):
+        source = {
+            "headers": {"Authorization": "Bearer private", "X-API-Key": "key"},
+            "events": [{"password": "private", "value": 3}],
+        }
+        cleaned = redact(source)
+        self.assertNotIn("private", json.dumps(cleaned))
+        self.assertEqual(cleaned["headers"]["X-API-Key"], "[REDACTED]")
+        self.assertEqual(source["events"][0]["password"], "private")
+
