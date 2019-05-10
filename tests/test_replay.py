@@ -58,3 +58,16 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(cleaned["headers"]["X-API-Key"], "[REDACTED]")
         self.assertEqual(source["events"][0]["password"], "private")
 
+    def test_reject_header_injection(self):
+        with self.assertRaises(ValueError):
+            validate(
+                {
+                    "interactions": [
+                        {
+                            "request": {"method": "GET", "path": "/"},
+                            "response": {"headers": {"X-Test": "a\r\nb"}},
+                        }
+                    ]
+                }
+            )
+
