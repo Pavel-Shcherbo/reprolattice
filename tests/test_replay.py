@@ -71,3 +71,19 @@ class ReplayTests(unittest.TestCase):
                 }
             )
 
+    def test_malformed_structures_fail_with_validation_error(self):
+        for fixture in [
+            [],
+            {"interactions": [1]},
+            {"interactions": [{"request": []}]},
+            {
+                "interactions": [
+                    {
+                        "request": {"method": "GET", "path": "/"},
+                        "response": {"status": 204, "json": {"bad": True}},
+                    }
+                ]
+            },
+        ]:
+            with self.assertRaises(ValueError):
+                validate(fixture)
