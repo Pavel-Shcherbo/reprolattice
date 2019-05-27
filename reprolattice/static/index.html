@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Repeatable HTTP failure scenarios" />
+    <title>Reprolattice workbench</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body class="">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">Reprolattice</div>
+        <p class="caption">Repeatable HTTP failure scenarios</p>
+        <nav aria-label="Workspace">
+          <a href="#scenario">Scenario</a
+          ><a href="#verification">Verification</a
+          ><a href="#boundaries">Replay boundaries</a>
+        </nav>
+        <footer>Local workbench<br />Development build</footer>
+      </aside>
+      <main class="workspace">
+        <div class="topline">
+          <span>Repeatable HTTP failure scenarios</span
+          ><span class="context">Local environment</span>
+        </div>
+        <div id="error" class="error" role="alert" hidden></div>
+        <header class="pagehead" id="scenario">
+          <div>
+            <h1>Inventory retry scenario</h1>
+            <p>Keep the failure. Check the recovery.</p>
+          </div>
+          <div class="actions">
+            <button id="export">Export scenario</button
+            ><button id="run" class="primary">Verify replay</button>
+          </div>
+        </header>
+        <div class="scenario-layout">
+          <section class="panel">
+            <div class="panelhead">
+              <h2>Scenario fixture</h2>
+              <span class="muted">JSON</span>
+            </div>
+            <div class="panelbody">
+              <label for="fixture" class="notice"
+                >Ordered requests and recorded responses</label
+              ><textarea
+                id="fixture"
+                class="mono"
+                rows="20"
+                spellcheck="false"
+                aria-label="Scenario JSON"
+              ></textarea
+              ><label class="fault"
+                >Verification target<select id="mode">
+                  <option value="corrected">Corrected demo client</option>
+                  <option value="faulty">Faulty demo client</option>
+                  <option value="protocol">Fixture protocol only</option>
+                </select></label
+              ><label class="fault"
+                ><input id="mismatch" type="checkbox" /> Send an unexpected
+                first request (protocol mode)</label
+              >
+            </div>
+          </section>
+          <section class="panel" id="verification">
+            <div class="panelhead">
+              <h2>Verification</h2>
+              <span id="state" class="status">Not run</span>
+            </div>
+            <div class="panelbody">
+              <div class="sequence">
+                <div>
+                  <span class="code">503</span>
+                  <div>
+                    <strong>Dependency unavailable</strong>
+                    <p>The first expected request receives an error</p>
+                  </div>
+                </div>
+                <div>
+                  <span class="code recovered">200</span>
+                  <div>
+                    <strong>Dependency recovered</strong>
+                    <p>The second expected request receives inventory</p>
+                  </div>
+                </div>
+              </div>
+              <p id="summary" class="summary">
+                Run verification to inspect observed responses
+              </p>
+              <div id="results"></div>
+            </div>
+          </section>
+        </div>
+        <section class="section" id="boundaries">
+          <h2>Replay boundaries</h2>
+          <p class="secondary">
+            This workbench serves ordered HTTP/JSON fixtures on loopback.
+            Unknown requests fail locally and are never forwarded to an upstream
+            service. Client verification runs the bundled faulty or corrected
+            application against the fixture. Protocol mode checks only the
+            recorded HTTP interactions. The CLI can verify a trusted local
+            client command.
+          </p>
+          <p class="notice">
+            Review fixtures before sharing. The redaction helper covers named
+            secret fields, not every possible form of sensitive information.
+            Application state, concurrent requests and clocks require explicit
+            test setup.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
