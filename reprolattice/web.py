@@ -11,3 +11,7 @@ from .replay import make_server
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def example():
+    return json.loads((ROOT / "examples/retry.json").read_text())
+
+
