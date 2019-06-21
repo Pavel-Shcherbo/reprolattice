@@ -14,3 +14,5 @@ Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed
 
 
 Next executable increment: Add portable application-state assertions and process-tree cleanup, then introduce explicit local capture with reviewed redaction policies.
+
+Local reconstruction: five initial substantive stage commits created, plus the current verification record. No remote is configured; no upload was performed. The full dated roadmap remains proposed.
