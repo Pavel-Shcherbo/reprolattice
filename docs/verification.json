@@ -1,0 +1,19 @@
+{
+  "verified_at": "2026-11-04T01:18:31.895624+00:00",
+  "scope": "Current local core, not the full product scope or the 20,000-SLOC acceptance",
+  "unit_tests": 7,
+  "unit_passed": true,
+  "cli_passed": true,
+  "source_hashes": {
+    "reprolattice/__init__.py": "1391addfc0d4745d0895176874bc1e46675da349083ca0cbe0a8130758cebc40",
+    "reprolattice/__main__.py": "36a067fd37e2bb7cf7671748669760ea8f990e92bec9bfcf1279a7ba595265b2",
+    "reprolattice/harness.py": "3a28f6c10b1c52aab3755f5b8203cfdd7141d690d3d70207c2a67bd3ad44b94e",
+    "reprolattice/httpapp.py": "aeae90d384d4ce2451d73504885e5d9da679f48768f34f50fda39f9ef24907a6",
+    "reprolattice/replay.py": "f94ae4b64cdb8018402c690ae401bb21acf3ad55ea9dfa910d03c25c581e5052",
+    "reprolattice/static/app.js": "6496ffd3e17bb0ff13880f8b2e7058b9a81c9e51ea529f4621fcbd433eda5309",
+    "reprolattice/static/index.html": "b2877a2c3fbae0e10d9afd6885cb558b3326f1f5598b53f43e9a02e4df50d066",
+    "reprolattice/static/style.css": "74fb9dacd9711116deef062dbaf03a5ef169000ec2f90d3d685ae95237af5798",
+    "reprolattice/web.py": "fd09454173318165eb768175fcd8fda444a0512fe66aa749a02a7a3e914ab991"
+  },
+  "full_portfolio_acceptance": false
+}
