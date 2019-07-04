@@ -1,0 +1,3 @@
+include _build.py
+include examples/inventory_client.py
+include examples/retry.json
