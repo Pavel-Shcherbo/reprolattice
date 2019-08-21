@@ -101,3 +101,34 @@ def stored_headers(headers):
     return result
 
 
+def transport_headers(headers):
+    blocked = set(HOP_HEADERS)
+    for name, value in headers:
+        if name.casefold() == "connection":
+            blocked.update(item.strip().casefold() for item in value.split(","))
+    result = {}
+    seen = set()
+    for name, value in headers:
+        if (
+            name.casefold() in blocked
+            or name.casefold() == "accept-encoding"
+            or name.casefold().startswith("access-control-")
+        ):
+            continue
+        if "\r" in name + value or "\n" in name + value:
+            raise CaptureFailure(
+                "headers", "folded or multiline headers are unsupported", 502
+            )
+        if name.casefold() in seen:
+            raise CaptureFailure(
+                "headers", "duplicate header fields require an explicit adapter", 502
+            )
+        seen.add(name.casefold())
+        result[name] = value
+    if sum(len(key) + len(value) for key, value in result.items()) > 16384:
+        raise CaptureFailure(
+            "limit", "upstream or request headers exceed the capture limit", 413
+        )
+    return result
+
+
