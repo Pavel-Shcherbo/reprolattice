@@ -93,3 +93,11 @@ def scrub_url(value):
     )
 
 
+def stored_headers(headers):
+    result = redact(dict(headers))
+    for name, value in list(result.items()):
+        if name.casefold() in {"location", "referer", "referrer"}:
+            result[name] = scrub_url(value)
+    return result
+
+
