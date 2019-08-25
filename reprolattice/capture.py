@@ -155,4 +155,46 @@ def strict_json(payload):
 
 
 class CaptureSession:
-    pass
+    def __init__(self, upstream, policy=None, name="recorded-scenario"):
+        if policy is not None and not isinstance(policy, CapturePolicy):
+            raise ValueError("policy must be a CapturePolicy")
+        if not isinstance(name, str) or not name.strip() or len(name) > 200:
+            raise ValueError("scenario name must contain 1 to 200 characters")
+        if not isinstance(upstream, str) or len(upstream) > 8192:
+            raise ValueError("upstream must be a URL of at most 8192 characters")
+        self.policy = policy or CapturePolicy()
+        self.name = name
+        parts = urlsplit(upstream)
+        if (
+            parts.scheme not in {"http", "https"}
+            or not parts.hostname
+            or parts.username is not None
+            or parts.query
+            or parts.fragment
+        ):
+            raise ValueError(
+                "upstream must be an HTTP(S) origin with an optional path prefix, without credentials, query or fragment"
+            )
+        try:
+            parts.port
+        except ValueError as error:
+            raise ValueError("upstream port is invalid") from error
+        local = parts.hostname.casefold() == "localhost"
+        try:
+            local = local or ipaddress.ip_address(parts.hostname).is_loopback
+        except ValueError:
+            pass
+        if not local and not self.policy.allow_remote:
+            raise ValueError("remote upstreams require explicit allow_remote")
+        self.upstream = parts
+        self._lock = threading.Lock()
+        self._idle = threading.Condition(self._lock)
+        self._sequence = 0
+        self._pending = {}
+        self._records = {}
+        self._errors = []
+        self._error_count = 0
+        self._bytes = 0
+        self._concurrent = False
+        self._slots = threading.BoundedSemaphore(self.policy.max_parallel)
+
