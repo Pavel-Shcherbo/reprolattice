@@ -198,3 +198,17 @@ class CaptureSession:
         self._concurrent = False
         self._slots = threading.BoundedSemaphore(self.policy.max_parallel)
 
+    def begin(self, request):
+        reserve = self.policy.max_payload * 2 + 32768
+        with self._lock:
+            if len(self._records) + len(self._pending) >= self.policy.max_interactions:
+                raise CaptureFailure("limit", "interaction limit reached", 429)
+            if self._bytes + (len(self._pending) + 1) * reserve > self.policy.max_bytes:
+                raise CaptureFailure("limit", "capture byte budget exhausted", 429)
+            self._sequence += 1
+            sequence = self._sequence
+            if self._pending:
+                self._concurrent = True
+            self._pending[sequence] = copy.deepcopy(request)
+            return sequence
+
