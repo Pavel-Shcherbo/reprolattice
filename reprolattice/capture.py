@@ -212,3 +212,25 @@ class CaptureSession:
             self._pending[sequence] = copy.deepcopy(request)
             return sequence
 
+    def complete(self, sequence, response, elapsed, redacted):
+        with self._lock:
+            request = self._pending[sequence]
+            interaction = {
+                "request": request,
+                "response": response,
+                "recording": {
+                    "sequence": sequence,
+                    "elapsed_ms": round(elapsed * 1000, 3),
+                    "redacted": redacted,
+                },
+            }
+            size = len(json.dumps(interaction, allow_nan=False).encode())
+            if self._bytes + size > self.policy.max_bytes:
+                raise CaptureFailure(
+                    "limit", "serialized capture exceeded the byte budget", 429
+                )
+            self._pending.pop(sequence)
+            self._records[sequence] = interaction
+            self._bytes += size
+            self._idle.notify_all()
+
