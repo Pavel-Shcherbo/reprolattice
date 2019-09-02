@@ -234,3 +234,12 @@ class CaptureSession:
             self._bytes += size
             self._idle.notify_all()
 
+    def fail(self, kind, path, sequence=None):
+        with self._lock:
+            if sequence is not None:
+                self._pending.pop(sequence, None)
+            self._error_count += 1
+            if len(self._errors) < 50:
+                self._errors.append({"kind": kind, "path": scrub_url(path)})
+            self._idle.notify_all()
+
