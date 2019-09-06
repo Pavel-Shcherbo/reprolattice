@@ -243,3 +243,7 @@ class CaptureSession:
                 self._errors.append({"kind": kind, "path": scrub_url(path)})
             self._idle.notify_all()
 
+    def wait_idle(self, timeout):
+        with self._idle:
+            return self._idle.wait_for(lambda: not self._pending, timeout=timeout)
+
