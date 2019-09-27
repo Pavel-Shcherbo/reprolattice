@@ -247,3 +247,26 @@ class CaptureSession:
         with self._idle:
             return self._idle.wait_for(lambda: not self._pending, timeout=timeout)
 
+    def snapshot(self):
+        with self._lock:
+            complete = (
+                bool(self._records) and not self._pending and self._error_count == 0
+            )
+            return {
+                "name": self.name,
+                "interactions": copy.deepcopy(
+                    [self._records[key] for key in sorted(self._records)]
+                ),
+                "capture": {
+                    "complete": complete,
+                    "requires_review": True,
+                    "upstream": scrub_url(self.upstream.geturl()),
+                    "active_requests": len(self._pending),
+                    "error_count": self._error_count,
+                    "errors": copy.deepcopy(self._errors),
+                    "stored_bytes": self._bytes,
+                    "concurrent_requests_observed": self._concurrent,
+                    "scope": "Ordered HTTP/JSON interactions. Original byte formatting, application state and concurrent scheduling are not reproduced. Review paths, payloads and redacted fields before sharing or testing.",
+                },
+            }
+
