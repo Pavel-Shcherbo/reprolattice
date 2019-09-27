@@ -270,3 +270,27 @@ class CaptureSession:
                 },
             }
 
+    def save(self, path, overwrite=False):
+        snapshot = self.snapshot()
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        content = json.dumps(snapshot, indent=2, allow_nan=False).encode()
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=path.parent, prefix=".capture-", delete=False
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+            if overwrite:
+                os.replace(temporary, path)
+                temporary = None
+            else:
+                os.link(temporary, path)
+            return snapshot["capture"]
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
