@@ -294,3 +294,144 @@ class CaptureSession:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
 
+    def _forward(self, method, path, headers, raw):
+        if method not in SAFE_METHODS and (
+            method not in WRITE_METHODS or not self.policy.allow_writes
+        ):
+            raise CaptureFailure(
+                "method", "write methods require explicit allow_writes", 403
+            )
+        if not path.startswith("/") or path.startswith("//") or urlsplit(path).scheme:
+            raise CaptureFailure("path", "use an origin-relative request path", 400)
+        if (
+            len(path) > 8192
+            or sum(len(key) + len(value) for key, value in headers) > 16384
+        ):
+            raise CaptureFailure(
+                "limit", "request path or headers exceed the capture limit", 413
+            )
+        try:
+            parsed = strict_json(raw) if raw else None
+        except (ValueError, UnicodeError) as error:
+            raise CaptureFailure(
+                "request_json", "capture accepts JSON request bodies only", 415
+            ) from error
+        kept_headers = transport_headers(headers)
+        safe_headers = stored_headers(kept_headers)
+        safe_path = scrub_url(path)
+        safe_body = redact(parsed)
+        request = {"method": method, "path": safe_path, "headers": safe_headers}
+        if raw:
+            request["json"] = safe_body
+        sensitive = (
+            safe_path != path or safe_headers != kept_headers or safe_body != parsed
+        )
+        if sensitive and not self.policy.allow_credentials:
+            raise CaptureFailure(
+                "credentials",
+                "credential-bearing requests require explicit allow_credentials",
+                403,
+            )
+        sequence = self.begin(request)
+        started = time.monotonic()
+        connection = None
+        timer = None
+        socket_holder = [None]
+        try:
+            connection_type = (
+                http.client.HTTPSConnection
+                if self.upstream.scheme == "https"
+                else http.client.HTTPConnection
+            )
+            connection = connection_type(
+                self.upstream.hostname, self.upstream.port, timeout=self.policy.timeout
+            )
+
+            def interrupt():
+                client_socket = socket_holder[0]
+                if client_socket is not None:
+                    try:
+                        client_socket.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                connection.close()
+
+            timer = threading.Timer(self.policy.timeout, interrupt)
+            timer.daemon = True
+            timer.start()
+            target = self.upstream.path.rstrip("/") + path
+            forwarded = dict(kept_headers)
+            forwarded["Accept-Encoding"] = "identity"
+            connection.request(method, target, body=raw or None, headers=forwarded)
+            socket_holder[0] = connection.sock
+            response = connection.getresponse()
+            response_headers = transport_headers(response.getheaders())
+            payload = bytearray()
+            while True:
+                if time.monotonic() - started > self.policy.timeout:
+                    raise TimeoutError("capture deadline exceeded")
+                chunk = response.read1(
+                    min(8192, self.policy.max_payload + 1 - len(payload))
+                )
+                if not chunk:
+                    break
+                payload.extend(chunk)
+                if len(payload) > self.policy.max_payload:
+                    raise CaptureFailure(
+                        "limit", "upstream response exceeds the payload limit", 413
+                    )
+            try:
+                body = (
+                    strict_json(payload)
+                    if method != "HEAD" and response.status not in {204, 304}
+                    else None
+                )
+            except (ValueError, UnicodeError) as error:
+                raise CaptureFailure(
+                    "response_json", "upstream response is not supported JSON", 502
+                ) from error
+            sanitized_headers = stored_headers(response_headers)
+            safe_response = {
+                "status": response.status,
+                "json": redact(body),
+                "headers": sanitized_headers,
+            }
+            if method == "HEAD":
+                declared = response.getheader("Content-Length", "0")
+                safe_response["body_length"] = (
+                    int(declared) if declared.isdigit() else 0
+                )
+            changed = (
+                sensitive
+                or safe_response["json"] != body
+                or sanitized_headers != response_headers
+            )
+            self.complete(sequence, safe_response, time.monotonic() - started, changed)
+            return (
+                response.status,
+                response_headers,
+                bytes(payload),
+                safe_response.get("body_length"),
+            )
+        except CaptureFailure as error:
+            self.fail(error.kind, path, sequence)
+            error.recorded = True
+            raise
+        except (OSError, http.client.HTTPException, ValueError, UnicodeError) as error:
+            self.fail("upstream", path, sequence)
+            failure = CaptureFailure(
+                "upstream", "upstream request failed or exceeded its deadline", 502
+            )
+            failure.recorded = True
+            raise failure from error
+        finally:
+            if timer is not None:
+                timer.cancel()
+            if connection is not None:
+                connection.close()
+            with self._lock:
+                pending = sequence in self._pending
+            if pending:
+                self.fail("incomplete_upstream", path, sequence)
+
+
