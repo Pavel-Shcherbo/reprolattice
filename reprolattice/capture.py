@@ -435,3 +435,105 @@ class CaptureSession:
                 self.fail("incomplete_upstream", path, sequence)
 
 
+def make_capture_server(upstream, policy=None, port=0, name="recorded-scenario"):
+    session = CaptureSession(upstream, policy, name)
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.0"
+
+        def log_message(self, *_):
+            pass
+
+        def handle_request(self):
+            allowed = {
+                f"127.0.0.1:{self.server.server_port}",
+                f"localhost:{self.server.server_port}",
+            }
+            origin = self.headers.get("Origin")
+            if (
+                self.headers.get("Host") not in allowed
+                or (origin and origin not in {f"http://{host}" for host in allowed})
+                or self.headers.get("Sec-Fetch-Site") == "cross-site"
+            ):
+                session.fail("origin", self.path)
+                self.reply_error(
+                    CaptureFailure("origin", "capture accepts local requests only", 403)
+                )
+                return
+            if not session._slots.acquire(blocking=False):
+                session.fail("parallel_limit", self.path)
+                self.reply_error(
+                    CaptureFailure(
+                        "parallel_limit", "capture concurrency limit reached", 429
+                    )
+                )
+                return
+            try:
+                self.connection.settimeout(session.policy.timeout)
+                try:
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if (
+                        size < 0
+                        or size > session.policy.max_payload
+                        or self.headers.get("Transfer-Encoding")
+                    ):
+                        raise CaptureFailure(
+                            "request_limit",
+                            "unsupported request framing or payload size",
+                            413,
+                        )
+                    raw = self.rfile.read(size)
+                    if len(raw) != size:
+                        raise CaptureFailure(
+                            "request_body",
+                            "request body ended before its declared length",
+                            400,
+                        )
+                    status, headers, payload, head_length = session._forward(
+                        self.command, self.path, list(self.headers.items()), raw
+                    )
+                    self.send_response_only(status)
+                    for key, value in headers.items():
+                        self.send_header(key, value)
+                    self.send_header(
+                        "Content-Length",
+                        str(
+                            head_length
+                            if self.command == "HEAD" and head_length is not None
+                            else len(payload)
+                        ),
+                    )
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    if self.command != "HEAD":
+                        self.wfile.write(payload)
+                except CaptureFailure as error:
+                    if not error.recorded:
+                        session.fail(error.kind, self.path)
+                    self.reply_error(error)
+                except (OSError, ValueError):
+                    session.fail("request_transport", self.path)
+            finally:
+                session._slots.release()
+
+        def reply_error(self, error):
+            body = json.dumps({"error": error.kind, "message": error.message}).encode()
+            try:
+                self.send_response(error.status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+            except OSError:
+                pass
+
+        do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = do_OPTIONS = (
+            do_TRACE
+        ) = do_CONNECT = handle_request
+
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.daemon_threads = True
+    return server, session
+
+
