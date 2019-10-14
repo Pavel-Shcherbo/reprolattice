@@ -20,15 +20,17 @@ SECRET_KEYS = {
 }
 
 
+def secret_key(key):
+    normalized = key.casefold().replace("-", "").replace("_", "")
+    return normalized in {
+        item.replace("-", "").replace("_", "") for item in SECRET_KEYS
+    }
+
+
 def redact(value):
     if isinstance(value, dict):
         return {
-            key: (
-                "[REDACTED]"
-                if key.casefold().replace("-", "_")
-                in {x.replace("-", "_") for x in SECRET_KEYS}
-                else redact(item)
-            )
+            key: ("[REDACTED]" if secret_key(key) else redact(item))
             for key, item in value.items()
         }
     if isinstance(value, list):
@@ -39,6 +41,11 @@ def redact(value):
 def validate(fixture):
     if not isinstance(fixture, dict):
         raise ValueError("fixture must be an object")
+    if (
+        isinstance(fixture.get("capture"), dict)
+        and fixture["capture"].get("complete") is False
+    ):
+        raise ValueError("incomplete capture cannot be verified as a complete scenario")
     interactions = fixture.get("interactions")
     if not isinstance(interactions, list) or not interactions:
         raise ValueError("interactions must be a non-empty list")
@@ -67,6 +74,15 @@ def validate(fixture):
             raise ValueError("response status must be between 200 and 599")
         if status in {204, 304} and response.get("json") is not None:
             raise ValueError("204 and 304 responses cannot contain JSON bodies")
+        if "body_length" in response:
+            if (
+                request["method"] != "HEAD"
+                or type(response["body_length"]) is not int
+                or response["body_length"] < 0
+            ):
+                raise ValueError(
+                    "body_length is a nonnegative integer supported only for HEAD responses"
+                )
         if not isinstance(response.get("headers", {}), dict):
             raise ValueError("response headers must be an object")
         for key, value in response.get("headers", {}).items():
@@ -96,11 +112,19 @@ def make_server(fixture, port=0):
         def log_message(self, *_):
             pass
 
-        def respond(self, status, body, headers=None):
+        def respond(self, status, body, headers=None, body_length=None):
             payload = b"" if status in {204, 304} else json.dumps(body).encode()
             self.send_response(status)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(payload)))
+            if not any(key.lower() == "content-type" for key in (headers or {})):
+                self.send_header("Content-Type", "application/json")
+            self.send_header(
+                "Content-Length",
+                str(
+                    body_length
+                    if self.command == "HEAD" and body_length is not None
+                    else len(payload)
+                ),
+            )
             for key, value in (headers or {}).items():
                 self.send_header(key, value)
             self.end_headers()
@@ -153,6 +177,7 @@ def make_server(fixture, port=0):
                 response.get("status", 200),
                 response.get("json"),
                 response.get("headers"),
+                response.get("body_length"),
             )
 
         do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = do_OPTIONS = (
