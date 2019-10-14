@@ -537,3 +537,69 @@ def make_capture_server(upstream, policy=None, port=0, name="recorded-scenario")
     return server, session
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Capture HTTP/JSON calls sent to one explicitly configured upstream"
+    )
+    parser.add_argument("upstream")
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--port", type=int, default=8766)
+    parser.add_argument("--allow-remote", action="store_true")
+    parser.add_argument("--allow-writes", action="store_true")
+    parser.add_argument("--allow-credentials", action="store_true")
+    parser.add_argument("--timeout", type=float, default=5)
+    parser.add_argument("--duration", type=float)
+    parser.add_argument("--overwrite", action="store_true")
+    args = parser.parse_args()
+    try:
+        if args.output.exists() and not args.overwrite:
+            raise ValueError(
+                "output already exists; choose a new path or explicitly use --overwrite"
+            )
+        if args.duration is not None and (
+            not math.isfinite(args.duration) or not 0 < args.duration <= 3600
+        ):
+            raise ValueError("capture duration must be between zero and 3600 seconds")
+        policy = CapturePolicy(
+            allow_remote=args.allow_remote,
+            allow_writes=args.allow_writes,
+            allow_credentials=args.allow_credentials,
+            timeout=args.timeout,
+        )
+        server, session = make_capture_server(args.upstream, policy, args.port)
+    except (ValueError, OSError) as error:
+        parser.exit(2, f"{error}\n")
+    timer = None
+    if args.duration is not None:
+        timer = threading.Timer(args.duration, server.shutdown)
+        timer.daemon = True
+        timer.start()
+    print(
+        json.dumps(
+            {
+                "listening": f"http://127.0.0.1:{server.server_port}",
+                "upstream": args.upstream,
+                "output": str(args.output),
+            }
+        ),
+        flush=True,
+    )
+    try:
+        server.serve_forever(poll_interval=0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if timer is not None:
+            timer.cancel()
+        server.server_close()
+    session.wait_idle(policy.timeout + 1)
+    try:
+        metadata = session.save(args.output, overwrite=args.overwrite)
+    except (ValueError, OSError) as error:
+        parser.exit(2, f"could not save capture: {error}\n")
+    print(json.dumps({"output": str(args.output), **metadata}, indent=2))
+    return 0 if metadata["complete"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
