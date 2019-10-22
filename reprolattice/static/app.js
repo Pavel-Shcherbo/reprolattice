@@ -34,6 +34,7 @@ function download(name, value) {
 $("run").onclick = async () => {
   error("");
   $("run").disabled = true;
+  for (const id of ["fixture", "mode", "mismatch"]) $(id).disabled = true;
   try {
     const fixture = JSON.parse($("fixture").value);
     const report = await evaluate({
@@ -98,6 +99,7 @@ $("run").onclick = async () => {
     $("state").textContent = "Verification could not start";
   } finally {
     $("run").disabled = false;
+    for (const id of ["fixture", "mode", "mismatch"]) $(id).disabled = false;
   }
 };
 $("export").onclick = () => {
