@@ -2,17 +2,15 @@ import http.client
 import json
 import sys
 import threading
-from pathlib import Path
 
 from .httpapp import serve
 from .harness import check_client
 from .replay import make_server
-
-ROOT = Path(__file__).resolve().parents[1]
+from .resources import examples_directory
 
 
 def example():
-    return json.loads((ROOT / "examples/retry.json").read_text())
+    return json.loads((examples_directory() / "retry.json").read_text())
 
 
 def evaluate(params):
@@ -24,7 +22,7 @@ def evaluate(params):
             "The workbench supports at most 100 interactions per verification"
         )
     if params.get("mode") == "client":
-        command = [sys.executable, str(ROOT / "examples/inventory_client.py")]
+        command = [sys.executable, str(examples_directory() / "inventory_client.py")]
         if params.get("faulty_client"):
             command.append("--faulty")
         return check_client(fixture, command)
