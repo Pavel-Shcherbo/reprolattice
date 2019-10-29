@@ -42,3 +42,22 @@ class CaptureTests(unittest.TestCase):
         self.addCleanup(cleanup)
         return proxy, session
 
+    def request(self, port, method, path, body=None, headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+        try:
+            connection.request(
+                method,
+                path,
+                json.dumps(body) if body is not None else None,
+                headers or {},
+            )
+            response = connection.getresponse()
+            raw = response.read()
+            return (
+                response.status,
+                json.loads(raw) if raw else None,
+                dict(response.getheaders()),
+            )
+        finally:
+            connection.close()
+
