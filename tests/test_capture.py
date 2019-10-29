@@ -61,3 +61,33 @@ class CaptureTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_recorded_json_can_be_replayed_without_an_upstream(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/items?q=a%20b"},
+                    "response": {"status": 200, "json": {"items": [1, 2]}},
+                }
+            ]
+        }
+        proxy, session = self.start(fixture)
+        status, body, _ = self.request(proxy.server_port, "GET", "/items?q=a%20b")
+        self.assertEqual(status, 200)
+        self.assertEqual(body, {"items": [1, 2]})
+        captured = session.snapshot()
+        self.assertTrue(captured["capture"]["complete"])
+        self.assertEqual(
+            captured["interactions"][0]["request"]["path"], "/items?q=a%20b"
+        )
+        replay, state = make_server(captured)
+        thread = threading.Thread(target=replay.serve_forever, daemon=True)
+        thread.start()
+        try:
+            replayed = self.request(replay.server_port, "GET", "/items?q=a%20b")
+            self.assertEqual(replayed[:2], (200, {"items": [1, 2]}))
+            self.assertEqual(state["consumed"], 1)
+        finally:
+            replay.shutdown()
+            replay.server_close()
+            thread.join()
+
