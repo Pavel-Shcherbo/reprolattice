@@ -135,3 +135,28 @@ class CaptureTests(unittest.TestCase):
         self.assertTrue(captured["capture"]["requires_review"])
         self.assertTrue(captured["interactions"][0]["recording"]["redacted"])
 
+    def test_write_and_credential_defaults_do_not_forward_requests(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "POST", "path": "/change"},
+                    "response": {"json": {"ok": True}},
+                }
+            ]
+        }
+        proxy, session = self.start(fixture)
+        self.assertEqual(self.request(proxy.server_port, "POST", "/change", {})[0], 403)
+        self.assertEqual(
+            self.request(
+                proxy.server_port,
+                "GET",
+                "/change",
+                headers={"Authorization": "Bearer do-not-forward"},
+            )[0],
+            403,
+        )
+        captured = session.snapshot()
+        self.assertEqual(captured["interactions"], [])
+        self.assertEqual(captured["capture"]["error_count"], 2)
+        self.assertNotIn("do-not-forward", json.dumps(captured))
+
