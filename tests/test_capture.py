@@ -91,3 +91,47 @@ class CaptureTests(unittest.TestCase):
             replay.server_close()
             thread.join()
 
+    def test_secrets_are_forwarded_only_when_explicit_and_not_stored(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {
+                        "method": "POST",
+                        "path": "/session?token=query-canary",
+                        "json": {"password": "body-canary", "value": 4},
+                    },
+                    "response": {
+                        "status": 200,
+                        "json": {"access_token": "response-canary", "value": 4},
+                        "headers": {"Set-Cookie": "cookie-canary"},
+                    },
+                }
+            ]
+        }
+        proxy, session = self.start(
+            fixture, CapturePolicy(allow_writes=True, allow_credentials=True)
+        )
+        status, body, headers = self.request(
+            proxy.server_port,
+            "POST",
+            "/session?token=query-canary",
+            {"password": "body-canary", "value": 4},
+            {"Authorization": "Bearer header-canary"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(body["access_token"], "response-canary")
+        self.assertEqual(headers["Set-Cookie"], "cookie-canary")
+        captured = session.snapshot()
+        serialized = json.dumps(captured)
+        for canary in [
+            "query-canary",
+            "body-canary",
+            "response-canary",
+            "cookie-canary",
+            "header-canary",
+        ]:
+            self.assertNotIn(canary, serialized)
+        self.assertTrue(captured["capture"]["complete"])
+        self.assertTrue(captured["capture"]["requires_review"])
+        self.assertTrue(captured["interactions"][0]["recording"]["redacted"])
+
