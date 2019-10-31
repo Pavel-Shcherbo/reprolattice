@@ -160,3 +160,32 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(captured["capture"]["error_count"], 2)
         self.assertNotIn("do-not-forward", json.dumps(captured))
 
+    def test_origin_rejection_and_cors_headers_are_not_relayed(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/"},
+                    "response": {
+                        "json": {"ok": True},
+                        "headers": {"Access-Control-Allow-Origin": "*"},
+                    },
+                }
+            ]
+        }
+        proxy, session = self.start(fixture)
+        self.assertEqual(
+            self.request(
+                proxy.server_port,
+                "GET",
+                "/",
+                headers={"Origin": "https://untrusted.example"},
+            )[0],
+            403,
+        )
+        status, _, headers = self.request(proxy.server_port, "GET", "/")
+        self.assertEqual(status, 200)
+        self.assertNotIn(
+            "access-control-allow-origin", {key.lower() for key in headers}
+        )
+        self.assertFalse(session.snapshot()["capture"]["complete"])
+
