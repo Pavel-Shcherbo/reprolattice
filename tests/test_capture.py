@@ -189,3 +189,19 @@ class CaptureTests(unittest.TestCase):
         )
         self.assertFalse(session.snapshot()["capture"]["complete"])
 
+    def test_payload_limit_marks_one_failure_and_rejects_partial_replay(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/large"},
+                    "response": {"json": {"value": "x" * 2000}},
+                }
+            ]
+        }
+        proxy, session = self.start(fixture, CapturePolicy(max_payload=1000))
+        self.assertEqual(self.request(proxy.server_port, "GET", "/large")[0], 413)
+        captured = session.snapshot()
+        self.assertEqual(captured["capture"]["error_count"], 1)
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            validate(captured)
+
