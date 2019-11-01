@@ -205,3 +205,20 @@ class CaptureTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "incomplete"):
             validate(captured)
 
+    def test_head_preserves_declared_resource_length(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "HEAD", "path": "/resource"},
+                    "response": {"status": 200, "body_length": 123},
+                }
+            ]
+        }
+        proxy, session = self.start(fixture)
+        status, body, headers = self.request(proxy.server_port, "HEAD", "/resource")
+        self.assertEqual((status, body), (200, None))
+        self.assertEqual(headers["Content-Length"], "123")
+        self.assertEqual(
+            session.snapshot()["interactions"][0]["response"]["body_length"], 123
+        )
+
