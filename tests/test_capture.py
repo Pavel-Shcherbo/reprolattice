@@ -222,3 +222,24 @@ class CaptureTests(unittest.TestCase):
             session.snapshot()["interactions"][0]["response"]["body_length"], 123
         )
 
+    def test_atomic_save_does_not_overwrite_an_existing_fixture(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/"},
+                    "response": {"json": {"ok": True}},
+                }
+            ]
+        }
+        proxy, session = self.start(fixture)
+        self.request(proxy.server_port, "GET", "/")
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "capture.json"
+            metadata = session.save(output)
+            self.assertTrue(metadata["complete"])
+            first = output.read_bytes()
+            with self.assertRaises(FileExistsError):
+                session.save(output)
+            self.assertEqual(output.read_bytes(), first)
+            self.assertEqual(list(output.parent.glob(".capture-*")), [])
+
