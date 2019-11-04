@@ -243,3 +243,17 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(output.read_bytes(), first)
             self.assertEqual(list(output.parent.glob(".capture-*")), [])
 
+    def test_remote_origin_and_unsafe_configuration_are_rejected(self):
+        with self.assertRaises(ValueError):
+            CaptureSession("https://example.com")
+        for upstream in [
+            "file:///tmp/file",
+            "http://user:password@localhost",
+            "http://localhost/?token=value",
+        ]:
+            with self.assertRaises(ValueError):
+                CaptureSession(upstream)
+        for options in [{"timeout": 0}, {"max_payload": True}, {"allow_remote": 1}]:
+            with self.assertRaises(ValueError):
+                CapturePolicy(**options)
+
