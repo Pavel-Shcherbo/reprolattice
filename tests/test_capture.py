@@ -257,3 +257,9 @@ class CaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 CapturePolicy(**options)
 
+    def test_url_redaction_preserves_ordinary_query_encoding(self):
+        self.assertEqual(scrub_url("/search?q=a%20b"), "/search?q=a%20b")
+        self.assertNotIn(
+            "canary", scrub_url("https://user:canary@example.com/?apiKey=canary&x=1")
+        )
+
