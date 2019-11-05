@@ -263,3 +263,8 @@ class CaptureTests(unittest.TestCase):
             "canary", scrub_url("https://user:canary@example.com/?apiKey=canary&x=1")
         )
 
+    def test_deep_or_nonstandard_json_is_rejected(self):
+        for payload in [b'{"value":NaN}', ("[" * 150 + "0" + "]" * 150).encode()]:
+            with self.assertRaises(ValueError):
+                strict_json(payload)
+
