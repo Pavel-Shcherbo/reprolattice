@@ -268,3 +268,54 @@ class CaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 strict_json(payload)
 
+    def test_capture_cli_saves_a_real_request_on_interrupt(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {"method": "GET", "path": "/cli"},
+                    "response": {"json": {"ok": True}},
+                }
+            ]
+        }
+        upstream, _ = self.start(fixture)
+        project = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "scenario.json"
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "reprolattice.capture",
+                    f"http://127.0.0.1:{upstream.server_port}",
+                    "--output",
+                    str(output),
+                    "--port",
+                    "0",
+                ],
+                cwd=project,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    self.assertTrue(
+                        selector.select(timeout=5), "capture CLI did not become ready"
+                    )
+                    ready = json.loads(process.stdout.readline())
+                port = int(ready["listening"].rsplit(":", 1)[1])
+                self.assertEqual(
+                    self.request(port, "GET", "/cli")[:2], (200, {"ok": True})
+                )
+                process.send_signal(signal.SIGINT)
+                stdout, stderr = process.communicate(timeout=8)
+                self.assertEqual(process.returncode, 0, stderr)
+                self.assertTrue(json.loads(stdout)["complete"])
+                saved = json.loads(output.read_text())
+                self.assertTrue(saved["capture"]["complete"])
+                self.assertEqual(saved["interactions"][0]["request"]["path"], "/cli")
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate(timeout=3)
