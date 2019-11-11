@@ -27,7 +27,9 @@ python3 -m unittest discover -s tests -v
 
 ## Implemented
 
-Validates and serves ordered HTTP/JSON fixtures on loopback. Matches methods, paths and optional JSON bodies, rejects unexpected calls without upstream forwarding and reports consumed/unexpected interactions. Runs a trusted test application against temporary fixture dependencies, checks its JSON output and exit code, and distinguishes the bundled faulty client from its corrected version. Includes a recursive named-field redaction helper and a browser fixture editor.
+Validates and serves ordered HTTP/JSON fixtures on loopback. Matches methods, exact or patterned paths, header subsets, query conditions and typed JSON bodies, rejects unexpected calls without upstream forwarding and reports consumed/unexpected interactions. Runs a trusted test application against temporary fixture dependencies, checks its JSON output and exit code, and distinguishes the bundled faulty client from its corrected version. Includes a recursive named-field redaction helper and a browser fixture editor.
+
+Request rules and application assertions are described in [the assertion guide](docs/ASSERTIONS.md). Try `python3 -m reprolattice verify examples/dynamic-order.json` for an executable dynamic-path example.
 
 ## Boundaries
 
