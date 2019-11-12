@@ -20,4 +20,6 @@ Each product must contain at least 20,000 useful production SLOC, excluding test
 
 The contribution-date proposal allows 0–4 commits per day, rest days and breaks. It is a reconstruction plan, not completed historical work. The GitHub target is Pavel-Shcherbo; retain the existing author configuration. No upload without Pavel.
 
-Implemented increment: 18 current tests passed; CLI and installed workbench entry points checked in a disposable clean environment. Current project-specific production source: 1704 SLOC, below 20,000. No publication.
+Implemented increment: 54 current tests passed; CLI and installed workbench entry points checked in a disposable clean environment. Current project-specific production source: 2350 SLOC, below 20,000. No publication.
+
+Verified increment: typed JSON-pointer application assertions, dynamic request matchers, shared CLI/workbench protocol verification and bounded process-output collection. 54 unit/integration tests passed; clean installed CLI and HTTP dynamic-scenario success/failure checks passed. Evidence: `docs/verification.json`, `docs/installed-verification.json`. The 20,000-SLOC and broad product requirements remain open.
