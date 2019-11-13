@@ -1,0 +1,47 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "POST",
+        "path_pattern": "/orders/*",
+        "headers": {
+          "X-Tenant": "demo"
+        },
+        "json_assertions": [
+          {
+            "path": "/quantity",
+            "op": "gte",
+            "value": 1
+          }
+        ],
+        "query_assertions": [
+          {
+            "path": "/currency",
+            "op": "one_of",
+            "value": [
+              "USD",
+              "EUR"
+            ]
+          }
+        ]
+      },
+      "sample_request": {
+        "method": "POST",
+        "path": "/orders/42?currency=USD",
+        "headers": {
+          "X-Tenant": "demo"
+        },
+        "json": {
+          "quantity": 3
+        }
+      },
+      "response": {
+        "status": 201,
+        "json": {
+          "accepted": true,
+          "reference": "demo-42"
+        }
+      }
+    }
+  ]
+}
