@@ -1,11 +1,11 @@
 import argparse
-import http.client
 import json
-import threading
 from pathlib import Path
 
 from .replay import make_server, redact
 from .harness import check_client
+from .protocol import verify_protocol
+from .jsonutil import strict_json
 
 
 def main():
@@ -18,12 +18,18 @@ def main():
     parser.add_argument("--command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     try:
-        fixture = json.loads(args.fixture.read_text())
+        fixture = strict_json(args.fixture.read_bytes(), max_bytes=16 * 1024 * 1024)
         if args.action == "redact":
             print(json.dumps(redact(fixture), indent=2))
             return
         if args.action == "check-client":
             report = check_client(fixture, args.command)
+            print(json.dumps(report, indent=2))
+            if not report["passed"]:
+                raise SystemExit(1)
+            return
+        if args.action == "verify":
+            report = verify_protocol(fixture)
             print(json.dumps(report, indent=2))
             if not report["passed"]:
                 raise SystemExit(1)
@@ -44,31 +50,6 @@ def main():
             server.server_close()
             print(json.dumps(state))
         return
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    passed = True
-    try:
-        for item in fixture["interactions"]:
-            connection = http.client.HTTPConnection(
-                "127.0.0.1", server.server_port, timeout=3
-            )
-            request = item["request"]
-            payload = json.dumps(request["json"]) if "json" in request else None
-            connection.request(request["method"], request["path"], body=payload)
-            response = connection.getresponse()
-            content = response.read()
-            passed = passed and response.status == item["response"].get("status", 200)
-            if request["method"] != "HEAD" and response.status not in {204, 304}:
-                passed = passed and json.loads(content) == item["response"].get("json")
-            connection.close()
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
-    passed = passed and state["consumed"] == state["total"] and state["unexpected"] == 0
-    print(json.dumps({"passed": passed, **state}, indent=2))
-    if not passed:
-        raise SystemExit(1)
 
 
 main()
