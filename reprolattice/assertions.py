@@ -32,3 +32,7 @@ JSON_TYPES = frozenset(
 )
 
 
+def number(value):
+    return type(value) is int or (type(value) is float and math.isfinite(value))
+
+
