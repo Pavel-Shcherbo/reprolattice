@@ -36,3 +36,12 @@ def number(value):
     return type(value) is int or (type(value) is float and math.isfinite(value))
 
 
+def bounded_number(value):
+    if not number(value):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except OverflowError:
+        return False
+
+
