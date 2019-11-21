@@ -61,3 +61,28 @@ def json_equal(left, right):
     return left == right
 
 
+def pointer_tokens(pointer):
+    if (
+        not isinstance(pointer, str)
+        or len(pointer) > 1024
+        or (pointer and not pointer.startswith("/"))
+    ):
+        raise ValueError(
+            "assertion path must be a JSON pointer of at most 1024 characters"
+        )
+    if pointer == "":
+        return ()
+    parts = pointer[1:].split("/")
+    if len(parts) > 50:
+        raise ValueError("assertion path has too many components")
+    result = []
+    for part in parts:
+        for index, character in enumerate(part):
+            if character == "~" and (
+                index + 1 == len(part) or part[index + 1] not in "01"
+            ):
+                raise ValueError("JSON pointer escapes must use ~0 or ~1")
+        result.append(part.replace("~1", "/").replace("~0", "~"))
+    return tuple(result)
+
+
