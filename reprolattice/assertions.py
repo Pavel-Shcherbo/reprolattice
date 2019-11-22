@@ -86,3 +86,25 @@ def pointer_tokens(pointer):
     return tuple(result)
 
 
+def resolve(value, tokens):
+    current = value
+    for token in tokens:
+        if isinstance(current, dict):
+            current = current.get(token, MISSING)
+        elif isinstance(current, list):
+            if (
+                not token
+                or len(token) > 10
+                or any(character not in "0123456789" for character in token)
+                or (len(token) > 1 and token[0] == "0")
+            ):
+                return MISSING
+            index = int(token)
+            current = current[index] if index < len(current) else MISSING
+        else:
+            return MISSING
+        if current is MISSING:
+            return MISSING
+    return current
+
+
