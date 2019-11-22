@@ -108,3 +108,16 @@ def resolve(value, tokens):
     return current
 
 
+def type_matches(value, expected):
+    return {
+        "null": value is None,
+        "boolean": type(value) is bool,
+        "number": number(value),
+        "integer": type(value) is int
+        or (type(value) is float and math.isfinite(value) and value.is_integer()),
+        "string": isinstance(value, str),
+        "array": isinstance(value, list),
+        "object": isinstance(value, dict),
+    }[expected]
+
+
