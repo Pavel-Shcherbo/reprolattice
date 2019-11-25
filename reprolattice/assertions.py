@@ -121,3 +121,17 @@ def type_matches(value, expected):
     }[expected]
 
 
+def subset(actual, expected):
+    if not isinstance(actual, dict):
+        return False
+    for key, value in expected.items():
+        if key not in actual:
+            return False
+        if isinstance(value, dict):
+            if not subset(actual[key], value):
+                return False
+        elif not json_equal(actual[key], value):
+            return False
+    return True
+
+
