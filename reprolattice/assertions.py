@@ -135,3 +135,24 @@ def subset(actual, expected):
     return True
 
 
+def visible(value, tokens):
+    if value is MISSING:
+        return {"missing": True}
+    cleaned = (
+        "[REDACTED]" if any(secret_key(token) for token in tokens) else redact(value)
+    )
+    if len(json.dumps(cleaned, allow_nan=False)) > 4096:
+        return {"summary": "value omitted from report because it exceeds 4 KiB"}
+    return cleaned
+
+
+@dataclass(frozen=True)
+class Rule:
+    id: str
+    path: str
+    tokens: tuple
+    operation: str
+    operand: object = None
+    atol: float = 0.0
+    rtol: float = 0.0
+
