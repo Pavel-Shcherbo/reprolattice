@@ -156,3 +156,70 @@ class Rule:
     atol: float = 0.0
     rtol: float = 0.0
 
+    def evaluate(self, value):
+        actual = resolve(value, self.tokens)
+        operation = self.operation
+        if operation == "exists":
+            passed = actual is not MISSING
+        elif operation == "absent":
+            passed = actual is MISSING
+        elif actual is MISSING:
+            passed = False
+        elif operation == "equals":
+            passed = json_equal(actual, self.operand)
+        elif operation == "not_equals":
+            passed = not json_equal(actual, self.operand)
+        elif operation == "type":
+            passed = type_matches(actual, self.operand)
+        elif operation == "contains":
+            passed = (
+                self.operand in actual
+                if isinstance(actual, str) and isinstance(self.operand, str)
+                else (
+                    any(json_equal(item, self.operand) for item in actual)
+                    if isinstance(actual, list)
+                    else False
+                )
+            )
+        elif operation == "subset":
+            passed = subset(actual, self.operand)
+        elif operation == "one_of":
+            passed = any(json_equal(actual, option) for option in self.operand)
+        elif operation == "approx":
+            passed = False
+            if bounded_number(actual):
+                with localcontext() as context:
+                    context.prec = 1400
+                    observed, expected = Decimal(str(actual)), Decimal(
+                        str(self.operand)
+                    )
+                    tolerance = Decimal(str(self.atol)) + Decimal(str(self.rtol)) * abs(
+                        expected
+                    )
+                    passed = abs(observed - expected) <= tolerance
+        elif not number(actual):
+            passed = False
+        elif operation == "gt":
+            passed = actual > self.operand
+        elif operation == "gte":
+            passed = actual >= self.operand
+        elif operation == "lt":
+            passed = actual < self.operand
+        else:
+            passed = actual <= self.operand
+        result = {
+            "id": self.id,
+            "path": self.path,
+            "op": operation,
+            "passed": bool(passed),
+            "actual": visible(actual, self.tokens),
+        }
+        if operation not in {"exists", "absent"}:
+            result["expected"] = visible(self.operand, self.tokens)
+        if operation == "approx":
+            result.update({"atol": self.atol, "rtol": self.rtol})
+        if not passed:
+            result["reason"] = "missing" if actual is MISSING else "condition_not_met"
+        return result
+
+
