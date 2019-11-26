@@ -223,3 +223,69 @@ class Rule:
         return result
 
 
+def compile_rules(definitions):
+    if not isinstance(definitions, list) or len(definitions) > 1000:
+        raise ValueError("assertions must be a list of at most 1000 conditions")
+    rules = []
+    identifiers = set()
+    for index, item in enumerate(definitions):
+        if not isinstance(item, dict) or set(item) - {
+            "id",
+            "path",
+            "op",
+            "value",
+            "atol",
+            "rtol",
+        }:
+            raise ValueError("assertion contains unsupported fields")
+        identifier = item.get("id", f"assertion-{index+1}")
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or len(identifier) > 100
+            or identifier in identifiers
+        ):
+            raise ValueError(
+                "assertion IDs must be unique non-empty strings of at most 100 characters"
+            )
+        identifiers.add(identifier)
+        pointer = item.get("path", "")
+        tokens = pointer_tokens(pointer)
+        operation = item.get("op")
+        if not isinstance(operation, str) or operation not in OPERATIONS:
+            raise ValueError("unsupported assertion operation")
+        if operation in {"exists", "absent"}:
+            if set(item) & {"value", "atol", "rtol"}:
+                raise ValueError(
+                    "existence assertions do not accept a value or tolerance"
+                )
+        elif "value" not in item:
+            raise ValueError("assertion operation requires a value")
+        validate_json(item.get("value"), max_bytes=256 * 1024)
+        operand = copy.deepcopy(item.get("value"))
+        if operation == "type" and (
+            not isinstance(operand, str) or operand not in JSON_TYPES
+        ):
+            raise ValueError("unsupported asserted JSON type")
+        if operation == "subset" and not isinstance(operand, dict):
+            raise ValueError("subset assertions require an object")
+        if operation == "one_of" and (
+            not isinstance(operand, list) or not 1 <= len(operand) <= 100
+        ):
+            raise ValueError("one_of requires between 1 and 100 alternatives")
+        if operation in {"gt", "gte", "lt", "lte", "approx"} and not number(operand):
+            raise ValueError("numeric assertions require a finite numeric value")
+        if operation == "approx" and not bounded_number(operand):
+            raise ValueError(
+                "approximate comparisons require a representable floating-point value"
+            )
+        if operation != "approx" and set(item) & {"atol", "rtol"}:
+            raise ValueError("tolerances are supported only by approx")
+        atol = item.get("atol", 1e-9) if operation == "approx" else 0.0
+        rtol = item.get("rtol", 1e-6) if operation == "approx" else 0.0
+        if not bounded_number(atol) or not bounded_number(rtol) or atol < 0 or rtol < 0:
+            raise ValueError("tolerances must be finite nonnegative numbers")
+        rules.append(Rule(identifier, pointer, tokens, operation, operand, atol, rtol))
+    return tuple(rules)
+
+
