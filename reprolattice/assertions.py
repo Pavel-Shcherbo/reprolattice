@@ -289,3 +289,6 @@ def compile_rules(definitions):
     return tuple(rules)
 
 
+def evaluate_rules(value, rules):
+    validate_json(value)
+    return [rule.evaluate(value) for rule in rules]
