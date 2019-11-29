@@ -16,7 +16,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from .replay import redact, secret_key
+from .redaction import redact, secret_key
+from .jsonutil import strict_json
 
 HOP_HEADERS = {
     "connection",
@@ -129,28 +130,6 @@ def transport_headers(headers):
         raise CaptureFailure(
             "limit", "upstream or request headers exceed the capture limit", 413
         )
-    return result
-
-
-def strict_json(payload):
-    def reject(value):
-        raise ValueError(f"nonstandard JSON constant: {value}")
-
-    try:
-        result = json.loads(payload, parse_constant=reject)
-    except RecursionError as error:
-        raise ValueError("JSON nesting exceeds the capture limit") from error
-    pending = [(result, 0)]
-    nodes = 0
-    while pending:
-        value, depth = pending.pop()
-        nodes += 1
-        if depth > 100 or nodes > 100000:
-            raise ValueError("JSON structure exceeds the capture budget")
-        if isinstance(value, dict):
-            pending.extend((item, depth + 1) for item in value.values())
-        elif isinstance(value, list):
-            pending.extend((item, depth + 1) for item in value)
     return result
 
 
