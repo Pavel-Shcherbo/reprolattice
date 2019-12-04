@@ -34,3 +34,28 @@ def validate_json(value, max_bytes=1024 * 1024, max_depth=100, max_nodes=100000)
     return value
 
 
+def strict_json(payload, max_bytes=1024 * 1024):
+    if not isinstance(payload, (str, bytes, bytearray)):
+        raise ValueError("JSON input must be text or bytes")
+    size = len(payload.encode()) if isinstance(payload, str) else len(payload)
+    if size > max_bytes:
+        raise ValueError("JSON input exceeds the byte budget")
+
+    def reject(value):
+        raise ValueError(f"nonstandard JSON constant: {value}")
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON object key")
+            result[key] = value
+        return result
+
+    try:
+        result = json.loads(
+            payload, parse_constant=reject, object_pairs_hook=unique_object
+        )
+    except RecursionError as error:
+        raise ValueError("JSON nesting exceeds the supported limit") from error
+    return validate_json(result, max_bytes=max_bytes)
