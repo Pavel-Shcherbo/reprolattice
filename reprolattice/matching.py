@@ -40,3 +40,15 @@ def glob_match(pattern, value):
     return left == len(pattern)
 
 
+def canonical_headers(headers):
+    grouped = {}
+    pairs = headers.items() if isinstance(headers, dict) else headers
+    for key, value in pairs:
+        normalized = key.casefold()
+        grouped.setdefault(normalized, []).append(value)
+    return {
+        key: values[0] if len(values) == 1 else values
+        for key, values in grouped.items()
+    }
+
+
