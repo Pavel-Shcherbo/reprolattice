@@ -52,3 +52,32 @@ def canonical_headers(headers):
     }
 
 
+def assertion_issues(component, value, rules):
+    issues = []
+    for rule in rules:
+        result = rule.evaluate(value)
+        if not result["passed"]:
+            issues.append(
+                {
+                    "component": component,
+                    "id": rule.id,
+                    "path": rule.path,
+                    "reason": result["reason"],
+                }
+            )
+    return issues
+
+
+@dataclass(frozen=True)
+class RequestMatcher:
+    method: str
+    path: str
+    pattern: bool
+    headers: dict
+    has_json: bool
+    json_value: object
+    json_rules: tuple
+    query_rules: tuple
+    header_rules: tuple
+    query_component: bool
+
