@@ -81,3 +81,59 @@ class RequestMatcher:
     header_rules: tuple
     query_component: bool
 
+    def match(self, method, path, body, headers):
+        issues = []
+        if method != self.method:
+            issues.append({"component": "method", "reason": "method_mismatch"})
+        if len(path) > 8192:
+            return issues + [{"component": "path", "reason": "path_budget_exceeded"}]
+        try:
+            parsed = urlsplit(path)
+        except ValueError:
+            return issues + [{"component": "path", "reason": "invalid_path"}]
+        if (
+            parsed.scheme
+            or parsed.netloc
+            or parsed.fragment
+            or not path.startswith("/")
+            or path.startswith("//")
+        ):
+            return issues + [
+                {"component": "path", "reason": "invalid_origin_relative_path"}
+            ]
+        candidate = parsed.path if self.pattern or self.query_component else path
+        matched = (
+            glob_match(self.path, candidate) if self.pattern else self.path == candidate
+        )
+        if not matched:
+            issues.append({"component": "path", "reason": "path_mismatch"})
+        actual_headers = canonical_headers(headers)
+        for key, expected in self.headers.items():
+            if actual_headers.get(key) != expected:
+                issues.append(
+                    {
+                        "component": "headers",
+                        "path": "/" + key,
+                        "reason": "header_mismatch",
+                    }
+                )
+        if self.has_json and not json_equal(body, self.json_value):
+            issues.append({"component": "json", "path": "", "reason": "body_mismatch"})
+        issues.extend(assertion_issues("json", body, self.json_rules))
+        issues.extend(assertion_issues("headers", actual_headers, self.header_rules))
+        if self.query_component:
+            try:
+                values = parse_qs(
+                    parsed.query, keep_blank_values=True, max_num_fields=1000
+                )
+            except ValueError:
+                issues.append({"component": "query", "reason": "query_budget_exceeded"})
+            else:
+                query = {
+                    key: value[0] if len(value) == 1 else value
+                    for key, value in values.items()
+                }
+                issues.extend(assertion_issues("query", query, self.query_rules))
+        return issues
+
+
