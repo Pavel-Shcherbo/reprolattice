@@ -137,3 +137,73 @@ class RequestMatcher:
         return issues
 
 
+def compile_request(definition):
+    allowed = {
+        "method",
+        "path",
+        "path_pattern",
+        "headers",
+        "json",
+        "json_assertions",
+        "query_assertions",
+        "header_assertions",
+    }
+    if not isinstance(definition, dict) or set(definition) - allowed:
+        raise ValueError("request contains unsupported fields")
+    method = definition.get("method")
+    if not isinstance(method, str) or method not in METHODS:
+        raise ValueError("unsupported request method")
+    if ("path" in definition) == ("path_pattern" in definition):
+        raise ValueError("request requires exactly one of path or path_pattern")
+    pattern = "path_pattern" in definition
+    path = definition.get("path_pattern") if pattern else definition.get("path")
+    maximum = 256 if pattern else 8192
+    if (
+        not isinstance(path, str)
+        or not path.startswith("/")
+        or path.startswith("//")
+        or "#" in path
+        or len(path) > maximum
+        or any(ord(character) < 33 for character in path)
+    ):
+        raise ValueError(
+            "request path must be a bounded origin-relative path without whitespace"
+        )
+    query_component = "query_assertions" in definition
+    if not pattern and query_component and "?" in path:
+        raise ValueError("path must exclude the query when query_assertions are used")
+    headers = definition.get("headers", {})
+    if not isinstance(headers, dict) or len(headers) > 100:
+        raise ValueError("request headers must be an object of at most 100 fields")
+    normalized = {}
+    for key, value in headers.items():
+        if (
+            not isinstance(key, str)
+            or not HEADER_NAME.fullmatch(key)
+            or not isinstance(value, str)
+            or any(character in value for character in "\r\n")
+        ):
+            raise ValueError("invalid expected request header")
+        if key.casefold() in normalized:
+            raise ValueError("expected header names must be unique ignoring case")
+        normalized[key.casefold()] = value
+    json_rules = compile_rules(definition.get("json_assertions", []))
+    query_rules = compile_rules(definition.get("query_assertions", []))
+    header_rules = compile_rules(definition.get("header_assertions", []))
+    for rule in header_rules:
+        if rule.tokens and rule.tokens[0] != rule.tokens[0].casefold():
+            raise ValueError("header assertion pointers use lowercase header names")
+    if "json" in definition:
+        validate_json(definition["json"])
+    return RequestMatcher(
+        method,
+        path,
+        pattern,
+        normalized,
+        "json" in definition,
+        copy.deepcopy(definition.get("json")),
+        json_rules,
+        query_rules,
+        header_rules,
+        query_component,
+    )
