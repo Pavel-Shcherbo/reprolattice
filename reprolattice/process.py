@@ -19,3 +19,14 @@ class ProcessResult:
     stdout_valid_utf8: bool
 
 
+def stop_process(process):
+    """Kill the POSIX process group, including descendants after the leader exits."""
+    try:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        elif process.poll() is None:
+            process.kill()
+    except ProcessLookupError:
+        pass
+
+
