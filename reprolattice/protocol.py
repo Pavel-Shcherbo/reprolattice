@@ -46,3 +46,56 @@ def sample_request(item):
     return sample
 
 
+def verify_protocol(fixture, inject_mismatch=False):
+    interactions = validate(fixture)
+    samples = [sample_request(item) for item in interactions]
+    server, state = make_server(fixture)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    results = []
+    try:
+        for item, request in zip(interactions, samples):
+            path = (
+                "/unexpected-test-path"
+                if inject_mismatch and not results
+                else request["path"]
+            )
+            connection = http.client.HTTPConnection(
+                "127.0.0.1", server.server_port, timeout=3
+            )
+            try:
+                body = json.dumps(request["json"]) if "json" in request else None
+                connection.request(
+                    request["method"], path, body, headers=request.get("headers", {})
+                )
+                response = connection.getresponse()
+                raw = response.read()
+                no_body = request["method"] == "HEAD" or response.status in {204, 304}
+                content = None if no_body else strict_json(raw)
+                expected = item["response"]
+                passed = response.status == expected.get("status", 200) and (
+                    no_body or json_equal(content, expected.get("json"))
+                )
+                results.append(
+                    {
+                        "method": request["method"],
+                        "path": path,
+                        "expected": expected.get("status", 200),
+                        "actual": response.status,
+                        "body": redact(content),
+                        "passed": passed,
+                    }
+                )
+            finally:
+                connection.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    return {
+        "results": results,
+        **state,
+        "passed": all(row["passed"] for row in results)
+        and state["consumed"] == state["total"]
+        and state["unexpected"] == 0,
+    }
