@@ -20,3 +20,10 @@ NORMALIZED_SECRET_KEYS = frozenset(
 )
 
 
+def secret_key(key):
+    return (
+        isinstance(key, str)
+        and key.casefold().replace("-", "").replace("_", "") in NORMALIZED_SECRET_KEYS
+    )
+
+
