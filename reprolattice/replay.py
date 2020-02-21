@@ -5,42 +5,15 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-SECRET_KEYS = {
-    "authorization",
-    "proxy-authorization",
-    "cookie",
-    "set-cookie",
-    "password",
-    "token",
-    "access_token",
-    "refresh_token",
-    "api_key",
-    "x-api-key",
-    "secret",
-}
-
-
-def secret_key(key):
-    normalized = key.casefold().replace("-", "").replace("_", "")
-    return normalized in {
-        item.replace("-", "").replace("_", "") for item in SECRET_KEYS
-    }
-
-
-def redact(value):
-    if isinstance(value, dict):
-        return {
-            key: ("[REDACTED]" if secret_key(key) else redact(item))
-            for key, item in value.items()
-        }
-    if isinstance(value, list):
-        return [redact(item) for item in value]
-    return value
+from .redaction import SECRET_KEYS, redact, secret_key
+from .jsonutil import strict_json, validate_json
+from .matching import compile_request
 
 
 def validate(fixture):
     if not isinstance(fixture, dict):
         raise ValueError("fixture must be an object")
+    validate_json(fixture, max_bytes=16 * 1024 * 1024, max_nodes=500000)
     if (
         isinstance(fixture.get("capture"), dict)
         and fixture["capture"].get("complete") is False
@@ -55,20 +28,7 @@ def validate(fixture):
         request, response = item.get("request", {}), item.get("response", {})
         if not isinstance(request, dict) or not isinstance(response, dict):
             raise ValueError("request and response must be objects")
-        if request.get("method") not in {
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "HEAD",
-            "OPTIONS",
-        }:
-            raise ValueError("unsupported request method")
-        if not isinstance(request.get("path"), str) or not request["path"].startswith(
-            "/"
-        ):
-            raise ValueError("request path must start with /")
+        compile_request(request)
         status = response.get("status", 200)
         if type(status) is not int or not 200 <= status <= 599:
             raise ValueError("response status must be between 200 and 599")
@@ -103,6 +63,7 @@ def validate(fixture):
 
 def make_server(fixture, port=0):
     interactions = validate(fixture)
+    matchers = [compile_request(item["request"]) for item in interactions]
     state = {"consumed": 0, "unexpected": 0, "total": len(interactions)}
     lock = threading.Lock()
 
@@ -111,6 +72,11 @@ def make_server(fixture, port=0):
 
         def log_message(self, *_):
             pass
+
+        def send_error(self, code, message=None, explain=None):
+            with lock:
+                state["unexpected"] += 1
+            super().send_error(code, message, explain)
 
         def respond(self, status, body, headers=None, body_length=None):
             payload = b"" if status in {204, 304} else json.dumps(body).encode()
@@ -142,7 +108,7 @@ def make_server(fixture, port=0):
                 ):
                     raise ValueError("unsupported request framing")
                 raw = self.rfile.read(size)
-                body = json.loads(raw) if raw else None
+                body = strict_json(raw) if raw else None
             except (ValueError, TimeoutError):
                 with lock:
                     state["unexpected"] += 1
@@ -154,15 +120,14 @@ def make_server(fixture, port=0):
                     if state["consumed"] < len(interactions)
                     else None
                 )
-                expected = item["request"] if item else {}
-                matches = (
-                    item
-                    and self.command == expected["method"]
-                    and self.path == expected["path"]
+                issues = (
+                    matchers[state["consumed"]].match(
+                        self.command, self.path, body, list(self.headers.items())
+                    )
+                    if item
+                    else [{"component": "sequence", "reason": "fixture_exhausted"}]
                 )
-                if matches and "json" in expected:
-                    matches = body == expected["json"]
-                if matches:
+                if item and not issues:
                     state["consumed"] += 1
                     response = item["response"]
                 else:
@@ -170,7 +135,8 @@ def make_server(fixture, port=0):
                     response = {
                         "status": 409,
                         "json": {
-                            "error": "request does not match next fixture interaction"
+                            "error": "request does not match next fixture interaction",
+                            "mismatches": issues[:20],
                         },
                     }
             self.respond(
