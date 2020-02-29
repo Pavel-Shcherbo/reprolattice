@@ -16,6 +16,16 @@ files are served from an explicit allowlist. Request bodies are limited to 1 MiB
 These measures support a local development tool; there is no production identity,
 authorization or organization model yet.
 
+## Matchers and assertions
+
+`jsonutil` enforces finite bounded JSON at input boundaries, including unique object keys. `assertions` compiles non-executable pointer conditions, preserves boolean/number distinctions and reports redacted bounded diagnostics. `matching` combines method/path rules with optional header, query and JSON conditions. The replay server compiles matchers once and protects consumption with its sequence lock.
+
+`protocol` is shared by CLI and workbench. Dynamic rules use an explicit concrete sample, validated before binding a temporary server. Protocol verification checks the fixture transport; the separate application harness checks actual client behavior.
+
+## Process execution
+
+`process` drains stdout and stderr concurrently into capped buffers, enforces a wall-clock deadline and reports invalid UTF-8 separately. POSIX process groups are terminated on timeout or output overflow, including descendants holding pipes after the leader exits. The harness combines output conditions, exit status, resource limits and interaction consumption. Windows descendant termination is not implemented or qualified; the harness is not an OS sandbox.
+
 ## Next architectural increment
 
-Add portable application-state assertions and process-tree cleanup, then introduce explicit local capture with reviewed redaction policies.
+Introduce scenario collections, parameterized runs and portable report export, followed by explicit application-state adapters. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
