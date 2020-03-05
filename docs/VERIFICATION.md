@@ -2,7 +2,7 @@
 
 Verified locally on 2026-11-04. This is not full product acceptance.
 
-- 18 domain, integration and negative-path tests passed.
+- 54 domain, integration and negative-path tests passed.
 - The documented CLI control scenario completed and its result was checked.
 - Local HTTP success/failure scenarios and foreign-Origin rejection were checked.
 - Desktop and mobile workbench screens were inspected; the review includes defect corrections.
@@ -11,3 +11,5 @@ Verified locally on 2026-11-04. This is not full product acceptance.
 Run `python3 -m unittest discover -s tests -v` from this checkout. The examples and README describe supported behavior and limits. No remote publication or hosted deployment was performed.
 
 Version 0.2 wheel installation was checked in an independent virtual environment from an unrelated working directory. Example export, CLI, static files and public workbench calculations passed. Installed code matched the source files, and runtime state remained outside the package. See installed-verification.json for the wheel identity.
+
+The current increment adds typed JSON-pointer rules, dynamic request matching, shared protocol verification, bounded stdout/stderr, UTF-8 detection and POSIX descendant cleanup. New checks include real HTTP samples and subprocess failure cases. The installed dynamic example passes through CLI and the workbench API; an injected mismatch fails. Windows process-tree behavior is not qualified.
