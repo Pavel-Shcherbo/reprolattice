@@ -1,7 +1,8 @@
 {
   "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
-  "wheel_sha256": "c7d80143f76a5919514e09c931a8655699b84ee9adff2fb4d0b62e39d10b6493",
+  "wheel_sha256": "edf555637fef326c746c4862b93c463125b076a0cf7e1d72edca6e068570be8d",
   "examples_exported": [
+    "dynamic-order.json",
     "inventory_client.py",
     "retry.json"
   ],
