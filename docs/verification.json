@@ -1,21 +1,27 @@
 {
-  "verified_at": "2026-11-04T02:17:40.894521+00:00",
+  "verified_at": "2026-11-04T02:39:38.422548+00:00",
   "scope": "Current local core, not the full product scope or the 20,000-SLOC acceptance",
-  "unit_tests": 18,
+  "unit_tests": 54,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
     "reprolattice/__init__.py": "1391addfc0d4745d0895176874bc1e46675da349083ca0cbe0a8130758cebc40",
-    "reprolattice/__main__.py": "36a067fd37e2bb7cf7671748669760ea8f990e92bec9bfcf1279a7ba595265b2",
-    "reprolattice/capture.py": "ed9dbe97624ff2205b7dcc7614d1a82aac8ac4ad8b5be529d87c4da1660bbe4b",
-    "reprolattice/harness.py": "3a28f6c10b1c52aab3755f5b8203cfdd7141d690d3d70207c2a67bd3ad44b94e",
+    "reprolattice/__main__.py": "473fd7634d99eeb23ab240ea32b90a85c2171bbcbd161a1deb69e25d447c0ee1",
+    "reprolattice/assertions.py": "e5cebd82ebfe5d92d1e19522634fb570f5fc0321f08036ff9b5bf044bc9a7dd0",
+    "reprolattice/capture.py": "1b1c69b2af94d2411a9403ea6a504c5ff8597de8fd3284478c89ccbf1dcf412f",
+    "reprolattice/harness.py": "46d15dfba8a20fd3c45b2111ed4cc1fa67268370fec10b7fbf579f1247b813a4",
     "reprolattice/httpapp.py": "aeae90d384d4ce2451d73504885e5d9da679f48768f34f50fda39f9ef24907a6",
-    "reprolattice/replay.py": "84ae6407112aa7d344794a96ead7e29ef2f335d02ebe3ec71931ba9159738911",
+    "reprolattice/jsonutil.py": "1dd0754e5822dabcf5be69a70105439f619a32b07d3280970a5b242746447252",
+    "reprolattice/matching.py": "62078742bf39905e7b4dcfbc70aecf6e64d928e07293ebe4b1ed02b7499d1096",
+    "reprolattice/process.py": "b9fc3339ed800aef575fbee7d2209e4f8c48d663d6681d7a694976edb5ed2301",
+    "reprolattice/protocol.py": "7ec1acddda0e6a926af439fc1ae5f51fe9743723c428e087607cab86d6b6bf0d",
+    "reprolattice/redaction.py": "732700d7f37562765549f590e8e2cf9c1340870e6a53e3ee1fb3acb6e96dd45f",
+    "reprolattice/replay.py": "ccb6ccdd01e78f1f6921fcd5138e274c5f7646c0bfa527ba25d6a1e1790426a7",
     "reprolattice/resources.py": "7b4881ac5e208822eea3c485114e2482ba81fc4336e113fdd301e87610b7d62e",
     "reprolattice/static/app.js": "05d77f4998a2f10117b9a02f9337b766d36a79ea5cb5bc7e4670142009cc0679",
     "reprolattice/static/index.html": "b2877a2c3fbae0e10d9afd6885cb558b3326f1f5598b53f43e9a02e4df50d066",
     "reprolattice/static/style.css": "74fb9dacd9711116deef062dbaf03a5ef169000ec2f90d3d685ae95237af5798",
-    "reprolattice/web.py": "394a55cb188f962209c07e7eac138995a3eaacb8ac626773440f6c03b4432d5a"
+    "reprolattice/web.py": "c09e2f6e068d32757b5b6a88155a259f16860078f977bbeaad4961f5e47a21a0"
   },
   "full_portfolio_acceptance": false
 }
