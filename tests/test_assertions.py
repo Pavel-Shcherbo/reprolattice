@@ -13,3 +13,9 @@ from reprolattice.assertions import (
 from reprolattice.jsonutil import strict_json, validate_json
 
 
+def check(actual, **rule):
+    return evaluate_rules(actual, compile_rules([rule]))[0]
+
+
+class AssertionTests(unittest.TestCase):
+    pass
