@@ -18,4 +18,11 @@ def check(actual, **rule):
 
 
 class AssertionTests(unittest.TestCase):
-    pass
+    def test_json_boolean_and_number_are_distinct(self):
+        self.assertFalse(json_equal(True, 1))
+        self.assertFalse(json_equal({"flag": True}, {"flag": 1}))
+        self.assertTrue(json_equal(1, 1.0))
+        self.assertFalse(
+            check({"flag": 1}, path="/flag", op="equals", value=True)["passed"]
+        )
+
