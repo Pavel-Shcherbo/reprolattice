@@ -26,3 +26,15 @@ class AssertionTests(unittest.TestCase):
             check({"flag": 1}, path="/flag", op="equals", value=True)["passed"]
         )
 
+    def test_missing_null_and_empty_key_remain_distinct(self):
+        document = {"null": None, "": 5}
+        self.assertTrue(check(document, path="/null", op="exists")["passed"])
+        self.assertTrue(check(document, path="/missing", op="absent")["passed"])
+        self.assertFalse(
+            check(document, path="/missing", op="equals", value=None)["passed"]
+        )
+        self.assertFalse(
+            check(document, path="/missing", op="not_equals", value=7)["passed"]
+        )
+        self.assertTrue(check(document, path="/", op="equals", value=5)["passed"])
+
