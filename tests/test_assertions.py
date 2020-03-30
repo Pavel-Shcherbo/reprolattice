@@ -63,3 +63,21 @@ class AssertionTests(unittest.TestCase):
             self.assertFalse(check(value, op="type", value="integer")["passed"])
         self.assertTrue(check(10**400, op="gt", value=10**399)["passed"])
 
+    def test_tolerance_is_explicit_and_avoids_float_overflow(self):
+        self.assertTrue(
+            check({"n": 1.001}, path="/n", op="approx", value=1, atol=0.002, rtol=0)[
+                "passed"
+            ]
+        )
+        self.assertFalse(
+            check({"n": 1.01}, path="/n", op="approx", value=1, atol=0.002, rtol=0)[
+                "passed"
+            ]
+        )
+        self.assertFalse(
+            check(-1e308, op="approx", value=1e308, atol=0, rtol=1.9)["passed"]
+        )
+        self.assertTrue(
+            check(-1e308, op="approx", value=1e308, atol=0, rtol=2)["passed"]
+        )
+
