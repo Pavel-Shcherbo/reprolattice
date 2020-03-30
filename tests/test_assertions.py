@@ -38,3 +38,11 @@ class AssertionTests(unittest.TestCase):
         )
         self.assertTrue(check(document, path="/", op="equals", value=5)["passed"])
 
+    def test_pointer_escapes_array_indices_and_root(self):
+        document = {"a/b": {"~": [10, 20]}, "~1": "literal"}
+        self.assertEqual(resolve(document, pointer_tokens("/a~1b/~0/1")), 20)
+        self.assertEqual(resolve(document, pointer_tokens("/~01")), "literal")
+        self.assertIs(resolve(document, pointer_tokens("/a~1b/~0/01")), MISSING)
+        self.assertIs(resolve(document, pointer_tokens("/a~1b/~0/-")), MISSING)
+        self.assertTrue(check(document, path="", op="type", value="object")["passed"])
+
