@@ -46,3 +46,13 @@ class AssertionTests(unittest.TestCase):
         self.assertIs(resolve(document, pointer_tokens("/a~1b/~0/-")), MISSING)
         self.assertTrue(check(document, path="", op="type", value="object")["passed"])
 
+    def test_numeric_comparisons_do_not_coerce_strings(self):
+        for operation, expected in [("gt", 3), ("gte", 4), ("lt", 5), ("lte", 4)]:
+            self.assertTrue(
+                check({"n": 4}, path="/n", op=operation, value=expected)["passed"]
+            )
+            self.assertFalse(
+                check({"n": "4"}, path="/n", op=operation, value=expected)["passed"]
+            )
+        self.assertFalse(check({"n": True}, path="/n", op="gte", value=0)["passed"])
+
