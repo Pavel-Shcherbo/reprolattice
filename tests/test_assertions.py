@@ -56,3 +56,10 @@ class AssertionTests(unittest.TestCase):
             )
         self.assertFalse(check({"n": True}, path="/n", op="gte", value=0)["passed"])
 
+    def test_integer_predicate_and_arbitrary_precision_equality(self):
+        for value in [1, 1.0, 10**400]:
+            self.assertTrue(check(value, op="type", value="integer")["passed"])
+        for value in [True, 1.5, "1"]:
+            self.assertFalse(check(value, op="type", value="integer")["passed"])
+        self.assertTrue(check(10**400, op="gt", value=10**399)["passed"])
+
