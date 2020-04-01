@@ -81,3 +81,18 @@ class AssertionTests(unittest.TestCase):
             check(-1e308, op="approx", value=1e308, atol=0, rtol=2)["passed"]
         )
 
+    def test_membership_and_nested_subsets_use_typed_values(self):
+        self.assertTrue(
+            check("order-created", op="contains", value="created")["passed"]
+        )
+        self.assertTrue(check([{"id": 1}], op="contains", value={"id": 1})["passed"])
+        self.assertFalse(check([True], op="contains", value=1)["passed"])
+        self.assertTrue(
+            check(
+                {"order": {"id": 1, "state": "ready"}, "extra": 3},
+                op="subset",
+                value={"order": {"id": 1}},
+            )["passed"]
+        )
+        self.assertFalse(check(False, op="one_of", value=[0, 1])["passed"])
+
