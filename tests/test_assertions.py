@@ -96,3 +96,22 @@ class AssertionTests(unittest.TestCase):
         )
         self.assertFalse(check(False, op="one_of", value=[0, 1])["passed"])
 
+    def test_secret_values_are_not_in_diagnostics(self):
+        result = check(
+            {"accessToken": "actual-canary"},
+            path="/accessToken",
+            op="equals",
+            value="expected-canary",
+        )
+        self.assertEqual(result["actual"], "[REDACTED]")
+        self.assertEqual(result["expected"], "[REDACTED]")
+        nested = check(
+            {"token": {"nested": "nested-canary"}},
+            path="/token/nested",
+            op="equals",
+            value="expected-canary",
+        )
+        self.assertNotIn("canary", json.dumps(nested))
+        root = check({"password": "root-canary"}, op="equals", value={})
+        self.assertEqual(root["actual"]["password"], "[REDACTED]")
+
