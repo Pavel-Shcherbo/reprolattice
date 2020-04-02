@@ -115,3 +115,26 @@ class AssertionTests(unittest.TestCase):
         root = check({"password": "root-canary"}, op="equals", value={})
         self.assertEqual(root["actual"]["password"], "[REDACTED]")
 
+    def test_compilation_rejects_typos_and_invalid_numeric_rules(self):
+        invalid = [
+            {"op": []},
+            {"op": "unknown"},
+            {"op": "equals", "valu": 2},
+            {"op": "exists", "value": None},
+            {"op": "equals", "value": 1, "rtol": 0.1},
+            {"op": "approx", "value": math.inf},
+            {"op": "approx", "value": 1, "atol": True},
+            {"op": "one_of", "value": []},
+            {"op": "subset", "value": []},
+            {"op": "type", "value": "date"},
+            {"path": "/bad~2", "op": "exists"},
+        ]
+        for definition in invalid:
+            with self.subTest(definition=definition):
+                with self.assertRaises(ValueError):
+                    compile_rules([definition])
+        with self.assertRaises(ValueError):
+            compile_rules(
+                [{"id": "same", "op": "exists"}, {"id": "same", "op": "exists"}]
+            )
+
