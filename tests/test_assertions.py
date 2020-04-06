@@ -146,3 +146,14 @@ class AssertionTests(unittest.TestCase):
         result = check("x" * 5000, op="equals", value="y")
         self.assertIn("summary", result["actual"])
 
+    def test_finite_json_boundary_and_structure_limits(self):
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            strict_json('{"ok":true,"ok":false}')
+        for payload in ['{"n":NaN}', '{"n":Infinity}', "[" * 101 + "0" + "]" * 101]:
+            with self.assertRaises(ValueError):
+                strict_json(payload)
+        for value in [{1: "not-string"}, (1, 2), {"n": math.nan}]:
+            with self.assertRaises(ValueError):
+                validate_json(value)
+        with self.assertRaises(ValueError):
+            strict_json('{"value":"long"}', max_bytes=3)
