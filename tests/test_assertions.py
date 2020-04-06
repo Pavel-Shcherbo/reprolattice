@@ -138,3 +138,11 @@ class AssertionTests(unittest.TestCase):
                 [{"id": "same", "op": "exists"}, {"id": "same", "op": "exists"}]
             )
 
+    def test_compilation_copies_operands_and_bounds_reports(self):
+        definition = {"op": "equals", "value": {"id": 1}}
+        rules = compile_rules([definition])
+        definition["value"]["id"] = 2
+        self.assertTrue(evaluate_rules({"id": 1}, rules)[0]["passed"])
+        result = check("x" * 5000, op="equals", value="y")
+        self.assertIn("summary", result["actual"])
+
