@@ -30,3 +30,38 @@ class MatchingTests(unittest.TestCase):
                 )
         self.assertFalse(glob_match("*", "x" * 8193))
 
+    def test_request_supports_variable_paths_headers_queries_and_json(self):
+        matcher = compile_request(
+            {
+                "method": "POST",
+                "path_pattern": "/orders/*",
+                "headers": {"Content-Type": "application/json"},
+                "json_assertions": [
+                    {"path": "/amount", "op": "gte", "value": 1},
+                    {"path": "/id", "op": "type", "value": "string"},
+                ],
+                "header_assertions": [{"path": "/x-request-id", "op": "exists"}],
+                "query_assertions": [
+                    {"path": "/mode", "op": "one_of", "value": ["draft", "live"]}
+                ],
+            }
+        )
+        self.assertEqual(
+            matcher.match(
+                "POST",
+                "/orders/42?mode=draft",
+                {"amount": 3, "id": "order-42"},
+                {"content-type": "application/json", "X-Request-ID": "trace"},
+            ),
+            [],
+        )
+        issues = matcher.match(
+            "POST",
+            "/orders/42?mode=unknown",
+            {"amount": False, "id": 3},
+            {"Content-Type": "text/plain"},
+        )
+        self.assertEqual(
+            {item["component"] for item in issues}, {"headers", "query", "json"}
+        )
+
