@@ -65,3 +65,19 @@ class MatchingTests(unittest.TestCase):
             {item["component"] for item in issues}, {"headers", "query", "json"}
         )
 
+    def test_exact_paths_keep_query_encoding_and_header_duplicates_fail(self):
+        matcher = compile_request(
+            {"method": "GET", "path": "/search?q=a%20b", "headers": {"X-Trace": "one"}}
+        )
+        self.assertEqual(
+            matcher.match("GET", "/search?q=a%20b", None, [("x-trace", "one")]), []
+        )
+        self.assertTrue(
+            matcher.match("GET", "/search?q=a+b", None, [("x-trace", "one")])
+        )
+        self.assertTrue(
+            matcher.match(
+                "GET", "/search?q=a%20b", None, [("X-Trace", "one"), ("x-trace", "two")]
+            )
+        )
+
