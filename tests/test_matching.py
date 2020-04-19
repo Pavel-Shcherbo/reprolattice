@@ -81,3 +81,19 @@ class MatchingTests(unittest.TestCase):
             )
         )
 
+    def test_repeated_query_values_are_available_as_arrays(self):
+        matcher = compile_request(
+            {
+                "method": "GET",
+                "path": "/search",
+                "query_assertions": [
+                    {"path": "/tag", "op": "equals", "value": ["a", "b"]},
+                    {"path": "/empty", "op": "equals", "value": ""},
+                ],
+            }
+        )
+        self.assertEqual(
+            matcher.match("GET", "/search?tag=a&tag=b&empty=", None, {}), []
+        )
+        self.assertTrue(matcher.match("GET", "/search?tag=a", None, {}))
+
