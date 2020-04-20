@@ -114,3 +114,49 @@ class MatchingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 compile_request(request)
 
+    def test_real_server_does_not_consume_a_typed_mismatch(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {
+                        "method": "POST",
+                        "path_pattern": "/items/*",
+                        "headers": {"X-Trace": "one"},
+                        "json_assertions": [
+                            {"path": "/enabled", "op": "equals", "value": True}
+                        ],
+                    },
+                    "response": {"json": {"ok": True}},
+                }
+            ]
+        }
+        server, state = make_server(fixture)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        def request(body, header):
+            connection = http.client.HTTPConnection(
+                "127.0.0.1", server.server_port, timeout=3
+            )
+            try:
+                connection.request(
+                    "POST", "/items/42", json.dumps(body), {"x-trace": header}
+                )
+                response = connection.getresponse()
+                payload = json.loads(response.read())
+                return response.status, payload
+            finally:
+                connection.close()
+
+        try:
+            status, payload = request({"enabled": 1}, "one")
+            self.assertEqual(status, 409)
+            self.assertEqual(state["consumed"], 0)
+            self.assertEqual(payload["mismatches"][0]["component"], "json")
+            self.assertEqual(request({"enabled": True}, "one"), (200, {"ok": True}))
+            self.assertEqual(state["consumed"], 1)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
