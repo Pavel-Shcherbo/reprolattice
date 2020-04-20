@@ -97,3 +97,20 @@ class MatchingTests(unittest.TestCase):
         )
         self.assertTrue(matcher.match("GET", "/search?tag=a", None, {}))
 
+    def test_invalid_matcher_configuration_is_rejected(self):
+        for request in [
+            {"method": "GET", "path": "/", "path_pattern": "/*"},
+            {"method": "GET", "path": "//other"},
+            {"method": "GET", "path": "/bad path"},
+            {"method": "GET", "path": "/search?x=1", "query_assertions": []},
+            {"method": "GET", "path": "/", "headers": {"X": "a", "x": "b"}},
+            {
+                "method": "GET",
+                "path": "/",
+                "header_assertions": [{"path": "/Authorization", "op": "exists"}],
+            },
+            {"method": "GET", "path": "/", "unknown": True},
+        ]:
+            with self.assertRaises(ValueError):
+                compile_request(request)
+
