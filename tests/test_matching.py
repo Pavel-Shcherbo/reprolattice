@@ -160,3 +160,32 @@ class MatchingTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_unsupported_method_is_counted_as_an_unexpected_request(self):
+        server, state = make_server(
+            {
+                "interactions": [
+                    {
+                        "request": {"method": "GET", "path": "/"},
+                        "response": {"json": {}},
+                    }
+                ]
+            }
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", server.server_port, timeout=3
+        )
+        try:
+            connection.request("TRACE", "/")
+            response = connection.getresponse()
+            response.read()
+            self.assertEqual(response.status, 501)
+            self.assertEqual(state["unexpected"], 1)
+            self.assertEqual(state["consumed"], 0)
+        finally:
+            connection.close()
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
