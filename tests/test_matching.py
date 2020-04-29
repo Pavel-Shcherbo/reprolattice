@@ -189,3 +189,12 @@ class MatchingTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_matcher_rejects_absolute_and_network_path_requests(self):
+        matcher = compile_request({"method": "GET", "path_pattern": "/*"})
+        for path in [
+            "http://example.org/orders/42",
+            "//example.org/orders/42",
+            "/orders#fragment",
+        ]:
+            with self.subTest(path=path):
+                self.assertTrue(matcher.match("GET", path, None, {}))
