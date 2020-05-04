@@ -17,3 +17,13 @@ class ProcessTests(unittest.TestCase):
             **options,
         )
 
+    def test_collects_both_streams_and_exit_status(self):
+        result = self.run_code(
+            'import sys; print("ready"); print("warning", file=sys.stderr); sys.exit(7)'
+        )
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(result.stdout, "ready\n")
+        self.assertEqual(result.stderr, "warning\n")
+        self.assertFalse(result.timed_out)
+        self.assertFalse(result.output_limited)
+
