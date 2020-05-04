@@ -10,4 +10,10 @@ from reprolattice.process import run_process
 
 
 class ProcessTests(unittest.TestCase):
-    pass
+    def run_code(self, source, **options):
+        return run_process(
+            [sys.executable, "-c", source],
+            env={"PATH": os.environ.get("PATH", "")},
+            **options,
+        )
+
