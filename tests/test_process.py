@@ -27,3 +27,7 @@ class ProcessTests(unittest.TestCase):
         self.assertFalse(result.timed_out)
         self.assertFalse(result.output_limited)
 
+    def test_input_is_closed(self):
+        result = self.run_code("import sys; print(repr(sys.stdin.read()))")
+        self.assertEqual(result.stdout, "''\n")
+
