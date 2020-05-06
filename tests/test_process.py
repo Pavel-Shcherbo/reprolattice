@@ -31,3 +31,10 @@ class ProcessTests(unittest.TestCase):
         result = self.run_code("import sys; print(repr(sys.stdin.read()))")
         self.assertEqual(result.stdout, "''\n")
 
+    def test_exact_limit_is_accepted(self):
+        result = self.run_code(
+            'import sys; sys.stdout.write("x" * 1000)', stdout_limit=1000
+        )
+        self.assertEqual(len(result.stdout), 1000)
+        self.assertFalse(result.output_limited)
+
