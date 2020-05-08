@@ -51,3 +51,7 @@ class ProcessTests(unittest.TestCase):
                 self.assertLessEqual(len(result.stderr), 4096)
                 self.assertIsNotNone(result.returncode)
 
+    def test_invalid_utf8_is_reported(self):
+        result = self.run_code('import os; os.write(1, b"\\xff")')
+        self.assertFalse(result.stdout_valid_utf8)
+
