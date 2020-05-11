@@ -55,3 +55,8 @@ class ProcessTests(unittest.TestCase):
         result = self.run_code('import os; os.write(1, b"\\xff")')
         self.assertFalse(result.stdout_valid_utf8)
 
+    def test_timeout_stops_silent_process(self):
+        result = self.run_code("import time; time.sleep(30)", timeout=0.1)
+        self.assertTrue(result.timed_out)
+        self.assertIsNotNone(result.returncode)
+
