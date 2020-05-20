@@ -73,3 +73,12 @@ class ProcessTests(unittest.TestCase):
             time.sleep(0.8)
             self.assertFalse(marker.exists())
 
+    def test_invalid_limits_do_not_start_process(self):
+        for options in [
+            {"timeout": float("inf")},
+            {"timeout": True},
+            {"stdout_limit": 0},
+            {"stderr_limit": True},
+        ]:
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                self.run_code('raise Exception("must not run")', **options)
