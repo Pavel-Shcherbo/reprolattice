@@ -60,3 +60,16 @@ class ProcessTests(unittest.TestCase):
         self.assertTrue(result.timed_out)
         self.assertIsNotNone(result.returncode)
 
+    @unittest.skipUnless(os.name == "posix", "POSIX process group semantics")
+    def test_descendant_cannot_keep_pipes_open_after_parent_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "leaked"
+            child = f'import time; time.sleep(0.8); open({str(marker)!r}, "w").close()'
+            source = f'import subprocess,sys; subprocess.Popen([sys.executable,"-c",{child!r}])'
+            started = time.monotonic()
+            result = self.run_code(source, timeout=0.15)
+            self.assertTrue(result.timed_out)
+            self.assertLess(time.monotonic() - started, 1.5)
+            time.sleep(0.8)
+            self.assertFalse(marker.exists())
+
