@@ -30,3 +30,9 @@ class ProtocolTests(unittest.TestCase):
             ]
         }
 
+    def test_dynamic_example_runs_over_real_http(self):
+        result = verify_protocol(self.fixture())
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["consumed"], 1)
+        self.assertEqual(result["results"][0]["body"], {"accepted": True})
+
