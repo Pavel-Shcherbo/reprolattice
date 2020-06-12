@@ -36,3 +36,13 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(result["consumed"], 1)
         self.assertEqual(result["results"][0]["body"], {"accepted": True})
 
+    def test_missing_or_invalid_sample_fails_before_serving(self):
+        fixture = self.fixture()
+        fixture["interactions"][0].pop("sample_request")
+        with self.assertRaisesRegex(ValueError, "sample_request"):
+            verify_protocol(fixture)
+        fixture = self.fixture()
+        fixture["interactions"][0]["sample_request"]["json"]["quantity"] = 0
+        with self.assertRaisesRegex(ValueError, "does not satisfy"):
+            verify_protocol(fixture)
+
