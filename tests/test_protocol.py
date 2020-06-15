@@ -46,3 +46,22 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not satisfy"):
             verify_protocol(fixture)
 
+    def test_exact_headers_and_bodyless_responses(self):
+        for method, status in [("HEAD", 200), ("GET", 204), ("GET", 304)]:
+            with self.subTest(method=method, status=status):
+                result = verify_protocol(
+                    {
+                        "interactions": [
+                            {
+                                "request": {
+                                    "method": method,
+                                    "path": "/",
+                                    "headers": {"X-Test": "yes"},
+                                },
+                                "response": {"status": status},
+                            }
+                        ]
+                    }
+                )
+                self.assertTrue(result["passed"])
+
