@@ -65,3 +65,8 @@ class ProtocolTests(unittest.TestCase):
                 )
                 self.assertTrue(result["passed"])
 
+    def test_injected_failure_is_counted(self):
+        result = verify_protocol(self.fixture(), inject_mismatch=True)
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["unexpected"], 1)
+        self.assertEqual(result["consumed"], 0)
