@@ -2,3 +2,4 @@ include _build.py
 include examples/inventory_client.py
 include examples/retry.json
 include examples/dynamic-order.json
+include examples/inventory-suite.json
