@@ -31,6 +31,12 @@ Validates and serves ordered HTTP/JSON fixtures on loopback. Matches methods, ex
 
 Request rules and application assertions are described in [the assertion guide](docs/ASSERTIONS.md). Try `python3 -m reprolattice verify examples/dynamic-order.json` for an executable dynamic-path example.
 
+## Scenario suites
+
+Run `python3 -m reprolattice.suites examples/inventory-suite.json --output .local/control-run --jobs 2` for five real application/protocol cases. The runner preflights all variants, copies explicit workspace inputs, checks declared output artifacts and writes JSON, standalone HTML and JUnit XML reports to a new directory.
+
+The workbench includes the same reviewed suite, a faulty-client comparison and JSON/JUnit downloads. See [suite guide](docs/SUITES.md) for parameter matrices, cancellation, filtering, file identities and current limits.
+
 ## Boundaries
 
 The application harness accepts a trusted local command and checks its final JSON result; it is not an operating-system sandbox and does not prevent that process from making independent network calls. Explicit HTTP/JSON capture is available through `python3 -m reprolattice.capture`. Database snapshots, tracing, concurrent replay, SDKs and test export remain planned. Named-field redaction cannot detect every secret or personal datum. JSON bodies are bounded; streaming and arbitrary protocol replay are unsupported.
