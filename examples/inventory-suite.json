@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "name": "inventory-regression",
+  "command": [
+    "${python}",
+    "inventory_client.py",
+    "--receipt",
+    "receipt.json"
+  ],
+  "cases": [
+    {
+      "id": "retry-quantity",
+      "tags": [
+        "application",
+        "retry"
+      ],
+      "fixture": {
+        "application": {
+          "expected_json": {
+            "available": {
+              "$param": "available"
+            }
+          }
+        },
+        "interactions": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/inventory/part-42"
+            },
+            "response": {
+              "status": 503,
+              "json": {
+                "error": "dependency unavailable"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/inventory/part-42"
+            },
+            "response": {
+              "json": {
+                "available": {
+                  "$param": "available"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "matrix": {
+        "available": [
+          0,
+          7,
+          12
+        ]
+      },
+      "files": [
+        {
+          "path": "inventory_client.py",
+          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "receipt.json",
+          "kind": "json",
+          "assertions": [
+            {
+              "path": "/available",
+              "op": "equals",
+              "value": {
+                "$param": "available"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "permission-denied",
+      "tags": [
+        "application",
+        "errors"
+      ],
+      "fixture": {
+        "application": {
+          "expected_json": {
+            "error": "inventory request failed"
+          },
+          "expected_exit": 1
+        },
+        "interactions": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/inventory/part-42"
+            },
+            "response": {
+              "status": 403,
+              "json": {
+                "error": "forbidden"
+              }
+            }
+          }
+        ]
+      },
+      "files": [
+        {
+          "path": "inventory_client.py",
+          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-protocol",
+      "tags": [
+        "protocol"
+      ],
+      "mode": "protocol",
+      "command": [],
+      "fixture": "dynamic-order.json"
+    }
+  ]
+}
