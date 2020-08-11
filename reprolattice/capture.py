@@ -14,9 +14,9 @@ import time
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
-from .redaction import redact, secret_key
+from .redaction import scrub_url, redact, secret_key
 from .jsonutil import strict_json
 
 HOP_HEADERS = {
@@ -72,26 +72,6 @@ class CapturePolicy:
             value = getattr(self, name)
             if type(value) is not int or not 1 <= value <= maximum:
                 raise ValueError(f"{name} must be between 1 and {maximum}")
-
-
-def scrub_url(value):
-    try:
-        parts = urlsplit(value)
-        parsed = parse_qsl(parts.query, keep_blank_values=True)
-    except ValueError:
-        return "[INVALID URL]"
-    if parts.username is None and not any(secret_key(key) for key, _ in parsed):
-        return value
-    pairs = [(key, "[REDACTED]" if secret_key(key) else item) for key, item in parsed]
-    netloc = parts.netloc
-    if parts.username is not None:
-        host = parts.hostname or ""
-        netloc = (f"[{host}]" if ":" in host else host) + (
-            f":{parts.port}" if parts.port else ""
-        )
-    return urlunsplit(
-        (parts.scheme, netloc, parts.path, urlencode(pairs), parts.fragment)
-    )
 
 
 def stored_headers(headers):
