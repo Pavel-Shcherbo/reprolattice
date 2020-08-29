@@ -46,3 +46,45 @@ def variants(matrix):
     return [dict(zip(keys, copy.deepcopy(values))) for values in combinations]
 
 
+def expand(value, parameters, depth=0):
+    if depth > 100:
+        raise ValueError("parameter template nesting exceeds the supported budget")
+    if isinstance(value, dict):
+        if "$param" in value:
+            if set(value) != {"$param"}:
+                raise ValueError(
+                    "typed parameter reference cannot contain other fields"
+                )
+            name = parameter_name(value["$param"])
+            if name not in parameters:
+                raise ValueError(f"undefined parameter: {name}")
+            return copy.deepcopy(parameters[name])
+        if any("${" in key for key in value):
+            raise ValueError("parameter expansion is not supported in object keys")
+        return {key: expand(item, parameters, depth + 1) for key, item in value.items()}
+    if isinstance(value, list):
+        return [expand(item, parameters, depth + 1) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    def replace(match):
+        name = match.group(1)
+        if name not in parameters:
+            raise ValueError(f"undefined parameter: {name}")
+        replacement = parameters[name]
+        if isinstance(replacement, (dict, list)) or replacement is None:
+            raise ValueError("string interpolation requires a non-null scalar")
+        return (
+            replacement
+            if isinstance(replacement, str)
+            else json.dumps(replacement, allow_nan=False)
+        )
+
+    result = TOKEN.sub(replace, value)
+    if "${" in result:
+        raise ValueError("invalid or recursive parameter interpolation")
+    if len(result) > 65536:
+        raise ValueError("expanded string exceeds 64 KiB")
+    return result
+
+
