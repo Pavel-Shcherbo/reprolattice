@@ -88,3 +88,10 @@ def expand(value, parameters, depth=0):
     return result
 
 
+def variant_identity(parameters):
+    payload = json.dumps(
+        parameters, sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:12]
+
+
