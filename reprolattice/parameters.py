@@ -95,3 +95,33 @@ def variant_identity(parameters):
     return hashlib.sha256(payload.encode()).hexdigest()[:12]
 
 
+def scrub(value, secrets=()):
+    """Redact named fields, then explicit scalar secret values in all report strings."""
+    cleaned = redact(value)
+    replacements = sorted(set(secrets), key=lambda item: (-len(item), item))
+
+    enums = {
+        "status": {"passed", "failed", "error", "skipped", "cancelled"},
+        "mode": {"application", "protocol"},
+        "kind": {"case_started", "case_finished", "case_not_started", "json", "text"},
+        "format": {"reprolattice.suite-report.v1"},
+    }
+
+    def visit(item):
+        if isinstance(item, dict):
+            return {
+                key: (
+                    value
+                    if isinstance(value, str) and value in enums.get(key, ())
+                    else visit(value)
+                )
+                for key, value in item.items()
+            }
+        if isinstance(item, list):
+            return [visit(value) for value in item]
+        if isinstance(item, str):
+            for secret in replacements:
+                item = item.replace(secret, "[REDACTED]")
+        return item
+
+    return visit(cleaned)
