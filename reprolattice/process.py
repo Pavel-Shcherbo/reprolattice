@@ -11,12 +11,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ProcessResult:
-    returncode: int
+    returncode: int | None
     stdout: str
     stderr: str
     timed_out: bool
     output_limited: bool
     stdout_valid_utf8: bool
+    cancelled: bool = False
 
 
 def stop_process(process):
@@ -38,6 +39,7 @@ def run_process(
     timeout=10,
     stdout_limit=1024 * 1024,
     stderr_limit=256 * 1024,
+    should_cancel=None,
 ):
     if (
         not isinstance(command, list)
@@ -56,6 +58,10 @@ def run_process(
         for limit in (stdout_limit, stderr_limit)
     ):
         raise ValueError("stream limits must be integers between 1 byte and 16 MiB")
+    if should_cancel is not None and not callable(should_cancel):
+        raise ValueError("should_cancel must be callable")
+    if should_cancel is not None and should_cancel():
+        return ProcessResult(None, "", "", False, False, True, True)
     buffers = [bytearray(), bytearray()]
     finished = [threading.Event(), threading.Event()]
     exceeded = threading.Event()
@@ -94,10 +100,15 @@ def run_process(
     ]
     deadline = time.monotonic() + timeout
     timed_out = False
+    cancelled = False
     try:
         for reader in readers:
             reader.start()
         while True:
+            if should_cancel is not None and should_cancel():
+                cancelled = True
+                stop_process(process)
+                break
             if exceeded.is_set():
                 stop_process(process)
                 break
@@ -118,7 +129,7 @@ def run_process(
         # Raw unbuffered pipes can be closed even when a descendant retains its writer.
         process.stdout.close()
         process.stderr.close()
-        if failures and not timed_out and not exceeded.is_set():
+        if failures and not timed_out and not exceeded.is_set() and not cancelled:
             raise RuntimeError("application output collection failed")
         try:
             stdout = buffers[0].decode("utf-8")
@@ -132,6 +143,7 @@ def run_process(
             timed_out,
             exceeded.is_set(),
             valid_utf8,
+            cancelled,
         )
     finally:
         stop_process(process)
