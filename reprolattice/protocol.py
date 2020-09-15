@@ -8,7 +8,7 @@ import threading
 from .assertions import json_equal
 from .jsonutil import strict_json
 from .matching import compile_request
-from .redaction import redact
+from .redaction import redact, scrub_url
 from .replay import make_server, validate
 
 
@@ -46,15 +46,23 @@ def sample_request(item):
     return sample
 
 
-def verify_protocol(fixture, inject_mismatch=False):
+def verify_protocol(fixture, inject_mismatch=False, should_cancel=None):
+    if should_cancel is not None and not callable(should_cancel):
+        raise ValueError("should_cancel must be callable")
     interactions = validate(fixture)
     samples = [sample_request(item) for item in interactions]
     server, state = make_server(fixture)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread = threading.Thread(
+        target=lambda: server.serve_forever(poll_interval=0.05), daemon=True
+    )
     thread.start()
     results = []
+    cancelled = False
     try:
         for item, request in zip(interactions, samples):
+            if should_cancel is not None and should_cancel():
+                cancelled = True
+                break
             path = (
                 "/unexpected-test-path"
                 if inject_mismatch and not results
@@ -79,7 +87,7 @@ def verify_protocol(fixture, inject_mismatch=False):
                 results.append(
                     {
                         "method": request["method"],
-                        "path": path,
+                        "path": scrub_url(path),
                         "expected": expected.get("status", 200),
                         "actual": response.status,
                         "body": redact(content),
@@ -94,8 +102,10 @@ def verify_protocol(fixture, inject_mismatch=False):
         thread.join()
     return {
         "results": results,
+        "cancelled": cancelled,
         **state,
-        "passed": all(row["passed"] for row in results)
+        "passed": not cancelled
+        and all(row["passed"] for row in results)
         and state["consumed"] == state["total"]
         and state["unexpected"] == 0,
     }
