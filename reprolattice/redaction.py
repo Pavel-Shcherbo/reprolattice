@@ -1,5 +1,7 @@
 """Named-field redaction shared by capture, matching and result reports."""
 
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 SECRET_KEYS = frozenset(
     {
         "authorization",
@@ -36,3 +38,24 @@ def redact(value):
     if isinstance(value, list):
         return [redact(item) for item in value]
     return value
+
+
+def scrub_url(value):
+    try:
+        parts = urlsplit(value)
+        parsed = parse_qsl(parts.query, keep_blank_values=True, max_num_fields=1000)
+    except ValueError:
+        return "[INVALID URL]"
+    if parts.username is None and not any(secret_key(key) for key, _ in parsed):
+        return value
+    pairs = [(key, "[REDACTED]" if secret_key(key) else item) for key, item in parsed]
+    netloc = parts.netloc
+    if parts.username is not None:
+        try:
+            host, port = parts.hostname or "", parts.port
+        except ValueError:
+            return "[INVALID URL]"
+        netloc = (f"[{host}]" if ":" in host else host) + (f":{port}" if port else "")
+    return urlunsplit(
+        (parts.scheme, netloc, parts.path, urlencode(pairs), parts.fragment)
+    )
