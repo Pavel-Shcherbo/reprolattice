@@ -14,3 +14,7 @@ INVALID_XML = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]"
 STATUSES = ("passed", "failed", "error", "skipped", "cancelled")
 
 
+def xml_text(value):
+    return INVALID_XML.sub("\ufffd", str(value))
+
+
