@@ -73,3 +73,26 @@ def validate_report(report):
     return report
 
 
+def failure_summary(case):
+    if case["status"] == "error":
+        return case.get("error", {}).get("message", "case execution error")
+    detail = case.get("detail", {})
+    messages = [name for name, passed in detail.get("checks", {}).items() if not passed]
+    messages += [
+        "assertion " + rule["id"]
+        for rule in detail.get("assertions", [])
+        if not rule["passed"]
+    ]
+    messages += [
+        "artifact " + artifact["path"]
+        for artifact in case.get("artifacts", [])
+        if not artifact["passed"]
+    ]
+    messages += [
+        "request " + str(index + 1)
+        for index, result in enumerate(detail.get("results", []))
+        if not result["passed"]
+    ]
+    return "; ".join(messages) or case.get("reason", case["status"])
+
+
