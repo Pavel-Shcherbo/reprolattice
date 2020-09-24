@@ -96,3 +96,71 @@ def failure_summary(case):
     return "; ".join(messages) or case.get("reason", case["status"])
 
 
+def junit_xml(report):
+    validate_report(report)
+    counts = report["counts"]
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": xml_text(report["suite"]),
+            "tests": str(len(report["cases"])),
+            "failures": str(counts["failed"]),
+            "errors": str(counts["error"]),
+            "skipped": str(counts["skipped"] + counts["cancelled"]),
+            "time": f'{report["duration_seconds"]:.6f}',
+            "timestamp": xml_text(report["started_at"]),
+        },
+    )
+    properties = ET.SubElement(suite, "properties")
+    for name, value in [
+        ("run_id", report["run_id"]),
+        ("suite_sha256", report["suite_sha256"]),
+        ("full_suite", report["full_suite"]),
+        ("selected_cases", report["selected_cases"]),
+        ("cancelled_cases", counts["cancelled"]),
+    ]:
+        ET.SubElement(properties, "property", {"name": name, "value": xml_text(value)})
+    for case in report["cases"]:
+        node = ET.SubElement(
+            suite,
+            "testcase",
+            {
+                "classname": xml_text(report["suite"]),
+                "name": xml_text(case["id"]),
+                "time": f'{case["duration_seconds"]:.6f}',
+            },
+        )
+        status = case["status"]
+        if status in ("failed", "error"):
+            failure = ET.SubElement(
+                node,
+                "failure" if status == "failed" else "error",
+                {"message": xml_text(failure_summary(case)), "type": xml_text(status)},
+            )
+            failure.text = xml_text(
+                json.dumps(
+                    {
+                        "detail": case.get("detail"),
+                        "artifacts": case.get("artifacts"),
+                        "error": case.get("error"),
+                    },
+                    indent=2,
+                    ensure_ascii=True,
+                )
+            )
+        elif status in ("skipped", "cancelled"):
+            skipped = ET.SubElement(
+                node,
+                "skipped",
+                {"message": xml_text(case.get("reason", status)), "type": status},
+            )
+            skipped.text = xml_text(case.get("reason", status))
+        stderr = case.get("detail", {}).get("application", {}).get("stderr")
+        if stderr:
+            ET.SubElement(node, "system-err").text = xml_text(stderr)
+    root = ET.Element("testsuites")
+    root.append(suite)
+    ET.indent(root, space="  ")
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
