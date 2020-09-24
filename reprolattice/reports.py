@@ -164,3 +164,53 @@ def junit_xml(report):
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+def html_report(report):
+    validate_report(report)
+    escape = lambda value: html.escape(str(value), quote=True)
+    cards = []
+    for case in report["cases"]:
+        status = case["status"]
+        detail = json.dumps(
+            {
+                "checks": case.get("detail", {}).get("checks", {}),
+                "assertions": case.get("detail", {}).get("assertions", []),
+                "artifacts": case.get("artifacts", []),
+                "error": case.get("error"),
+            },
+            indent=2,
+            ensure_ascii=True,
+        )
+        cards.append(
+            f"""<tr><td><details><summary>{escape(case['id'])}</summary><p>{escape(failure_summary(case))}</p><pre>{escape(detail)}</pre></details></td><td class="{status}">{status}</td><td class="number">{case['duration_seconds']:.3f}</td><td>{escape(', '.join(case['tags']))}</td></tr>"""
+        )
+    counts = " · ".join(f'{report["counts"][status]} {status}' for status in STATUSES)
+    scope = (
+        "Full suite"
+        if report["full_suite"]
+        else f'Selected {report["selected_cases"]} of {report["total_cases"]} cases'
+    )
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>{escape(report['suite'])} — Reprolattice run</title><style>
+:root {{ color-scheme: light; }}
+* {{ box-sizing: border-box; }}
+body {{ margin: 0; padding: 32px 24px; color: #243039; background: #f5f7f8; font: 15px/1.6 system-ui,sans-serif; }}
+main {{ max-width: 1100px; margin: auto; }} h1 {{ font-size: 28px; font-weight: 600; margin: 8px 0; }}
+p {{ max-width: 80ch; }} .meta {{ color: #52616c; overflow-wrap: anywhere; }}
+.tablewrap {{ overflow-x: auto; background: white; border: 1px solid #d9e0e4; border-radius: 8px; }}
+table {{ width: 100%; border-collapse: collapse; }} th,td {{ padding: 16px; border-bottom: 1px solid #e4e9ec; text-align: left; vertical-align: top; }}
+th {{ font-weight: 600; background: #edf1f3; }} .number {{ text-align: right; font-variant-numeric: tabular-nums; }}
+summary {{ cursor: pointer; overflow-wrap: anywhere; }} pre {{ max-width: 65ch; overflow: auto; font-size: 12px; }}
+.passed {{ color: #166243; }} .failed,.error {{ color: #9f2630; }} .skipped,.cancelled {{ color: #6a531f; }}
+:focus-visible {{ outline: 3px solid #37688e; outline-offset: 3px; }}
+@media(max-width:600px) {{ body {{ padding:16px; }} th,td {{ padding:12px; }} }}
+</style></head><body><main><p class="meta">Reprolattice local run report</p><h1>{escape(report['suite'])}</h1>
+<p>{escape(scope)}. {'Checks passed' if report['passed'] else 'Review unsuccessful or incomplete cases'}.</p>
+<p>{escape(counts)}</p><p class="meta">Started {escape(report['started_at'])}; elapsed {report['duration_seconds']:.3f} seconds</p>
+<div class="tablewrap"><table><thead><tr><th>Case and checks</th><th>Status</th><th class="number">Seconds</th><th>Tags</th></tr></thead><tbody>{''.join(cards)}</tbody></table></div>
+<p class="meta">Run {escape(report['run_id'])}<br>Suite SHA-256 {escape(report['suite_sha256'])}</p>
+<p class="meta">Expand a case to inspect its checks. Skipped and cancelled cases are recorded explicitly.</p>
+</main></body></html>"""
+
+
