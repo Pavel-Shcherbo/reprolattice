@@ -214,3 +214,54 @@ summary {{ cursor: pointer; overflow-wrap: anywhere; }} pre {{ max-width: 65ch; 
 </main></body></html>"""
 
 
+def write_reports(report, directory):
+    validate_report(report)
+    destination = Path(directory).resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    payloads = {
+        "report.json": (json.dumps(report, indent=2, allow_nan=False) + "\n").encode(),
+        "junit.xml": junit_xml(report),
+        "report.html": html_report(report).encode(),
+    }
+    if sum(len(payload) for payload in payloads.values()) > 64 * 1024 * 1024:
+        raise ValueError("combined suite reports exceed 64 MiB")
+    temporary = Path(
+        tempfile.mkdtemp(prefix=".reprolattice-report-", dir=destination.parent)
+    )
+    reserved = False
+    try:
+        for name, payload in payloads.items():
+            with (temporary / name).open("xb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+        # Reserve without replacing even an empty directory. Consumers should use
+        # manifest.json as the completion marker, written after all report files.
+        destination.mkdir()
+        reserved = True
+        for name in payloads:
+            os.replace(temporary / name, destination / name)
+        manifest = {
+            "format": "reprolattice.report-set.v1",
+            "run_id": report["run_id"],
+            "files": {
+                name: {
+                    "bytes": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                }
+                for name, payload in payloads.items()
+            },
+        }
+        with (temporary / "manifest.json").open("x") as stream:
+            json.dump(manifest, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary / "manifest.json", destination / "manifest.json")
+        return manifest
+    except BaseException:
+        if reserved:
+            shutil.rmtree(destination)
+        raise
+    finally:
+        shutil.rmtree(temporary)
