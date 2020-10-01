@@ -124,3 +124,113 @@ $("fixture").addEventListener("input", () => {
   $("summary").textContent = "Run verification for the edited fixture";
   clear($("results"));
 });
+
+let suiteResult = null;
+function resetSuite() {
+  suiteResult = null;
+  clear($("suite-rows"));
+  $("suite-status").textContent = "Settings changed; run the suite";
+  $("suite-summary").textContent =
+    "Each case gets a fresh workspace and fixture server";
+  $("suite-details").textContent =
+    "Run the suite, then select a case to inspect its checks";
+  $("suite-hash").textContent = "";
+  $("suite-json").disabled = true;
+  $("suite-junit").disabled = true;
+  $("suite-error").hidden = true;
+}
+for (const id of ["suite-jobs", "suite-faulty"])
+  $(id).addEventListener("input", resetSuite);
+$("suite-run").onclick = async () => {
+  resetSuite();
+  $("suite-status").textContent = "Running isolated cases";
+  for (const id of ["suite-run", "suite-jobs", "suite-faulty"])
+    $(id).disabled = true;
+  try {
+    suiteResult = await evaluate({
+      mode: "suite",
+      jobs: Number($("suite-jobs").value),
+      faulty_client: $("suite-faulty").checked,
+    });
+    const report = suiteResult.report;
+    $("suite-status").textContent = report.passed ? "Passed" : "Checks failed";
+    $("suite-summary").textContent = Object.entries(report.counts)
+      .map(([status, count]) => count + " " + status)
+      .join("; ");
+    for (const item of report.cases) {
+      const row = element("tr");
+      row.tabIndex = 0;
+      row.append(
+        element(
+          "td",
+          item.source_id +
+            (Object.keys(item.parameters).length
+              ? " (" +
+                Object.entries(item.parameters)
+                  .map(([key, value]) => key + "=" + JSON.stringify(value))
+                  .join(", ") +
+                ")"
+              : ""),
+        ),
+        element("td", item.status, "status " + item.status),
+        element("td", item.duration_seconds.toFixed(3), "number"),
+      );
+      const select = () => {
+        document
+          .querySelectorAll("#suite-rows tr")
+          .forEach((other) => other.classList.remove("suite-selected"));
+        row.classList.add("suite-selected");
+        $("suite-details").textContent = JSON.stringify(
+          {
+            status: item.status,
+            checks: item.detail?.checks,
+            assertions: item.detail?.assertions,
+            requests: item.detail?.results,
+            application: item.detail?.application,
+            artifacts: item.artifacts,
+            error: item.error,
+            case_id: item.id,
+            parameters: item.parameters,
+            fixture_sha256: item.fixture_sha256,
+            inputs: item.inputs,
+          },
+          null,
+          2,
+        );
+      };
+      row.onclick = select;
+      row.onkeydown = (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select();
+        }
+      };
+      $("suite-rows").append(row);
+    }
+    $("suite-hash").textContent = "Suite SHA-256 " + report.suite_sha256;
+    $("suite-json").disabled = false;
+    $("suite-junit").disabled = false;
+    $("suite-rows").firstElementChild?.click();
+  } catch (exception) {
+    $("suite-status").textContent = "Suite could not start";
+    $("suite-error").textContent = exception.message;
+    $("suite-error").hidden = false;
+  } finally {
+    for (const id of ["suite-run", "suite-jobs", "suite-faulty"])
+      $(id).disabled = false;
+  }
+};
+$("suite-json").onclick = () => {
+  if (suiteResult) download("reprolattice-suite.json", suiteResult.report);
+};
+$("suite-junit").onclick = () => {
+  if (!suiteResult) return;
+  const url = URL.createObjectURL(
+    new Blob([suiteResult.junit_xml], { type: "application/xml" }),
+  );
+  const link = element("a");
+  link.href = url;
+  link.download = "reprolattice-junit.xml";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
