@@ -15,7 +15,7 @@
         <p class="caption">Repeatable HTTP failure scenarios</p>
         <nav aria-label="Workspace">
           <a href="#scenario">Scenario</a
-          ><a href="#verification">Verification</a
+          ><a href="#verification">Verification</a><a href="#suite">Suite</a
           ><a href="#boundaries">Replay boundaries</a>
         </nav>
         <footer>Local workbench<br />Development build</footer>
@@ -93,6 +93,56 @@
             </div>
           </section>
         </div>
+        <section class="section" id="suite">
+          <div class="pagehead">
+            <div>
+              <h2>Inventory regression suite</h2>
+              <p>
+                Five isolated checks across retries, errors and dynamic requests
+              </p>
+            </div>
+            <button id="suite-run" class="primary">Run suite</button>
+          </div>
+          <div class="panel">
+            <div class="panelbody suite-controls">
+              <label
+                >Parallel cases<select id="suite-jobs">
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="4">4</option>
+                </select></label
+              ><label
+                ><input id="suite-faulty" type="checkbox" /> Use faulty retry
+                client</label
+              ><span id="suite-status" role="status">Not run</span>
+            </div>
+            <div id="suite-error" class="error" role="alert" hidden></div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th>Status</th>
+                    <th class="number">Seconds</th>
+                  </tr>
+                </thead>
+                <tbody id="suite-rows"></tbody>
+              </table>
+            </div>
+            <div class="panelbody">
+              <p id="suite-summary" class="notice">
+                Each case gets a fresh workspace and fixture server
+              </p>
+              <pre id="suite-details">
+Run the suite, then select a case to inspect its checks</pre>
+              <div class="actions">
+                <button id="suite-json" disabled>Export suite JSON</button
+                ><button id="suite-junit" disabled>Export JUnit XML</button>
+              </div>
+              <p id="suite-hash" class="mono notice"></p>
+            </div>
+          </div>
+        </section>
         <section class="section" id="boundaries">
           <h2>Replay boundaries</h2>
           <p class="secondary">
