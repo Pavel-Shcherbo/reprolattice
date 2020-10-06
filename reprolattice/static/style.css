@@ -504,3 +504,25 @@ textarea {
 .workspace {
   min-width: 0;
 }
+
+.suite-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+.suite-controls select {
+  min-width: 96px;
+}
+#suite-rows tr {
+  cursor: pointer;
+}
+#suite-rows tr:hover,
+#suite-rows tr:focus,
+#suite-rows tr.suite-selected {
+  background: var(--raised);
+}
+#suite-details {
+  max-height: 320px;
+  overflow: auto;
+}
