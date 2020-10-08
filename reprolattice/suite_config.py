@@ -20,3 +20,9 @@ ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$")
 SHA = re.compile(r"^[0-9a-f]{64}$")
 
 
+def named(value, label):
+    if not isinstance(value, str) or not ID.fullmatch(value):
+        raise ValueError(f"{label} must be a bounded ASCII identifier")
+    return value
+
+
