@@ -26,3 +26,18 @@ def named(value, label):
     return value
 
 
+def relative_path(value):
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > 512
+        or "\\" in value
+        or "\x00" in value
+    ):
+        raise ValueError("suite paths must use bounded relative forward-slash names")
+    path = Path(value)
+    if path.is_absolute() or ".." in path.parts or path == Path("."):
+        raise ValueError("suite path must stay within its workspace")
+    return value
+
+
