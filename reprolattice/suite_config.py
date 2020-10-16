@@ -50,3 +50,51 @@ def rooted(root, relative):
     return target
 
 
+def read_bounded(path, maximum):
+    with Path(path).open("rb") as stream:
+        raw = stream.read(maximum + 1)
+    if len(raw) > maximum:
+        raise ValueError("suite input exceeds its byte budget")
+    return raw
+
+
+@dataclass(frozen=True)
+class FileInput:
+    path: str
+    content: bytes
+    sha256: str
+
+
+@dataclass(frozen=True)
+class ArtifactRule:
+    path: str
+    kind: str
+    rules: tuple
+    sha256: object
+
+
+@dataclass(frozen=True)
+class SuiteCase:
+    id: str
+    source_id: str
+    tags: tuple
+    parameters: dict
+    secrets: tuple
+    fixture: dict
+    fixture_sha256: str
+    command: tuple
+    mode: str
+    timeout: float
+    files: tuple
+    artifacts: tuple
+
+
+@dataclass(frozen=True)
+class SuitePlan:
+    name: str
+    definition_sha256: str
+    snapshot_sha256: str
+    cases: tuple
+    input_bytes: int
+
+
