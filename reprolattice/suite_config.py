@@ -41,3 +41,12 @@ def relative_path(value):
     return value
 
 
+def rooted(root, relative):
+    relative_path(relative)
+    root = Path(root).resolve()
+    target = root.joinpath(relative).resolve()
+    if not target.is_relative_to(root):
+        raise ValueError("suite path escapes its root through a symlink")
+    return target
+
+
