@@ -98,3 +98,42 @@ class SuitePlan:
     input_bytes: int
 
 
+def compile_files(definitions, root):
+    if not isinstance(definitions, list) or len(definitions) > 32:
+        raise ValueError("workspace files must contain at most 32 entries")
+    files, names, size = [], set(), 0
+    for definition in definitions:
+        if (
+            not isinstance(definition, dict)
+            or set(definition) - {"path", "sha256"}
+            or "path" not in definition
+        ):
+            raise ValueError("workspace file requires path and optional sha256")
+        name = relative_path(definition["path"])
+        canonical_name = str(Path(name))
+        if canonical_name in names:
+            raise ValueError("workspace input paths must be unique")
+        names.add(canonical_name)
+        source = rooted(root, name)
+        if not source.is_file():
+            raise ValueError("workspace input must be a regular file")
+        raw = read_bounded(source, 4 * 1024 * 1024)
+        size += len(raw)
+        if size > 16 * 1024 * 1024:
+            raise ValueError("workspace inputs exceed 16 MiB")
+        actual = hashlib.sha256(raw).hexdigest()
+        if "sha256" in definition and (
+            not isinstance(definition["sha256"], str)
+            or not SHA.fullmatch(definition["sha256"])
+            or definition["sha256"] != actual
+        ):
+            raise ValueError("workspace input differs from its pinned SHA-256")
+        files.append(FileInput(name, raw, actual))
+    for left in names:
+        if any(left != right and Path(left) in Path(right).parents for right in names):
+            raise ValueError(
+                "workspace file paths cannot overlap as file and directory"
+            )
+    return tuple(files)
+
+
