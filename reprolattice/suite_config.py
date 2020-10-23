@@ -137,3 +137,35 @@ def compile_files(definitions, root):
     return tuple(files)
 
 
+def compile_artifacts(definitions):
+    if not isinstance(definitions, list) or len(definitions) > 16:
+        raise ValueError("case artifacts must contain at most 16 entries")
+    result, seen = [], set()
+    for item in definitions:
+        if (
+            not isinstance(item, dict)
+            or set(item) - {"path", "kind", "assertions", "sha256"}
+            or not {"path", "kind"} <= set(item)
+        ):
+            raise ValueError(
+                "artifact requires path, kind and optional assertions/hash"
+            )
+        path = relative_path(item["path"])
+        if str(Path(path)) in seen:
+            raise ValueError("artifact paths must be unique")
+        seen.add(str(Path(path)))
+        kind = item["kind"]
+        if kind not in ("json", "text"):
+            raise ValueError("artifact kind must be json or text")
+        rules = compile_rules(item.get("assertions", []))
+        if len(rules) > 100:
+            raise ValueError("artifact supports at most 100 conditions")
+        expected_hash = item.get("sha256")
+        if expected_hash is not None and (
+            not isinstance(expected_hash, str) or not SHA.fullmatch(expected_hash)
+        ):
+            raise ValueError("artifact SHA-256 must be lowercase hexadecimal")
+        result.append(ArtifactRule(path, kind, rules, expected_hash))
+    return tuple(result)
+
+
