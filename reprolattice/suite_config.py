@@ -169,3 +169,194 @@ def compile_artifacts(definitions):
     return tuple(result)
 
 
+def compile_suite(definition, root="."):
+    validate_json(definition, max_bytes=2 * 1024 * 1024, max_depth=50, max_nodes=100000)
+    allowed = {"version", "name", "command", "mode", "timeout", "cases"}
+    if (
+        not isinstance(definition, dict)
+        or set(definition) - allowed
+        or type(definition.get("version")) is not int
+        or definition.get("version") != 1
+    ):
+        raise ValueError("suite requires version 1 and supported fields")
+    name = named(definition.get("name"), "suite name")
+    cases = definition.get("cases")
+    if not isinstance(cases, list) or not 1 <= len(cases) <= 100:
+        raise ValueError("suite requires 1–100 case definitions")
+    result, ids, input_bytes, total_rules = [], set(), 0, 0
+    cached_files = {}
+    expanded_ids = set()
+    for case in cases:
+        allowed_case = {
+            "id",
+            "fixture",
+            "fixture_sha256",
+            "command",
+            "mode",
+            "timeout",
+            "tags",
+            "matrix",
+            "secret_parameters",
+            "files",
+            "artifacts",
+        }
+        if not isinstance(case, dict) or set(case) - allowed_case:
+            raise ValueError("suite case contains unsupported fields")
+        source_id = named(case.get("id"), "case ID")
+        if source_id in ids:
+            raise ValueError("case IDs must be unique")
+        ids.add(source_id)
+        tags = case.get("tags", [])
+        if (
+            not isinstance(tags, list)
+            or len(tags) > 20
+            or any(not isinstance(tag, str) for tag in tags)
+            or len(set(tags)) != len(tags)
+        ):
+            raise ValueError("case tags must be a unique list of at most 20 labels")
+        for tag in tags:
+            named(tag, "tag")
+        secret_names = case.get("secret_parameters", [])
+        if not isinstance(secret_names, list) or len(secret_names) > 6:
+            raise ValueError("secret_parameters must be a bounded name list")
+        for parameter in secret_names:
+            parameter_name(parameter)
+        matrix = variants(case.get("matrix", {}))
+        fixture_source = case.get("fixture")
+        if isinstance(fixture_source, str):
+            raw = read_bounded(rooted(root, fixture_source), 2 * 1024 * 1024)
+            input_bytes += len(raw)
+            expected_hash = case.get("fixture_sha256")
+            if expected_hash is not None and (
+                not isinstance(expected_hash, str)
+                or not SHA.fullmatch(expected_hash)
+                or hashlib.sha256(raw).hexdigest() != expected_hash
+            ):
+                raise ValueError("fixture file differs from its pinned SHA-256")
+            fixture_template = strict_json(raw, max_bytes=2 * 1024 * 1024)
+        elif isinstance(fixture_source, dict):
+            if "fixture_sha256" in case:
+                raise ValueError("fixture_sha256 is supported only for file fixtures")
+            fixture_template = fixture_source
+        else:
+            raise ValueError(
+                "case fixture must be a relative filename or inline object"
+            )
+        for index, parameters in enumerate(matrix, 1):
+            if len(result) >= 256:
+                raise ValueError("expanded suite exceeds 256 cases")
+            case_id = source_id + (
+                "-" + str(index).zfill(3) + "-" + variant_identity(parameters)
+                if case.get("matrix")
+                else ""
+            )
+            if case_id in expanded_ids:
+                raise ValueError("expanded case IDs collide")
+            expanded_ids.add(case_id)
+            runtime = {**parameters, "python": sys.executable, "case_id": case_id}
+            secret_values = []
+            for secret_name in secret_names:
+                value = parameters.get(secret_name)
+                if not isinstance(value, str) or not 1 <= len(value) <= 4096:
+                    raise ValueError(
+                        "secret parameters require explicit non-empty string matrix values"
+                    )
+                secret_values.append(value)
+            fixture = expand(fixture_template, runtime)
+            validate(fixture)
+            mode = case.get("mode", definition.get("mode", "application"))
+            if mode not in ("application", "protocol"):
+                raise ValueError("case mode must be application or protocol")
+            command = expand(
+                case.get("command", definition.get("command", [])), runtime
+            )
+            if mode == "application":
+                if (
+                    not isinstance(command, list)
+                    or not command
+                    or not all(
+                        isinstance(argument, str)
+                        and argument
+                        and "\x00" not in argument
+                        for argument in command
+                    )
+                ):
+                    raise ValueError(
+                        "application case requires a non-empty command argument list"
+                    )
+                if sum(len(argument.encode()) for argument in command) > 65536:
+                    raise ValueError("case command exceeds 64 KiB")
+                _, rules, _ = application_contract(fixture)
+                total_rules += len(rules)
+            else:
+                if command:
+                    raise ValueError(
+                        "protocol cases cannot declare an application command"
+                    )
+                for interaction in fixture["interactions"]:
+                    sample_request(interaction)
+            timeout = case.get("timeout", definition.get("timeout", 10))
+            if (
+                type(timeout) not in (int, float)
+                or not math.isfinite(timeout)
+                or not 0 < timeout <= 120
+            ):
+                raise ValueError(
+                    "case timeout must be finite and between 0 and 120 seconds"
+                )
+            file_definitions = expand(case.get("files", []), runtime)
+            cache_key = json.dumps(file_definitions, sort_keys=True)
+            if cache_key not in cached_files:
+                files = compile_files(file_definitions, root)
+                cached_files[cache_key] = files
+                input_bytes += sum(len(file.content) for file in files)
+            files = cached_files[cache_key]
+            artifacts = compile_artifacts(expand(case.get("artifacts", []), runtime))
+            total_rules += sum(len(artifact.rules) for artifact in artifacts)
+            if total_rules > 5000 or input_bytes > 32 * 1024 * 1024:
+                raise ValueError(
+                    "suite exceeds its total assertion or source byte budget"
+                )
+            fixture_bytes = json.dumps(
+                fixture, sort_keys=True, separators=(",", ":")
+            ).encode()
+            input_bytes += len(fixture_bytes)
+            if total_rules > 5000 or input_bytes > 32 * 1024 * 1024:
+                raise ValueError(
+                    "suite exceeds its total assertion or source byte budget"
+                )
+            result.append(
+                SuiteCase(
+                    case_id,
+                    source_id,
+                    tuple(tags),
+                    copy.deepcopy(parameters),
+                    tuple(secret_values),
+                    copy.deepcopy(fixture),
+                    hashlib.sha256(fixture_bytes).hexdigest(),
+                    tuple(command),
+                    mode,
+                    timeout,
+                    files,
+                    artifacts,
+                )
+            )
+    fingerprint = hashlib.sha256(
+        json.dumps(definition, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    snapshot = {
+        "definition_sha256": fingerprint,
+        "cases": [
+            {
+                "id": item.id,
+                "fixture_sha256": item.fixture_sha256,
+                "command": item.command,
+                "files": [(file.path, file.sha256) for file in item.files],
+            }
+            for item in result
+        ],
+    }
+    snapshot_hash = hashlib.sha256(
+        json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return SuitePlan(name, fingerprint, snapshot_hash, tuple(result), input_bytes)
