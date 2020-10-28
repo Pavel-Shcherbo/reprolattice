@@ -17,3 +17,7 @@ from .protocol import verify_protocol
 from .suite_config import SuitePlan, named
 
 
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
