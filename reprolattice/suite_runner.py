@@ -65,3 +65,21 @@ def compact_detail(detail):
     return result
 
 
+def case_metadata(case):
+    return {
+        "id": case.id,
+        "source_id": case.source_id,
+        "mode": case.mode,
+        "tags": list(case.tags),
+        "parameters": case.parameters,
+        "fixture_sha256": case.fixture_sha256,
+        "command_sha256": hashlib.sha256(
+            json.dumps(case.command, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "inputs": [
+            {"path": item.path, "sha256": item.sha256, "bytes": len(item.content)}
+            for item in case.files
+        ],
+    }
+
+
