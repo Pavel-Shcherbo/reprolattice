@@ -83,3 +83,74 @@ def case_metadata(case):
     }
 
 
+def run_case(case, workspace, should_cancel):
+    started = time.monotonic()
+    result = {**case_metadata(case), "started_at": utc_now()}
+    if should_cancel():
+        return scrub(
+            {
+                **result,
+                "status": "cancelled",
+                "reason": "cancelled_before_start",
+                "duration_seconds": 0,
+            },
+            case.secrets,
+        )
+    try:
+        workspace.mkdir()
+        for item in case.files:
+            target = workspace / item.path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(item.content)
+        deadline = started + case.timeout
+
+        def case_cancelled():
+            return should_cancel() or time.monotonic() >= deadline
+
+        if case.mode == "application":
+            detail = check_client(
+                case.fixture,
+                list(case.command),
+                max(0.001, deadline - time.monotonic()),
+                workspace,
+                should_cancel=case_cancelled,
+            )
+        else:
+            detail = verify_protocol(case.fixture, should_cancel=case_cancelled)
+        if time.monotonic() >= deadline and not should_cancel():
+            detail["cancelled"] = False
+            detail["passed"] = False
+            detail.setdefault("checks", {})["within_case_time_limit"] = False
+        artifacts = (
+            check_artifacts(workspace, case.artifacts)
+            if not detail.get("cancelled")
+            else []
+        )
+        if should_cancel():
+            detail["cancelled"], detail["passed"] = True, False
+        elif time.monotonic() >= deadline:
+            detail["cancelled"], detail["passed"] = False, False
+            detail.setdefault("checks", {})["within_case_time_limit"] = False
+        status = (
+            "cancelled"
+            if detail.get("cancelled")
+            else (
+                "passed"
+                if detail["passed"] and all(item["passed"] for item in artifacts)
+                else "failed"
+            )
+        )
+        result.update(
+            status=status,
+            detail=compact_detail(detail),
+            artifacts=compact_detail({"items": artifacts})["items"],
+        )
+    except Exception as error:
+        result.update(
+            status="error",
+            error={"type": type(error).__name__, "message": str(error)[:8192]},
+        )
+    result["duration_seconds"] = time.monotonic() - started
+    return scrub(result, case.secrets)
+
+
