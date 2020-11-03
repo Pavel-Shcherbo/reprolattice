@@ -154,3 +154,154 @@ def run_case(case, workspace, should_cancel):
     return scrub(result, case.secrets)
 
 
+def run_suite(
+    plan,
+    *,
+    jobs=1,
+    fail_fast=False,
+    include_tags=(),
+    exclude_tags=(),
+    should_cancel=None,
+    on_event=None,
+):
+    if not isinstance(plan, SuitePlan):
+        raise ValueError("run_suite requires a compiled SuitePlan")
+    if type(jobs) is not int or not 1 <= jobs <= 8:
+        raise ValueError("jobs must be between one and eight")
+    if type(fail_fast) is not bool:
+        raise ValueError("fail_fast must be boolean")
+    for callback in (should_cancel, on_event):
+        if callback is not None and not callable(callback):
+            raise ValueError("suite callbacks must be callable")
+    for selection in (include_tags, exclude_tags):
+        if not isinstance(selection, (tuple, list)) or len(selection) > 20:
+            raise ValueError("tag selection requires at most 20 labels")
+        for tag in selection:
+            named(tag, "selection tag")
+    selected = [
+        case
+        for case in plan.cases
+        if (not include_tags or set(case.tags) & set(include_tags))
+        and not set(case.tags) & set(exclude_tags)
+    ]
+    if not selected:
+        raise ValueError("tag selection excludes every case")
+    started, wall_start = utc_now(), time.monotonic()
+    stop = threading.Event()
+    stop_reason = None
+    results, events, event_sequence = {}, [], 0
+
+    def emit(kind, case_id, **payload):
+        nonlocal event_sequence
+        event_sequence += 1
+        event = {
+            "sequence": event_sequence,
+            "kind": kind,
+            "case_id": case_id,
+            **payload,
+        }
+        events.append(event)
+        if on_event is not None:
+            on_event(dict(event))
+
+    def cancelled():
+        return stop.is_set() or (should_cancel is not None and should_cancel())
+
+    chosen = {case.id for case in selected}
+    for case in plan.cases:
+        if case.id not in chosen:
+            results[case.id] = scrub(
+                {
+                    **case_metadata(case),
+                    "status": "skipped",
+                    "reason": "tag_filter",
+                    "duration_seconds": 0,
+                },
+                case.secrets,
+            )
+    next_case, pending = 0, {}
+    with tempfile.TemporaryDirectory(prefix="reprolattice-suite-") as temporary:
+        executor = ThreadPoolExecutor(max_workers=jobs)
+        try:
+            while next_case < len(selected) or pending:
+                if should_cancel is not None and should_cancel():
+                    stop_reason = "user_cancelled"
+                    stop.set()
+                while (
+                    not stop.is_set()
+                    and next_case < len(selected)
+                    and len(pending) < jobs
+                ):
+                    case = selected[next_case]
+                    next_case += 1
+                    emit("case_started", case.id)
+                    future = executor.submit(
+                        run_case, case, Path(temporary) / case.id, cancelled
+                    )
+                    pending[future] = case
+                if not pending:
+                    break
+                done, _ = wait(pending, timeout=0.05, return_when=FIRST_COMPLETED)
+                # Completion arrival order is operational; report order stays the
+                # original suite order, independent of worker scheduling.
+                for future in sorted(done, key=lambda item: pending[item].id):
+                    case = pending.pop(future)
+                    result = future.result()
+                    results[case.id] = result
+                    emit("case_finished", case.id, status=result["status"])
+                    if (
+                        fail_fast
+                        and result["status"] in ("failed", "error")
+                        and not stop.is_set()
+                    ):
+                        stop_reason = "fail_fast"
+                        stop.set()
+            for case in selected[next_case:]:
+                status = "cancelled" if stop_reason == "user_cancelled" else "skipped"
+                results[case.id] = scrub(
+                    {
+                        **case_metadata(case),
+                        "status": status,
+                        "reason": stop_reason or "not_started",
+                        "duration_seconds": 0,
+                    },
+                    case.secrets,
+                )
+                emit("case_not_started", case.id, status=status)
+        finally:
+            stop.set()
+            executor.shutdown(wait=True, cancel_futures=True)
+    ordered = [results[case.id] for case in plan.cases]
+    counts = {
+        status: sum(item["status"] == status for item in ordered)
+        for status in ("passed", "failed", "error", "skipped", "cancelled")
+    }
+    passed = counts["passed"] == len(selected) and not any(
+        counts[status] for status in ("failed", "error", "cancelled")
+    )
+    report = {
+        "format": "reprolattice.suite-report.v1",
+        "run_id": str(uuid.uuid4()),
+        "suite": plan.name,
+        "suite_sha256": plan.snapshot_sha256,
+        "definition_sha256": plan.definition_sha256,
+        "started_at": started,
+        "finished_at": utc_now(),
+        "duration_seconds": time.monotonic() - wall_start,
+        "jobs": jobs,
+        "fail_fast": fail_fast,
+        "selected_cases": len(selected),
+        "total_cases": len(plan.cases),
+        "full_suite": len(selected) == len(plan.cases),
+        "selection": {
+            "include_tags": list(include_tags),
+            "exclude_tags": list(exclude_tags),
+        },
+        "passed": passed,
+        "stop_reason": stop_reason,
+        "counts": counts,
+        "cases": ordered,
+        "events": events,
+        "workspace_policy": "fresh temporary directory per case; removed after the suite; trusted programs are not sandboxed",
+    }
+    return scrub(report, [secret for case in plan.cases for secret in case.secrets])
