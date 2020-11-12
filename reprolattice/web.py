@@ -5,6 +5,7 @@ from .httpapp import serve
 from .harness import check_client
 from .protocol import verify_protocol
 from .resources import examples_directory
+from .suite_web import evaluate_suite
 
 
 def example():
@@ -12,6 +13,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "suite":
+        return evaluate_suite(params)
     fixture = params.get("fixture", example())
     if not isinstance(fixture, dict):
         raise ValueError("fixture must be an object")
