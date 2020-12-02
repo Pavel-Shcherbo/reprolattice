@@ -28,4 +28,10 @@ authorization or organization model yet.
 
 ## Next architectural increment
 
-Introduce scenario collections, parameterized runs and portable report export, followed by explicit application-state adapters. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
+Add explicit application-state adapters, database snapshot/reset recipes and semantic behavior comparisons, then retain immutable run collections. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
+
+## Suite execution and CI reports
+
+`parameters` expands bounded JSON matrices without evaluating expressions. `suite_config` compiles every case before execution, snapshots explicit workspace files and identifies the full resolved input set separately from the suite definition. `suite_runner` creates independent temporary workspaces and fixture servers, bounds concurrent submission and retains deterministic case ordering. Fail-fast, cancellation and case deadlines remain explicit outcomes.
+
+`artifact_checks` validates declared JSON/text outputs without copying arbitrary files into reports. `reports` validates status/count consistency and exports JSON, escaped HTML and JUnit XML with a completion manifest and file hashes. `suites` is the local operator CLI; `suite_web` restricts HTTP-triggered execution to the reviewed bundled suite. See SUITES.md for scope, bounds and exit semantics.
