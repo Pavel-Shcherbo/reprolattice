@@ -1,8 +1,9 @@
 {
   "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
-  "wheel_sha256": "edf555637fef326c746c4862b93c463125b076a0cf7e1d72edca6e068570be8d",
+  "wheel_sha256": "58dbad430c92b77c1d18778ac6ec905516b809a2545c029b1a9e56044c5aa4cf",
   "examples_exported": [
     "dynamic-order.json",
+    "inventory-suite.json",
     "inventory_client.py",
     "retry.json"
   ],
@@ -11,5 +12,7 @@
   "cli_passed": true,
   "workbench_http_passed": true,
   "state_outside_package": true,
+  "suite_cli_and_report_hashes_passed": true,
+  "suite_http_healthy_and_faulty_passed": true,
   "full_portfolio_acceptance": false
 }
