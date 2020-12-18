@@ -1,0 +1,31 @@
+{
+  "scope": "Observed suite workbench and standalone report checks, not full product acceptance",
+  "passed": true,
+  "healthy": {
+    "passed": 5,
+    "failed": 0
+  },
+  "faulty": {
+    "passed": 2,
+    "failed": 3
+  },
+  "mobile": {
+    "viewport_width": 390,
+    "document_scroll_width": 390,
+    "case_rows": 5
+  },
+  "keyboard_case_selection_passed": true,
+  "protocol_detail": {
+    "expected": 201,
+    "actual": 201
+  },
+  "json_junit_downloads_agree": true,
+  "standalone_html_inspected": true,
+  "workbench_console_errors": 0,
+  "workbench_console_warnings": 0,
+  "screenshots": {
+    "docs/suite-desktop.png": "e1d3f723c776e76f1d43787427523765614b6e76d5f8c48732d8214176d2e324",
+    "docs/suite-mobile.png": "c6f0abb3c35d4be125b5305b89a507e7108af2166018d0a03b4f265720131473",
+    "docs/suite-html-report.png": "691089f66b5cdcf1f0740e72a0ab69288a1d853e8e13b764f21c3a20172c2f71"
+  }
+}
