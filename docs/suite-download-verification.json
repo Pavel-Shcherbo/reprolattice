@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "scope": "Actual browser JSON and JUnit downloads; XML reproduced from downloaded JSON",
+  "passed_cases": 5,
+  "json_sha256": "b64ff2131e7bda1990834626bc07b196fc30ae03801caed9afc5c4c5b4c05701",
+  "junit_sha256": "5c7cbc945a8763e40d86c8fc7625450011aeb27f6941b2a1eb2fd4a043345f8e",
+  "xml_matches_json": true,
+  "suite_sha256": "c56a2340ac69b7ea4780824f5274764ed055d326f7fb047695b359762b20a9bb"
+}
