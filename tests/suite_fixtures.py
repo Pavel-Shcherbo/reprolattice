@@ -13,3 +13,12 @@ def fixture(expected=True):
     }
 
 
+def client_source(output='{"ok": true}', extra=""):
+    return (
+        "import json,os,urllib.request; "
+        'urllib.request.urlopen(os.environ["REPROLATTICE_BASE_URL"]+"/check").read(); '
+        + extra
+        + f"print({output!r})"
+    )
+
+
