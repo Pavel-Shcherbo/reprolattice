@@ -22,3 +22,12 @@ def client_source(output='{"ok": true}', extra=""):
     )
 
 
+def case(name="control", expected=True, command=None):
+    return {
+        "id": name,
+        "fixture": fixture(expected),
+        "tags": ["core"],
+        "command": command or [sys.executable, "-c", client_source()],
+    }
+
+
