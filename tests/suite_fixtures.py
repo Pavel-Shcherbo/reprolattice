@@ -31,3 +31,5 @@ def case(name="control", expected=True, command=None):
     }
 
 
+def suite(cases=None):
+    return {"version": 1, "name": "control-suite", "cases": cases or [case()]}
