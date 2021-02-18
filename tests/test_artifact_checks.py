@@ -28,3 +28,18 @@ class ArtifactCheckTests(unittest.TestCase):
             self.assertFalse(report["passed"])
             self.assertFalse(report["assertions"][0]["passed"])
 
+    def test_symlink_cannot_import_external_output_into_report(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            tempfile.TemporaryDirectory() as outside,
+        ):
+            external = Path(outside) / "private.json"
+            external.write_text('{"secret":"external-canary"}')
+            (Path(directory) / "output.json").symlink_to(external)
+            report = check_artifacts(
+                directory, compile_artifacts([{"path": "output.json", "kind": "json"}])
+            )
+            self.assertFalse(report[0]["passed"])
+            self.assertIn("symlink", report[0]["error"])
+            self.assertNotIn("external-canary", json.dumps(report))
+
