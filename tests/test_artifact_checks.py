@@ -43,3 +43,20 @@ class ArtifactCheckTests(unittest.TestCase):
             self.assertIn("symlink", report[0]["error"])
             self.assertNotIn("external-canary", json.dumps(report))
 
+    def test_text_and_hash_assertions_are_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "output.txt").write_text("ready\n")
+            definitions = compile_artifacts(
+                [
+                    {
+                        "path": "output.txt",
+                        "kind": "text",
+                        "assertions": [{"op": "contains", "value": "ready"}],
+                        "sha256": "0" * 64,
+                    }
+                ]
+            )
+            report = check_artifacts(directory, definitions)[0]
+            self.assertTrue(report["assertions"][0]["passed"])
+            self.assertFalse(report["hash_passed"])
+            self.assertFalse(report["passed"])
