@@ -4,4 +4,22 @@ from reprolattice.parameters import expand, variants, scrub
 
 
 class ParameterTests(unittest.TestCase):
-    pass
+    def test_matrix_order_is_deterministic_and_typed(self):
+        values = variants({"size": [1, 2], "enabled": [True, False]})
+        self.assertEqual(
+            values,
+            [
+                {"enabled": True, "size": 1},
+                {"enabled": True, "size": 2},
+                {"enabled": False, "size": 1},
+                {"enabled": False, "size": 2},
+            ],
+        )
+        self.assertEqual(
+            expand(
+                {"quantity": {"$param": "size"}, "path": "/item/${size}"}, values[0]
+            ),
+            {"quantity": 1, "path": "/item/1"},
+        )
+        self.assertEqual(expand("${enabled}", values[0]), "true")
+
