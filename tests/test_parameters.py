@@ -51,3 +51,15 @@ class ParameterTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 expand(value, {"a": 1})
 
+    def test_report_scrubbing_covers_explicit_values_in_free_text(self):
+        report = {
+            "status": "failed",
+            "parameters": {"token": "secret-canary"},
+            "stderr": "request failed: secret-canary",
+            "path": "/secret-canary",
+            "checks": {"not_cancelled": True},
+        }
+        cleaned = scrub(report, ["secret-canary"])
+        self.assertNotIn("secret-canary", str(cleaned))
+        self.assertEqual(cleaned["status"], "failed")
+        self.assertEqual(cleaned["checks"], {"not_cancelled": True})
