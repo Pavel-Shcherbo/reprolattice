@@ -32,3 +32,22 @@ class ParameterTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             expand("prefix ${value}", parameters)
 
+    def test_invalid_or_excessive_matrices_and_references_are_rejected(self):
+        for matrix in [
+            {"python": ["override"]},
+            {"a": []},
+            {"a": [1, 1]},
+            {"a": list(range(16)), "b": list(range(16))},
+            {1: [1]},
+        ]:
+            with self.subTest(matrix=matrix), self.assertRaises(ValueError):
+                variants(matrix)
+        for value in [
+            "${missing}",
+            "${bad-name}",
+            {"$param": "a", "extra": 1},
+            {"${key}": "value"},
+        ]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                expand(value, {"a": 1})
+
