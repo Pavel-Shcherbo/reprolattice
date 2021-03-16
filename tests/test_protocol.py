@@ -70,3 +70,19 @@ class ProtocolTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertEqual(result["unexpected"], 1)
         self.assertEqual(result["consumed"], 0)
+
+    def test_query_credentials_are_redacted_in_protocol_reports(self):
+        fixture = {
+            "interactions": [
+                {
+                    "request": {
+                        "method": "GET",
+                        "path": "/?token=protocol-secret-canary",
+                    },
+                    "response": {"json": {"ok": True}},
+                }
+            ]
+        }
+        report = verify_protocol(fixture)
+        self.assertTrue(report["passed"])
+        self.assertNotIn("protocol-secret-canary", str(report))
