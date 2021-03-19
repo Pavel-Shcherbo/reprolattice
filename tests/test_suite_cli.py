@@ -49,3 +49,40 @@ class SuiteCliTests(unittest.TestCase):
             )
             self.assertTrue((output / "manifest.json").is_file())
 
+    def test_existing_output_is_rejected_before_starting_case(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / "started"
+            definition = suite(
+                [
+                    case(
+                        command=[
+                            sys.executable,
+                            "-c",
+                            f'open({str(marker)!r},"w").close()',
+                        ]
+                    )
+                ]
+            )
+            spec = root / "suite.json"
+            spec.write_text(json.dumps(definition))
+            output = root / "reports"
+            output.mkdir()
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "reprolattice.suites",
+                    str(spec),
+                    "--output",
+                    str(output),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(marker.exists())
+            self.assertEqual(list(output.iterdir()), [])
+
