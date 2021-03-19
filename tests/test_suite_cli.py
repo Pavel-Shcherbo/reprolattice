@@ -86,3 +86,53 @@ class SuiteCliTests(unittest.TestCase):
             self.assertFalse(marker.exists())
             self.assertEqual(list(output.iterdir()), [])
 
+    @unittest.skipUnless(os.name == "posix", "POSIX interrupt and process cleanup")
+    def test_interrupt_writes_cancelled_report_and_stops_application(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            started = root / "started"
+            source = f"import os,time; from pathlib import Path; Path({str(started)!r}).write_text(str(os.getpid())); time.sleep(30)"
+            definition = suite([case("slow", command=[sys.executable, "-c", source])])
+            spec = root / "suite.json"
+            spec.write_text(json.dumps(definition))
+            output = root / "reports"
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "reprolattice.suites",
+                    str(spec),
+                    "--output",
+                    str(output),
+                ],
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                deadline = time.monotonic() + 5
+                while (
+                    not started.exists()
+                    and process.poll() is None
+                    and time.monotonic() < deadline
+                ):
+                    time.sleep(0.02)
+                self.assertTrue(started.exists(), "case application never started")
+                process.send_signal(signal.SIGINT)
+                stdout, stderr = process.communicate(timeout=5)
+                self.assertEqual(process.returncode, 130, stderr)
+                report = json.loads((output / "report.json").read_text())
+                self.assertEqual(report["counts"]["cancelled"], 1)
+                self.assertFalse(report["passed"])
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(started.read_text()), 0)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate(timeout=3)
+                if started.exists():
+                    try:
+                        os.killpg(int(started.read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
