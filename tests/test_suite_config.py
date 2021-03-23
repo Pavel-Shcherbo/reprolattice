@@ -39,3 +39,26 @@ class SuiteConfigurationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "pinned"):
                 compile_suite(definition, directory)
 
+    def test_invalid_future_case_prevents_any_process_start(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "started"
+            definition = suite(
+                [
+                    case(
+                        "side-effect",
+                        command=[
+                            sys.executable,
+                            "-c",
+                            f'open({str(marker)!r},"w").close()',
+                        ],
+                    ),
+                    case("invalid"),
+                ]
+            )
+            definition["cases"][1]["fixture"]["application"]["assertions"] = [
+                {"op": "typo", "value": 1}
+            ]
+            with self.assertRaises(ValueError):
+                compile_suite(definition, directory)
+            self.assertFalse(marker.exists())
+
