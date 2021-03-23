@@ -22,3 +22,20 @@ class SuiteConfigurationTests(unittest.TestCase):
         self.assertEqual(plan.cases[1].fixture["application"]["expected_json"]["ok"], 1)
         self.assertNotEqual(plan.cases[0].id, plan.cases[1].id)
 
+    def test_inputs_are_snapshotted_and_hash_pins_are_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "client.py"
+            source.write_text('print("initial")')
+            definition = suite()
+            definition["cases"][0]["files"] = [
+                {
+                    "path": "client.py",
+                    "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                }
+            ]
+            plan = compile_suite(definition, directory)
+            source.write_text("changed")
+            self.assertEqual(plan.cases[0].files[0].content, b'print("initial")')
+            with self.assertRaisesRegex(ValueError, "pinned"):
+                compile_suite(definition, directory)
+
