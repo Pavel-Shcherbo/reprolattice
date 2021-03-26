@@ -62,3 +62,15 @@ class SuiteConfigurationTests(unittest.TestCase):
                 compile_suite(definition, directory)
             self.assertFalse(marker.exists())
 
+    def test_paths_cannot_escape_or_overlap(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            tempfile.TemporaryDirectory() as outside,
+        ):
+            (Path(directory) / "outside").symlink_to(outside, target_is_directory=True)
+            for path in ["../client.py", "/tmp/client.py", "outside/client.py"]:
+                definition = suite()
+                definition["cases"][0]["files"] = [{"path": path}]
+                with self.subTest(path=path), self.assertRaises(ValueError):
+                    compile_suite(definition, directory)
+
