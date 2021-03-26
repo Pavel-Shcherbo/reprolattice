@@ -74,3 +74,14 @@ class SuiteConfigurationTests(unittest.TestCase):
                 with self.subTest(path=path), self.assertRaises(ValueError):
                     compile_suite(definition, directory)
 
+    def test_unknown_fields_duplicate_ids_and_invalid_tags_are_rejected(self):
+        invalid = [suite([case(), case()]), suite()]
+        invalid[1]["cases"][0]["tags"] = [{}]
+        for definition in invalid:
+            with self.assertRaises(ValueError):
+                compile_suite(definition)
+        definition = suite()
+        definition["cases"][0]["fixture"]["application"]["expectd_json"] = {}
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            compile_suite(definition)
+
