@@ -85,3 +85,26 @@ class SuiteConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported"):
             compile_suite(definition)
 
+    def test_protocol_sample_is_validated_without_starting_server(self):
+        definition = suite(
+            [
+                {
+                    "id": "protocol",
+                    "mode": "protocol",
+                    "fixture": {
+                        "interactions": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "path_pattern": "/items/*",
+                                },
+                                "response": {"json": {}},
+                            }
+                        ]
+                    },
+                }
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "sample_request"):
+            compile_suite(definition)
+
