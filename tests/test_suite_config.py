@@ -108,3 +108,15 @@ class SuiteConfigurationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sample_request"):
             compile_suite(definition)
 
+    def test_snapshot_identity_covers_unpinned_file_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "client.py"
+            definition = suite()
+            definition["cases"][0]["files"] = [{"path": "client.py"}]
+            source.write_text("first")
+            first = compile_suite(definition, directory)
+            source.write_text("second")
+            second = compile_suite(definition, directory)
+            self.assertEqual(first.definition_sha256, second.definition_sha256)
+            self.assertNotEqual(first.snapshot_sha256, second.snapshot_sha256)
+
