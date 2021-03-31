@@ -120,3 +120,10 @@ class SuiteConfigurationTests(unittest.TestCase):
             self.assertEqual(first.definition_sha256, second.definition_sha256)
             self.assertNotEqual(first.snapshot_sha256, second.snapshot_sha256)
 
+    def test_generated_case_ids_cannot_collide_with_explicit_case_ids(self):
+        definition = suite()
+        definition["cases"][0]["matrix"] = {"size": [1]}
+        generated = compile_suite(definition).cases[0].id
+        definition["cases"].append(case(generated))
+        with self.assertRaisesRegex(ValueError, "collide"):
+            compile_suite(definition)
