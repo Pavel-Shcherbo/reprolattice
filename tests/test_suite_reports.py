@@ -27,3 +27,12 @@ class SuiteReportTests(unittest.TestCase):
             )
         )
 
+    def test_junit_counts_and_classification_match_the_run(self):
+        xml = ET.fromstring(junit_xml(self.report))
+        suite_node = xml.find("testsuite")
+        self.assertEqual(suite_node.get("tests"), "3")
+        self.assertEqual(suite_node.get("failures"), "1")
+        self.assertEqual(suite_node.get("errors"), "1")
+        self.assertIsNotNone(suite_node.findall("testcase")[1].find("failure"))
+        self.assertIsNotNone(suite_node.findall("testcase")[2].find("error"))
+
