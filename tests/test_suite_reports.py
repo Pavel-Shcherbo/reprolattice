@@ -13,4 +13,17 @@ from suite_fixtures import case, suite
 
 
 class SuiteReportTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.report = run_suite(
+            compile_suite(
+                suite(
+                    [
+                        case("pass"),
+                        case("fail", expected=False),
+                        case("error", command=["/missing-program"]),
+                    ]
+                )
+            )
+        )
+
