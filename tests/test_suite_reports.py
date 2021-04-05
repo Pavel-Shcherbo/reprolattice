@@ -36,3 +36,15 @@ class SuiteReportTests(unittest.TestCase):
         self.assertIsNotNone(suite_node.findall("testcase")[1].find("failure"))
         self.assertIsNotNone(suite_node.findall("testcase")[2].find("error"))
 
+    def test_html_and_xml_escape_untrusted_diagnostics(self):
+        report = copy.deepcopy(self.report)
+        report["cases"][2]["error"]["message"] = '<script>alert("x")</script> & \x00'
+        html = html_report(report)
+        self.assertNotIn("<script>", html)
+        self.assertIn("&lt;script&gt;", html)
+        xml = ET.fromstring(junit_xml(report))
+        self.assertIn(
+            "\ufffd",
+            xml.find("testsuite").findall("testcase")[2].find("error").get("message"),
+        )
+
