@@ -48,3 +48,20 @@ class SuiteReportTests(unittest.TestCase):
             xml.find("testsuite").findall("testcase")[2].find("error").get("message"),
         )
 
+    def test_report_set_manifest_matches_bytes_and_never_overwrites(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "reports"
+            manifest = write_reports(self.report, target)
+            self.assertEqual(
+                manifest, json.loads((target / "manifest.json").read_text())
+            )
+            for name, info in manifest["files"].items():
+                payload = (target / name).read_bytes()
+                self.assertEqual(hashlib.sha256(payload).hexdigest(), info["sha256"])
+                self.assertEqual(len(payload), info["bytes"])
+            previous = (target / "report.json").read_bytes()
+            with self.assertRaises(FileExistsError):
+                write_reports(self.report, target)
+            self.assertEqual((target / "report.json").read_bytes(), previous)
+            self.assertFalse(list(Path(directory).glob(".reprolattice-report-*")))
+
