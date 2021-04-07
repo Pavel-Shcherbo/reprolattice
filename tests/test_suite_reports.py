@@ -65,3 +65,15 @@ class SuiteReportTests(unittest.TestCase):
             self.assertEqual((target / "report.json").read_bytes(), previous)
             self.assertFalse(list(Path(directory).glob(".reprolattice-report-*")))
 
+    def test_contradictory_summary_is_rejected(self):
+        for mutate in [
+            lambda report: report.update(passed=True),
+            lambda report: report["counts"].update(failed=True),
+            lambda report: report.update(full_suite=1),
+            lambda report: report["counts"].update(passed=99),
+            lambda report: report["cases"][0].update(duration_seconds=float("nan")),
+        ]:
+            report = copy.deepcopy(self.report)
+            mutate(report)
+            with self.assertRaises(ValueError):
+                junit_xml(report)
