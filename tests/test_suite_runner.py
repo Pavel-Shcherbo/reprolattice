@@ -11,4 +11,6 @@ from suite_fixtures import case, client_source, suite
 
 
 class SuiteRunnerTests(unittest.TestCase):
-    pass
+    def run_cases(self, cases, **options):
+        return run_suite(compile_suite(suite(cases)), **options)
+
