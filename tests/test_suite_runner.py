@@ -54,3 +54,18 @@ class SuiteRunnerTests(unittest.TestCase):
             self.assertEqual(report["cases"][1]["reason"], "fail_fast")
             self.assertFalse(marker.exists())
 
+    def test_fail_fast_cancels_an_inflight_case(self):
+        slow = case(
+            "slow", command=[sys.executable, "-c", "import time; time.sleep(30)"]
+        )
+        report = self.run_cases(
+            [case("fail", expected=False), slow, case("pending")],
+            jobs=2,
+            fail_fast=True,
+        )
+        self.assertEqual(
+            [item["status"] for item in report["cases"]],
+            ["failed", "cancelled", "skipped"],
+        )
+        self.assertFalse(report["cases"][1]["detail"]["checks"]["not_cancelled"])
+
