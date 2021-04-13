@@ -69,3 +69,26 @@ class SuiteRunnerTests(unittest.TestCase):
         )
         self.assertFalse(report["cases"][1]["detail"]["checks"]["not_cancelled"])
 
+    def test_user_cancellation_accounts_for_every_selected_case(self):
+        cancellation = threading.Event()
+        timer = threading.Timer(0.15, cancellation.set)
+        timer.start()
+        try:
+            report = self.run_cases(
+                [
+                    case(
+                        "slow",
+                        command=[sys.executable, "-c", "import time; time.sleep(30)"],
+                    ),
+                    case("pending"),
+                ],
+                should_cancel=cancellation.is_set,
+            )
+        finally:
+            timer.cancel()
+        self.assertEqual(
+            [item["status"] for item in report["cases"]], ["cancelled", "cancelled"]
+        )
+        self.assertEqual(report["stop_reason"], "user_cancelled")
+        self.assertFalse(report["passed"])
+
