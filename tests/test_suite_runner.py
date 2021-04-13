@@ -31,3 +31,26 @@ class SuiteRunnerTests(unittest.TestCase):
         )
         self.assertFalse(report["passed"])
 
+    def test_fail_fast_preserves_not_started_case_without_side_effect(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "started"
+            report = self.run_cases(
+                [
+                    case("fail", expected=False),
+                    case(
+                        "pending",
+                        command=[
+                            sys.executable,
+                            "-c",
+                            f'open({str(marker)!r},"w").close()',
+                        ],
+                    ),
+                ],
+                fail_fast=True,
+            )
+            self.assertEqual(
+                [item["status"] for item in report["cases"]], ["failed", "skipped"]
+            )
+            self.assertEqual(report["cases"][1]["reason"], "fail_fast")
+            self.assertFalse(marker.exists())
+
