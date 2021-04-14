@@ -120,3 +120,27 @@ class SuiteRunnerTests(unittest.TestCase):
                 [event["sequence"] for event in report["events"]], list(range(1, 5))
             )
 
+    def test_workspace_isolation_and_output_artifact_assertions(self):
+        source = client_source(
+            extra='from pathlib import Path; assert not Path("counter.json").exists(); Path("counter.json").write_text("{\\"count\\":1}"); '
+        )
+        definitions = [
+            case("first", command=[sys.executable, "-c", source]),
+            case("second", command=[sys.executable, "-c", source]),
+        ]
+        for definition in definitions:
+            definition["artifacts"] = [
+                {
+                    "path": "counter.json",
+                    "kind": "json",
+                    "assertions": [{"path": "/count", "op": "equals", "value": 1}],
+                }
+            ]
+        report = self.run_cases(definitions, jobs=2)
+        self.assertTrue(report["passed"], report)
+        self.assertTrue(all(item["artifacts"][0]["passed"] for item in report["cases"]))
+        definitions[1]["artifacts"][0]["assertions"][0]["value"] = True
+        failed = self.run_cases(definitions)
+        self.assertEqual(failed["cases"][1]["status"], "failed")
+        self.assertTrue(failed["cases"][1]["detail"]["passed"])
+
