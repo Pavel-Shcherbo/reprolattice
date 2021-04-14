@@ -92,3 +92,31 @@ class SuiteRunnerTests(unittest.TestCase):
         self.assertEqual(report["stop_reason"], "user_cancelled")
         self.assertFalse(report["passed"])
 
+    def test_parallel_cases_overlap_but_results_keep_source_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "ready"
+            wait_source = (
+                "import time; from pathlib import Path; "
+                f"p=Path({str(marker)!r}); deadline=time.monotonic()+2; "
+                "\nwhile not p.exists() and time.monotonic()<deadline: time.sleep(0.01)\n"
+                "assert p.exists();\n" + client_source()
+            )
+            signal_source = (
+                f'from pathlib import Path; Path({str(marker)!r}).write_text("ready"); '
+                + client_source()
+            )
+            report = self.run_cases(
+                [
+                    case("waiter", command=[sys.executable, "-c", wait_source]),
+                    case("signaler", command=[sys.executable, "-c", signal_source]),
+                ],
+                jobs=2,
+            )
+            self.assertTrue(report["passed"], report)
+            self.assertEqual(
+                [item["id"] for item in report["cases"]], ["waiter", "signaler"]
+            )
+            self.assertEqual(
+                [event["sequence"] for event in report["events"]], list(range(1, 5))
+            )
+
