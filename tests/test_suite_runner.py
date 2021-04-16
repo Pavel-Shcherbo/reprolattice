@@ -144,3 +144,15 @@ class SuiteRunnerTests(unittest.TestCase):
         self.assertEqual(failed["cases"][1]["status"], "failed")
         self.assertTrue(failed["cases"][1]["detail"]["passed"])
 
+    def test_tag_filter_records_partial_scope_and_rejects_empty_selection(self):
+        first, second = case("core"), case("other")
+        second["tags"] = ["extended"]
+        plan = compile_suite(suite([first, second]))
+        report = run_suite(plan, include_tags=["core"])
+        self.assertTrue(report["passed"])
+        self.assertFalse(report["full_suite"])
+        self.assertEqual(report["selected_cases"], 1)
+        self.assertEqual(report["cases"][1]["reason"], "tag_filter")
+        with self.assertRaisesRegex(ValueError, "every case"):
+            run_suite(plan, include_tags=["missing"])
+
