@@ -156,3 +156,19 @@ class SuiteRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "every case"):
             run_suite(plan, include_tags=["missing"])
 
+    def test_explicit_secret_is_absent_from_retained_case_diagnostics(self):
+        secret = "suite-secret-canary-5571"
+        source = client_source(extra="import sys; print(sys.argv[1],file=sys.stderr); ")
+        definition = case(
+            "private", command=[sys.executable, "-c", source, "${credential}"]
+        )
+        definition.update(
+            matrix={"credential": [secret]}, secret_parameters=["credential"]
+        )
+        report = self.run_cases([definition])
+        self.assertTrue(report["passed"])
+        self.assertNotIn(secret, json.dumps(report))
+        self.assertIn(
+            "[REDACTED]", report["cases"][0]["detail"]["application"]["stderr"]
+        )
+
