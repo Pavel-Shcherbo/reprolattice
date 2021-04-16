@@ -172,3 +172,14 @@ class SuiteRunnerTests(unittest.TestCase):
             "[REDACTED]", report["cases"][0]["detail"]["application"]["stderr"]
         )
 
+    def test_case_wall_deadline_is_reported_as_failure(self):
+        definition = case(
+            "slow", command=[sys.executable, "-c", "import time; time.sleep(30)"]
+        )
+        definition["timeout"] = 0.1
+        report = self.run_cases([definition])
+        self.assertEqual(report["cases"][0]["status"], "failed")
+        self.assertFalse(
+            report["cases"][0]["detail"]["checks"]["within_case_time_limit"]
+        )
+
