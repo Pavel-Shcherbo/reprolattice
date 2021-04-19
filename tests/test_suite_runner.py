@@ -183,3 +183,20 @@ class SuiteRunnerTests(unittest.TestCase):
             report["cases"][0]["detail"]["checks"]["within_case_time_limit"]
         )
 
+    def test_deadline_also_covers_delayed_artifact_inspection(self):
+        import time
+        from unittest.mock import patch
+
+        definition = case("inspect")
+        definition["timeout"] = 0.2
+
+        def delayed_inspection(*args):
+            time.sleep(0.25)
+            return []
+
+        with patch("reprolattice.suite_runner.check_artifacts", delayed_inspection):
+            report = self.run_cases([definition])
+        self.assertEqual(report["cases"][0]["status"], "failed")
+        self.assertFalse(
+            report["cases"][0]["detail"]["checks"]["within_case_time_limit"]
+        )
