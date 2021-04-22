@@ -20,3 +20,12 @@ class SuiteWorkbenchTests(unittest.TestCase):
             ET.fromstring(faulty["junit_xml"]).find("testsuite").get("failures"), "3"
         )
 
+    def test_workbench_does_not_accept_arbitrary_commands_or_suites(self):
+        for params in [
+            {"mode": "suite", "command": ["arbitrary"]},
+            {"mode": "suite", "suite": {}},
+            {"mode": "suite", "jobs": True},
+            {"mode": "suite", "faulty_client": "yes"},
+        ]:
+            with self.subTest(params=params), self.assertRaises(ValueError):
+                evaluate(params)
