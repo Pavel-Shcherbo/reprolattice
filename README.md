@@ -70,3 +70,7 @@ This exports the reviewed examples to a new directory without overwriting an exi
 This repository was assembled starting in November 2026. Earlier Git timestamps,
 where used, represent reconstructed development stages, not verified original
 work in those years. The 2019–2026 roadmap is proposed scope, not a completed-work record.
+
+## SQLite application state
+
+Suites can create a fresh structured SQLite fixture for each case, run the application and check typed read-only SQL results. Logical snapshots compare schema and rows independently of physical file layout. A bundled inventory example detects omitted database writes even when the HTTP response is correct. See [SQLite state guide](docs/SQLITE_STATE.md); standalone operations are available through `python3 -m reprolattice.sqlite_cli --help`.
