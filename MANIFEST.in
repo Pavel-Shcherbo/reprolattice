@@ -3,3 +3,7 @@ include examples/inventory_client.py
 include examples/retry.json
 include examples/dynamic-order.json
 include examples/inventory-suite.json
+
+include examples/inventory-seed.json
+include examples/inventory-state-suite.json
+include examples/inventory_state_client.py
