@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "inventory",
+      "columns": [
+        {
+          "name": "part",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "available",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "part"
+      ],
+      "rows": [
+        {
+          "part": "part-42",
+          "available": 99
+        }
+      ]
+    },
+    {
+      "name": "receipts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "part",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "part"
+          ],
+          "table": "inventory",
+          "references": [
+            "part"
+          ],
+          "on_delete": "RESTRICT"
+        }
+      ],
+      "rows": []
+    }
+  ]
+}
