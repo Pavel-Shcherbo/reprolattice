@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "name": "inventory-state-regression",
+  "command": [
+    "${python}",
+    "inventory_state_client.py"
+  ],
+  "cases": [
+    {
+      "id": "persist-inventory",
+      "tags": [
+        "state",
+        "application"
+      ],
+      "matrix": {
+        "available": [
+          0,
+          7,
+          12
+        ]
+      },
+      "fixture": {
+        "application": {
+          "expected_json": {
+            "available": {
+              "$param": "available"
+            }
+          }
+        },
+        "interactions": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/inventory/part-42"
+            },
+            "response": {
+              "status": 503,
+              "json": {
+                "error": "unavailable"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/inventory/part-42"
+            },
+            "response": {
+              "json": {
+                "available": {
+                  "$param": "available"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "files": [
+        {
+          "path": "inventory_state_client.py",
+          "sha256": "ea9ffe1e93ed247c4be649c9c4293daeb34f8b499d45eab57af26c61c08368c6"
+        }
+      ],
+      "sqlite": [
+        {
+          "path": "inventory.sqlite",
+          "seed": "inventory-seed.json",
+          "seed_sha256": "414774782424e5850064d156f74877d98e8f7d53d15db7f959fae97ccac397f2",
+          "checks": [
+            {
+              "id": "stock",
+              "sql": "SELECT part, available FROM inventory ORDER BY part",
+              "expected": [
+                {
+                  "part": "part-42",
+                  "available": {
+                    "$param": "available"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "receipt",
+              "sql": "SELECT id, part, quantity FROM receipts ORDER BY id",
+              "expected": [
+                {
+                  "id": 1,
+                  "part": "part-42",
+                  "quantity": {
+                    "$param": "available"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
