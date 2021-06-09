@@ -84,6 +84,11 @@ def failure_summary(case):
         if not rule["passed"]
     ]
     messages += [
+        "SQLite " + state["path"]
+        for state in case.get("sqlite", [])
+        if not state["passed"]
+    ]
+    messages += [
         "artifact " + artifact["path"]
         for artifact in case.get("artifacts", [])
         if not artifact["passed"]
