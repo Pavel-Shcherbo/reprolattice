@@ -17,3 +17,8 @@ from .sqlite_inspect import (
 )
 
 
+def load(path, limit):
+    with Path(path).open("rb") as stream:
+        return strict_json(stream.read(limit + 1), max_bytes=limit)
+
+
