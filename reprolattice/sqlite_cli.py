@@ -22,3 +22,22 @@ def load(path, limit):
         return strict_json(stream.read(limit + 1), max_bytes=limit)
 
 
+def save_snapshot(snapshot, path):
+    verify_database_snapshot(snapshot)
+    path = Path(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=".sqlite-snapshot-", dir=path.parent, delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(canonical(snapshot) + b"\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return {"path": str(path), "sha256": snapshot["sha256"]}
+
+
