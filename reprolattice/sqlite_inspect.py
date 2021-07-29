@@ -17,4 +17,19 @@ FUNCTIONS = frozenset(
 
 
 class Budget:
-    pass
+    def __init__(self, timeout=2, should_cancel=None):
+        if (
+            type(timeout) not in (int, float)
+            or not math.isfinite(timeout)
+            or not 0 < timeout <= 10
+        ):
+            raise ValueError(
+                "SQLite inspection timeout must be between 0 and 10 seconds"
+            )
+        if should_cancel is not None and not callable(should_cancel):
+            raise ValueError("cancellation must be callable")
+        self.deadline = time.monotonic() + timeout
+        self.steps = 0
+        self.cancelled = should_cancel
+        self.reason = None
+
