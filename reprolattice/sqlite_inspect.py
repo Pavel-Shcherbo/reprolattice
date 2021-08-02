@@ -33,3 +33,13 @@ class Budget:
         self.cancelled = should_cancel
         self.reason = None
 
+    def progress(self):
+        self.steps += 1000
+        if self.cancelled and self.cancelled():
+            self.reason = "cancelled"
+        elif time.monotonic() >= self.deadline:
+            self.reason = "time budget exceeded"
+        elif self.steps > 2_000_000:
+            self.reason = "VM instruction budget exceeded"
+        return int(self.reason is not None)
+
