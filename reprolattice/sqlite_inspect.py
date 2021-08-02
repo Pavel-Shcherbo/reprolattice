@@ -43,3 +43,12 @@ class Budget:
             self.reason = "VM instruction budget exceeded"
         return int(self.reason is not None)
 
+    def check(self):
+        if self.cancelled and self.cancelled():
+            self.reason = "cancelled"
+        elif time.monotonic() >= self.deadline:
+            self.reason = "time budget exceeded"
+        if self.reason:
+            raise ValueError("SQLite inspection " + self.reason)
+
+
