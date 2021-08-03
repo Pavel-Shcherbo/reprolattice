@@ -52,3 +52,24 @@ class Budget:
             raise ValueError("SQLite inspection " + self.reason)
 
 
+def file_budget(path):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("SQLite input must be an ordinary existing file")
+    total = 0
+    for suffix, limit in [
+        ("", MAX_DATABASE),
+        ("-wal", MAX_DATABASE),
+        ("-shm", 1024 * 1024),
+        ("-journal", MAX_DATABASE),
+    ]:
+        item = Path(str(path) + suffix)
+        if item.is_symlink():
+            raise ValueError("SQLite sidecar symlinks are unsupported")
+        if item.exists():
+            if not item.is_file() or item.stat().st_size > limit:
+                raise ValueError("SQLite file or sidecar exceeds its byte budget")
+            total += item.stat().st_size
+    return total
+
+
