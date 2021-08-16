@@ -110,3 +110,74 @@ def reader(path, *, timeout=2, should_cancel=None):
             db.set_progress_handler(None, 0)
 
 
+def compile_queries(definitions):
+    validate_json(definitions, max_bytes=1024 * 1024, max_depth=20, max_nodes=50000)
+    if not isinstance(definitions, list) or not 1 <= len(definitions) <= 32:
+        raise ValueError("SQLite checks require 1–32 query definitions")
+    output = []
+    ids = set()
+    for item in definitions:
+        if (
+            not isinstance(item, dict)
+            or set(item) - {"id", "sql", "parameters", "expected", "order"}
+            or not {"id", "sql", "expected"} <= set(item)
+        ):
+            raise ValueError("SQLite query requires id, sql and expected rows")
+        from .sqlite_seed import name
+
+        label = name(item["id"])
+        if label in ids:
+            raise ValueError("SQLite query IDs must be unique")
+        ids.add(label)
+        sql = item["sql"]
+        if (
+            not isinstance(sql, str)
+            or not sql.strip()
+            or len(sql.encode()) > 65536
+            or "\x00" in sql
+        ):
+            raise ValueError("SQLite query SQL must contain bounded text")
+        parameters = item.get("parameters", [])
+        if not isinstance(parameters, list) or len(parameters) > 1000:
+            raise ValueError(
+                "SQLite query supports at most 1,000 positional parameters"
+            )
+        for value in parameters:
+            sqlite_value(value)
+        expected = item["expected"]
+        if (
+            not isinstance(expected, list)
+            or len(expected) > 1000
+            or any(
+                not isinstance(row, dict) or not 1 <= len(row) <= 64 for row in expected
+            )
+        ):
+            raise ValueError(
+                "SQLite expected results require at most 1,000 row objects"
+            )
+        keys = None
+        for row in expected:
+            if any(
+                not isinstance(key, str) or not key or len(key) > 128 for key in row
+            ):
+                raise ValueError("SQLite result aliases require bounded names")
+            if keys is not None and set(row) != keys:
+                raise ValueError("expected query rows must share the same aliases")
+            keys = set(row)
+            for value in row.values():
+                sqlite_value(value)
+        order = item.get("order", "ordered")
+        if not isinstance(order, str) or order not in {"ordered", "unordered"}:
+            raise ValueError("query order must be ordered or unordered")
+        output.append(
+            {
+                "id": label,
+                "sql": sql,
+                "parameters": copy.deepcopy(parameters),
+                "expected": copy.deepcopy(expected),
+                "order": order,
+            }
+        )
+    return tuple(output)
+
+
