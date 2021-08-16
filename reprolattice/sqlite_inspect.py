@@ -73,3 +73,40 @@ def file_budget(path):
     return total
 
 
+@contextmanager
+def reader(path, *, timeout=2, should_cancel=None):
+    file_budget(path)
+    budget = Budget(timeout, should_cancel)
+    budget.check()
+    uri = Path(path).resolve().as_uri() + "?mode=ro"
+    with closing(sqlite3.connect(uri, uri=True, timeout=0.1)) as db:
+        db.execute("PRAGMA query_only=ON")
+        db.execute("PRAGMA trusted_schema=OFF")
+        if hasattr(db, "enable_load_extension"):
+            db.enable_load_extension(False)
+        for category, limit in [
+            ("SQLITE_LIMIT_LENGTH", 262144),
+            ("SQLITE_LIMIT_SQL_LENGTH", 65536),
+            ("SQLITE_LIMIT_COLUMN", 128),
+            ("SQLITE_LIMIT_EXPR_DEPTH", 100),
+            ("SQLITE_LIMIT_VARIABLE_NUMBER", 1000),
+            ("SQLITE_LIMIT_COMPOUND_SELECT", 20),
+        ]:
+            if hasattr(db, "setlimit"):
+                db.setlimit(getattr(sqlite3, category), limit)
+        db.set_progress_handler(budget.progress, 1000)
+        db.execute("BEGIN")
+        # Establish the read snapshot before any related schema/data query.
+        db.execute("SELECT count(*) FROM sqlite_schema").fetchone()
+        try:
+            yield db, budget
+            budget.check()
+        except sqlite3.Error as error:
+            if budget.reason:
+                raise ValueError("SQLite inspection " + budget.reason) from error
+            raise ValueError("SQLite inspection failed: " + str(error)) from error
+        finally:
+            db.set_authorizer(None)
+            db.set_progress_handler(None, 0)
+
+
