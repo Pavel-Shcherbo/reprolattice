@@ -181,3 +181,18 @@ def compile_queries(definitions):
     return tuple(output)
 
 
+def authorize(action, left, right, database, origin):
+    if action in {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ}:
+        return sqlite3.SQLITE_OK
+    if (
+        action == sqlite3.SQLITE_FUNCTION
+        and isinstance(right, str)
+        and right.lower() in FUNCTIONS
+    ):
+        return sqlite3.SQLITE_OK
+    # Recursive CTE reads are permitted, but bounded by the VM/time budgets.
+    if action == getattr(sqlite3, "SQLITE_RECURSIVE", -1):
+        return sqlite3.SQLITE_OK
+    return sqlite3.SQLITE_DENY
+
+
