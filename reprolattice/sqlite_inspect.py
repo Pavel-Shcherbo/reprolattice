@@ -196,3 +196,7 @@ def authorize(action, left, right, database, origin):
     return sqlite3.SQLITE_DENY
 
 
+def typed_row(row):
+    return {key: typed(value) for key, value in row.items()}
+
+
