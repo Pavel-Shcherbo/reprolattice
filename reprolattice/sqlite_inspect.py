@@ -276,3 +276,94 @@ def check_queries(path, definitions, *, timeout=2, should_cancel=None, _view=Non
     return {"passed": all(item["passed"] for item in reports), "queries": reports}
 
 
+def database_snapshot(path, *, timeout=2, should_cancel=None, _view=None):
+    with (
+        nullcontext(_view)
+        if _view is not None
+        else reader(path, timeout=timeout, should_cancel=should_cancel)
+    ) as (db, budget):
+        objects = db.execute(
+            "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name"
+        ).fetchmany(257)
+        if len(objects) > 256:
+            raise ValueError("SQLite schema exceeds 256 objects")
+        schema = [dict(zip(["type", "name", "table", "sql"], row)) for row in objects]
+        tables = {}
+        encoded_bytes = len(canonical(schema))
+        total_rows = 0
+        cells = 0
+        for item in schema:
+            budget.check()
+            if item["type"] != "table":
+                continue
+            if item["sql"] is None or "CREATE VIRTUAL TABLE" in item["sql"].upper():
+                raise ValueError(
+                    "virtual tables and unavailable schema text are unsupported"
+                )
+            if len(tables) >= 64:
+                raise ValueError("SQLite snapshot exceeds 64 tables")
+            columns = db.execute(
+                "PRAGMA table_xinfo(" + quoted(item["name"]) + ")"
+            ).fetchall()
+            if not 1 <= len(columns) <= 64:
+                raise ValueError("SQLite snapshot table exceeds column limits")
+            column_schema = [
+                dict(
+                    zip(
+                        [
+                            "cid",
+                            "name",
+                            "declared_type",
+                            "not_null",
+                            "default",
+                            "primary_key",
+                            "hidden",
+                        ],
+                        row,
+                    )
+                )
+                for row in columns
+            ]
+            names = [row["name"] for row in column_schema]
+            cursor = db.execute(
+                "SELECT "
+                + ",".join(map(quoted, names))
+                + " FROM "
+                + quoted(item["name"])
+            )
+            encoded = []
+            for row in cursor:
+                budget.check()
+                total_rows += 1
+                cells += len(names)
+                if len(encoded) >= 10000 or total_rows > 20000 or cells > 100000:
+                    raise ValueError("SQLite snapshot exceeds row/cell limits")
+                value = typed_row(dict(zip(names, row)))
+                encoded_bytes += len(canonical(value)) + 1
+                if encoded_bytes > 16 * 1024 * 1024:
+                    raise ValueError("SQLite logical snapshot exceeds 16 MiB")
+                encoded.append(value)
+            encoded.sort(key=canonical)
+            tables[item["name"]] = {
+                "columns": column_schema,
+                "rows": encoded,
+                "sha256": identity(encoded),
+            }
+        integrity = [row[0] for row in db.execute("PRAGMA quick_check").fetchmany(21)]
+        foreign = [
+            list(row) for row in db.execute("PRAGMA foreign_key_check").fetchmany(21)
+        ]
+        if integrity != ["ok"] or foreign:
+            raise ValueError("SQLite integrity or foreign-key check failed")
+        result = {
+            "format": "reprolattice.sqlite-snapshot.v1",
+            "schema": schema,
+            "tables": tables,
+        }
+        if len(canonical(result)) > 16 * 1024 * 1024:
+            raise ValueError("SQLite logical snapshot exceeds 16 MiB")
+        result["sha256"] = identity(result)
+        verify_database_snapshot(result)
+        return result
+
+
