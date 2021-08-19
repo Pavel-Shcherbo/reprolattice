@@ -200,3 +200,79 @@ def typed_row(row):
     return {key: typed(value) for key, value in row.items()}
 
 
+def check_queries(path, definitions, *, timeout=2, should_cancel=None, _view=None):
+    definitions = compile_queries(list(definitions))
+    reports = []
+    with (
+        nullcontext(_view)
+        if _view is not None
+        else reader(path, timeout=timeout, should_cancel=should_cancel)
+    ) as (db, budget):
+        db.set_authorizer(authorize)
+        for item in definitions:
+            budget.check()
+            report = {
+                "id": item["id"],
+                "passed": False,
+                "query_sha256": identity(
+                    {"sql": item["sql"], "parameters": item["parameters"]}
+                ),
+                "order": item["order"],
+            }
+            try:
+                cursor = db.execute(
+                    item["sql"], tuple(sqlite_value(v) for v in item["parameters"])
+                )
+                if cursor.description is None:
+                    raise ValueError("SQLite checks must produce a read-only row set")
+                columns = [column[0] for column in cursor.description]
+                if (
+                    not 1 <= len(columns) <= 64
+                    or len(set(columns)) != len(columns)
+                    or any(not col or len(col) > 128 for col in columns)
+                ):
+                    raise ValueError("query columns require distinct bounded aliases")
+                actual = []
+                actual_bytes = 2
+                for values in cursor:
+                    budget.check()
+                    if len(actual) >= 1000:
+                        raise ValueError("SQLite query result exceeds 1,000 rows")
+                    row = typed_row(dict(zip(columns, values)))
+                    actual_bytes += len(canonical(row)) + 1
+                    if actual_bytes > 1024 * 1024:
+                        raise ValueError("SQLite query result exceeds 1 MiB")
+                    actual.append(row)
+                expected = [
+                    typed_row({key: sqlite_value(value) for key, value in row.items()})
+                    for row in item["expected"]
+                ]
+                actual_keys = [canonical(row) for row in actual]
+                expected_keys = [canonical(row) for row in expected]
+                passed = (
+                    actual_keys == expected_keys
+                    if item["order"] == "ordered"
+                    else Counter(actual_keys) == Counter(expected_keys)
+                )
+                report.update(
+                    passed=passed,
+                    columns=columns,
+                    row_count=len(actual),
+                    actual_sha256=identity(actual),
+                    expected_sha256=identity(expected),
+                    actual=actual[:20],
+                    expected=expected[:20],
+                    diagnostics_complete=len(actual) <= 20 and len(expected) <= 20,
+                )
+            except (sqlite3.Error, ValueError) as error:
+                report["error"] = (
+                    ("SQLite inspection " + budget.reason)
+                    if budget.reason
+                    else str(error)
+                )
+            reports.append(report)
+            budget.check()
+        db.set_authorizer(None)
+    return {"passed": all(item["passed"] for item in reports), "queries": reports}
+
+
