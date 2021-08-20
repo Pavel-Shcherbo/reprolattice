@@ -367,3 +367,96 @@ def database_snapshot(path, *, timeout=2, should_cancel=None, _view=None):
         return result
 
 
+def verify_database_snapshot(snapshot):
+    validate_json(snapshot, max_bytes=16 * 1024 * 1024, max_depth=30, max_nodes=1000000)
+    if (
+        not isinstance(snapshot, dict)
+        or set(snapshot) != {"format", "schema", "tables", "sha256"}
+        or snapshot["format"] != "reprolattice.sqlite-snapshot.v1"
+    ):
+        raise ValueError("unsupported SQLite snapshot")
+    if (
+        identity({key: value for key, value in snapshot.items() if key != "sha256"})
+        != snapshot["sha256"]
+    ):
+        raise ValueError("SQLite snapshot identity mismatch")
+    if (
+        not isinstance(snapshot["schema"], list)
+        or len(snapshot["schema"]) > 256
+        or not isinstance(snapshot["tables"], dict)
+        or len(snapshot["tables"]) > 64
+    ):
+        raise ValueError("invalid SQLite snapshot schema")
+    total = 0
+    cells = 0
+    schema_tables = set()
+    for item in snapshot["schema"]:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"type", "name", "table", "sql"}
+            or not isinstance(item["type"], str)
+            or item["type"] not in {"table", "index", "view", "trigger"}
+            or not all(isinstance(item[key], str) for key in ["name", "table", "sql"])
+        ):
+            raise ValueError("invalid SQLite schema object")
+        if item["type"] == "table":
+            schema_tables.add(item["name"])
+    if schema_tables != set(snapshot["tables"]):
+        raise ValueError("SQLite snapshot table/schema mismatch")
+    for table in snapshot["tables"].values():
+        if (
+            not isinstance(table, dict)
+            or set(table) != {"columns", "rows", "sha256"}
+            or not isinstance(table["columns"], list)
+            or not 1 <= len(table["columns"]) <= 64
+            or not isinstance(table["rows"], list)
+            or len(table["rows"]) > 10000
+        ):
+            raise ValueError("invalid SQLite table snapshot")
+        columns = []
+        for col in table["columns"]:
+            if (
+                not isinstance(col, dict)
+                or set(col)
+                != {
+                    "cid",
+                    "name",
+                    "declared_type",
+                    "not_null",
+                    "default",
+                    "primary_key",
+                    "hidden",
+                }
+                or not isinstance(col["name"], str)
+            ):
+                raise ValueError("invalid SQLite snapshot column")
+            columns.append(col["name"])
+        if len(set(columns)) != len(columns):
+            raise ValueError("duplicate SQLite snapshot columns")
+        total += len(table["rows"])
+        cells += len(columns) * len(table["rows"])
+        for row in table["rows"]:
+            if not isinstance(row, dict) or set(row) != set(columns):
+                raise ValueError("SQLite snapshot row/column mismatch")
+            for value in row.values():
+                if not isinstance(value, dict) or set(value) != {"type", "value"}:
+                    raise ValueError("invalid typed SQLite snapshot cell")
+                kind = value["type"]
+                raw = value["value"]
+                converted = (
+                    sqlite_value({"$blob": raw})
+                    if kind == "blob"
+                    else sqlite_value(raw)
+                )
+                if typed(converted) != value:
+                    raise ValueError("SQLite snapshot storage type mismatch")
+        if (
+            table["rows"] != sorted(table["rows"], key=canonical)
+            or identity(table["rows"]) != table["sha256"]
+        ):
+            raise ValueError("SQLite snapshot rows are changed or not canonical")
+    if total > 20000 or cells > 100000:
+        raise ValueError("SQLite snapshot row/cell budget exceeded")
+    return snapshot
+
+
