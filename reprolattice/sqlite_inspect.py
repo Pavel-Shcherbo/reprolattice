@@ -460,3 +460,38 @@ def verify_database_snapshot(snapshot):
     return snapshot
 
 
+def compare_snapshots(before, after):
+    verify_database_snapshot(before)
+    verify_database_snapshot(after)
+    differences = []
+    for name in sorted(set(before["tables"]) | set(after["tables"])):
+        left = before["tables"].get(name)
+        right = after["tables"].get(name)
+        a = Counter(canonical(row) for row in left["rows"]) if left else Counter()
+        b = Counter(canonical(row) for row in right["rows"]) if right else Counter()
+        added = sum((b - a).values())
+        removed = sum((a - b).values())
+        schema_changed = (
+            left is None or right is None or left["columns"] != right["columns"]
+        )
+        if added or removed or schema_changed:
+            differences.append(
+                {
+                    "table": name,
+                    "kind": (
+                        "added"
+                        if left is None
+                        else "removed" if right is None else "changed"
+                    ),
+                    "schema_changed": schema_changed,
+                    "rows_added": added,
+                    "rows_removed": removed,
+                }
+            )
+    return {
+        "equal": before["sha256"] == after["sha256"],
+        "before_sha256": before["sha256"],
+        "after_sha256": after["sha256"],
+        "schema_changed": before["schema"] != after["schema"],
+        "tables": differences,
+    }
