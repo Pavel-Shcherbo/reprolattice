@@ -24,3 +24,7 @@ def canonical(value):
     ).encode()
 
 
+def identity(value):
+    return hashlib.sha256(canonical(value)).hexdigest()
+
+
