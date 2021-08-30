@@ -28,3 +28,11 @@ def identity(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def name(value):
+    if not isinstance(value, str) or not NAME.fullmatch(value):
+        raise ValueError(
+            "SQLite fixture identifiers require at most 64 ASCII letters, digits or underscores"
+        )
+    return value
+
+
