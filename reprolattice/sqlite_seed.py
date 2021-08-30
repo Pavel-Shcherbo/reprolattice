@@ -36,3 +36,7 @@ def name(value):
     return value
 
 
+def quoted(value):
+    return '"' + value.replace('"', '""') + '"'
+
+
