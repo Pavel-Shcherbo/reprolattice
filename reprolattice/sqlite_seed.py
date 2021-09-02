@@ -85,3 +85,15 @@ def typed(value):
     raise ValueError("unsupported SQLite storage value")
 
 
+def column_list(value, columns, label, *, allow_empty=False):
+    if (
+        not isinstance(value, list)
+        or not (0 if allow_empty else 1) <= len(value) <= len(columns)
+        or any(not isinstance(item, str) for item in value)
+        or len(set(value)) != len(value)
+        or not set(value) <= set(columns)
+    ):
+        raise ValueError(f"{label} requires distinct declared column names")
+    return value
+
+
