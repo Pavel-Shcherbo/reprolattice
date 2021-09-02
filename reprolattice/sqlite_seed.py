@@ -40,3 +40,28 @@ def quoted(value):
     return '"' + value.replace('"', '""') + '"'
 
 
+def sqlite_value(value):
+    if isinstance(value, dict) and set(value) == {"$blob"}:
+        encoded = value["$blob"]
+        if (
+            not isinstance(encoded, str)
+            or len(encoded) > 131072
+            or not re.fullmatch(r"(?:[0-9a-f]{2})*", encoded)
+        ):
+            raise ValueError(
+                "BLOB values require bounded lowercase even-length hexadecimal"
+            )
+        return bytes.fromhex(encoded)
+    if value is None or type(value) in {str, int, float}:
+        if type(value) is int and not -(2**63) <= value < 2**63:
+            raise ValueError("SQLite integer exceeds signed 64-bit range")
+        if type(value) is float and not math.isfinite(value):
+            raise ValueError("SQLite real must be finite")
+        if isinstance(value, str) and len(value.encode()) > 65536:
+            raise ValueError("SQLite text exceeds 64 KiB")
+        return value
+    raise ValueError(
+        "SQLite values require null, integer, real, text or an explicit BLOB"
+    )
+
+
