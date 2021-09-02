@@ -65,3 +65,23 @@ def sqlite_value(value):
     )
 
 
+def typed(value):
+    if value is None:
+        return {"type": "null", "value": None}
+    if type(value) is int:
+        return {"type": "integer", "value": value}
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("non-finite SQLite result")
+        return {"type": "real", "value": value}
+    if isinstance(value, str):
+        if len(value.encode()) > 65536:
+            raise ValueError("SQLite result text exceeds 64 KiB")
+        return {"type": "text", "value": value}
+    if isinstance(value, bytes):
+        if len(value) > 65536:
+            raise ValueError("SQLite result BLOB exceeds 64 KiB")
+        return {"type": "blob", "value": value.hex()}
+    raise ValueError("unsupported SQLite storage value")
+
+
