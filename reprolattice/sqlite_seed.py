@@ -97,3 +97,156 @@ def column_list(value, columns, label, *, allow_empty=False):
     return value
 
 
+def compile_seed(definition):
+    validate_json(definition, max_bytes=4 * 1024 * 1024, max_nodes=200000, max_depth=20)
+    if (
+        not isinstance(definition, dict)
+        or set(definition) != {"version", "tables"}
+        or type(definition["version"]) is not int
+        or definition["version"] != 1
+    ):
+        raise ValueError("SQLite seed requires version 1 and tables")
+    tables = definition["tables"]
+    if not isinstance(tables, list) or not 1 <= len(tables) <= 32:
+        raise ValueError("SQLite seed requires 1–32 tables")
+    result = copy.deepcopy(definition)
+    declared = {}
+    cells = 0
+    rows_total = 0
+    for table in result["tables"]:
+        if (
+            not isinstance(table, dict)
+            or set(table)
+            - {"name", "columns", "rows", "primary_key", "unique", "foreign_keys"}
+            or not {"name", "columns", "rows"} <= set(table)
+        ):
+            raise ValueError("unsupported SQLite table fields")
+        table_name = name(table["name"])
+        if table_name.lower().startswith("sqlite_") or table_name.lower() in declared:
+            raise ValueError("reserved or case-insensitively duplicate table name")
+        columns = table["columns"]
+        if not isinstance(columns, list) or not 1 <= len(columns) <= 64:
+            raise ValueError("table requires 1–64 columns")
+        by_name = {}
+        folded = set()
+        for column in columns:
+            if not isinstance(column, dict) or set(column) != {
+                "name",
+                "type",
+                "nullable",
+            }:
+                raise ValueError("columns require name, type and nullable")
+            col = name(column["name"])
+            if (
+                col.lower() in folded
+                or not isinstance(column["type"], str)
+                or column["type"] not in TYPES
+                or type(column["nullable"]) is not bool
+            ):
+                raise ValueError("invalid, duplicate or unsupported SQLite column")
+            folded.add(col.lower())
+            by_name[col] = column
+        primary = column_list(
+            table.setdefault("primary_key", []),
+            by_name,
+            "primary key",
+            allow_empty=True,
+        )
+        if any(by_name[col]["nullable"] for col in primary):
+            raise ValueError("primary key columns must be explicitly non-nullable")
+        unique = table.setdefault("unique", [])
+        if not isinstance(unique, list) or len(unique) > 16:
+            raise ValueError("at most 16 unique constraints are supported")
+        for constraint in unique:
+            column_list(constraint, by_name, "unique constraint")
+        rows = table["rows"]
+        if not isinstance(rows, list) or len(rows) > 10000:
+            raise ValueError("table supports at most 10,000 seed rows")
+        rows_total += len(rows)
+        cells += len(rows) * len(columns)
+        if rows_total > 20000 or cells > 100000:
+            raise ValueError("SQLite seed row/cell budget exceeded")
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != set(by_name):
+                raise ValueError(
+                    "seed rows must supply every declared column exactly once"
+                )
+            for col, column in by_name.items():
+                value = sqlite_value(row[col])
+                expected = {"INTEGER": int, "REAL": float, "TEXT": str, "BLOB": bytes}[
+                    column["type"]
+                ]
+                if value is None:
+                    if not column["nullable"]:
+                        raise ValueError("null in a non-nullable seed column")
+                elif type(value) is not expected:
+                    raise ValueError(
+                        "seed value storage type differs from the declared column type"
+                    )
+        declared[table_name.lower()] = table
+    for table in result["tables"]:
+        columns = {col["name"]: col for col in table["columns"]}
+        foreign = table.setdefault("foreign_keys", [])
+        if not isinstance(foreign, list) or len(foreign) > 16:
+            raise ValueError("at most 16 foreign keys are supported per table")
+        for key in foreign:
+            if not isinstance(key, dict) or set(key) != {
+                "columns",
+                "table",
+                "references",
+                "on_delete",
+            }:
+                raise ValueError(
+                    "foreign keys require columns, table, references and on_delete"
+                )
+            column_list(key["columns"], columns, "foreign key")
+            target = declared.get(name(key["table"]).lower())
+            if target is None or key["table"] != target["name"]:
+                raise ValueError(
+                    "foreign key target must name a declared table exactly"
+                )
+            target_columns = {col["name"]: col for col in target["columns"]}
+            column_list(key["references"], target_columns, "foreign reference")
+            if len(key["columns"]) != len(key["references"]) or key[
+                "references"
+            ] not in [target["primary_key"], *target["unique"]]:
+                raise ValueError(
+                    "foreign references require a matching primary/unique key"
+                )
+            if not isinstance(key["on_delete"], str) or key["on_delete"] not in {
+                "RESTRICT",
+                "CASCADE",
+                "SET NULL",
+            }:
+                raise ValueError("unsupported foreign-key delete action")
+            for left, right in zip(key["columns"], key["references"]):
+                if columns[left]["type"] != target_columns[right]["type"]:
+                    raise ValueError("foreign key column types must match")
+                if key["on_delete"] == "SET NULL" and not columns[left]["nullable"]:
+                    raise ValueError("SET NULL requires nullable child columns")
+    # Validate relational constraints before any case can launch an application.
+    for table in result["tables"]:
+        for constraint in [table["primary_key"], *table["unique"]]:
+            if not constraint:
+                continue
+            seen = set()
+            for row in table["rows"]:
+                key = tuple(sqlite_value(row[col]) for col in constraint)
+                if any(value is None for value in key):
+                    continue
+                if key in seen:
+                    raise ValueError("duplicate primary or unique seed key")
+                seen.add(key)
+        for foreign in table["foreign_keys"]:
+            target = declared[foreign["table"].lower()]
+            keys = {
+                tuple(sqlite_value(row[col]) for col in foreign["references"])
+                for row in target["rows"]
+            }
+            for row in table["rows"]:
+                key = tuple(sqlite_value(row[col]) for col in foreign["columns"])
+                if all(value is not None for value in key) and key not in keys:
+                    raise ValueError("seed foreign key has no referenced row")
+    return result
+
+
