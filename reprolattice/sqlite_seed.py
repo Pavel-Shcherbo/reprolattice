@@ -250,3 +250,87 @@ def compile_seed(definition):
     return result
 
 
+def create_database(definition, destination):
+    seed = compile_seed(definition)
+    destination = Path(destination)
+    temporary = None
+    try:
+        handle, filename = tempfile.mkstemp(
+            prefix=".sqlite-seed-", dir=destination.parent
+        )
+        os.close(handle)
+        temporary = Path(filename)
+        with closing(sqlite3.connect(temporary)) as db:
+            db.execute("PRAGMA page_size=4096")
+            db.execute("PRAGMA max_page_count=4096")
+            db.execute("PRAGMA foreign_keys=ON")
+            db.execute("PRAGMA journal_mode=DELETE")
+            db.execute("BEGIN")
+            for table in seed["tables"]:
+                columns = [
+                    quoted(c["name"])
+                    + " "
+                    + c["type"]
+                    + (" NOT NULL" if not c["nullable"] else "")
+                    for c in table["columns"]
+                ]
+                if table["primary_key"]:
+                    columns.append(
+                        "PRIMARY KEY("
+                        + ",".join(map(quoted, table["primary_key"]))
+                        + ")"
+                    )
+                for unique in table["unique"]:
+                    columns.append("UNIQUE(" + ",".join(map(quoted, unique)) + ")")
+                for key in table["foreign_keys"]:
+                    columns.append(
+                        "FOREIGN KEY("
+                        + ",".join(map(quoted, key["columns"]))
+                        + ") REFERENCES "
+                        + quoted(key["table"])
+                        + "("
+                        + ",".join(map(quoted, key["references"]))
+                        + ") ON DELETE "
+                        + key["on_delete"]
+                        + " DEFERRABLE INITIALLY DEFERRED"
+                    )
+                db.execute(
+                    "CREATE TABLE "
+                    + quoted(table["name"])
+                    + "("
+                    + ",".join(columns)
+                    + ") STRICT"
+                )
+            for table in seed["tables"]:
+                columns = [col["name"] for col in table["columns"]]
+                sql = (
+                    "INSERT INTO "
+                    + quoted(table["name"])
+                    + "("
+                    + ",".join(map(quoted, columns))
+                    + ") VALUES("
+                    + ",".join("?" for _ in columns)
+                    + ")"
+                )
+                db.executemany(
+                    sql,
+                    [
+                        tuple(sqlite_value(row[col]) for col in columns)
+                        for row in table["rows"]
+                    ],
+                )
+            db.commit()
+        if temporary.stat().st_size > MAX_DATABASE:
+            raise ValueError("seed database exceeds 16 MiB")
+        os.link(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+            for suffix in ["-journal", "-wal", "-shm"]:
+                Path(str(temporary) + suffix).unlink(missing_ok=True)
+    return {
+        "path": str(destination),
+        "seed_sha256": identity(seed),
+        "tables": len(seed["tables"]),
+        "rows": sum(len(table["rows"]) for table in seed["tables"]),
+    }
