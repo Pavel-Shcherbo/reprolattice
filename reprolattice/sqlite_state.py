@@ -61,3 +61,9 @@ def compile_states(definitions, root="."):
     return tuple(output)
 
 
+def check_definitions(definitions):
+    from .sqlite_inspect import compile_queries
+
+    return compile_queries(definitions)
+
+
