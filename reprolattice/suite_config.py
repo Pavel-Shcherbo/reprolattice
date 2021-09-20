@@ -87,6 +87,7 @@ class SuiteCase:
     timeout: float
     files: tuple
     artifacts: tuple
+    states: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -199,6 +200,7 @@ def compile_suite(definition, root="."):
             "secret_parameters",
             "files",
             "artifacts",
+            "sqlite",
         }
         if not isinstance(case, dict) or set(case) - allowed_case:
             raise ValueError("suite case contains unsupported fields")
@@ -312,6 +314,34 @@ def compile_suite(definition, root="."):
                 input_bytes += sum(len(file.content) for file in files)
             files = cached_files[cache_key]
             artifacts = compile_artifacts(expand(case.get("artifacts", []), runtime))
+            from .sqlite_state import compile_states
+
+            states = compile_states(expand(case.get("sqlite", []), runtime), root)
+            input_bytes += sum(state.input_bytes for state in states)
+            total_rules += sum(len(state.queries) for state in states)
+            paths = [str(Path(file.path)).casefold() for file in files] + [
+                str(Path(state.path)).casefold() for state in states
+            ]
+            if len(set(paths)) != len(paths) or any(
+                left != right and Path(left) in Path(right).parents
+                for left in paths
+                for right in paths
+            ):
+                raise ValueError(
+                    "SQLite state paths and workspace files cannot overlap"
+                )
+            for state in states:
+                for suffix in ("-wal", "-shm", "-journal"):
+                    reserved = Path(str(Path(state.path)).casefold() + suffix)
+                    if any(
+                        reserved == Path(path)
+                        or reserved in Path(path).parents
+                        or Path(path) in reserved.parents
+                        for path in paths
+                    ):
+                        raise ValueError(
+                            "SQLite sidecar paths cannot overlap workspace inputs or states"
+                        )
             total_rules += sum(len(artifact.rules) for artifact in artifacts)
             if total_rules > 5000 or input_bytes > 32 * 1024 * 1024:
                 raise ValueError(
@@ -339,6 +369,7 @@ def compile_suite(definition, root="."):
                     timeout,
                     files,
                     artifacts,
+                    states,
                 )
             )
     fingerprint = hashlib.sha256(
@@ -352,6 +383,7 @@ def compile_suite(definition, root="."):
                 "fixture_sha256": item.fixture_sha256,
                 "command": item.command,
                 "files": [(file.path, file.sha256) for file in item.files],
+                "sqlite": [(state.path, state.sha256) for state in item.states],
             }
             for item in result
         ],
