@@ -67,3 +67,17 @@ def check_definitions(definitions):
     return compile_queries(definitions)
 
 
+def prepare_states(workspace, definitions, *, should_cancel=None):
+    workspace = Path(workspace).resolve()
+    prepared = []
+    for state in definitions:
+        if should_cancel and should_cancel():
+            raise ValueError("SQLite state setup cancelled")
+        target = workspace / state.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        create_database(state.seed, target)
+        before = database_snapshot(target, should_cancel=should_cancel)
+        prepared.append((state, before))
+    return prepared
+
+
