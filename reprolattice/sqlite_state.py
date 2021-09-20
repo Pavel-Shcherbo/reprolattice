@@ -81,3 +81,38 @@ def prepare_states(workspace, definitions, *, should_cancel=None):
     return prepared
 
 
+def inspect_states(workspace, prepared, *, should_cancel=None):
+    from .suite_config import rooted
+
+    workspace = Path(workspace).resolve()
+    reports = []
+    for state, before in prepared:
+        report = {
+            "path": state.path,
+            "definition_sha256": state.sha256,
+            "passed": False,
+            "before_sha256": before["sha256"],
+        }
+        try:
+            lexical = workspace / state.path
+            if any(
+                part.is_symlink()
+                for part in [lexical, *lexical.parents]
+                if part.is_relative_to(workspace)
+            ):
+                raise ValueError("SQLite state symlinks are unsupported")
+            target = rooted(workspace, state.path)
+            # Application is stopped by the harness before these bounded reads.
+            with reader(target, should_cancel=should_cancel) as view:
+                checks = check_queries(target, state.queries, _view=view)
+                after = database_snapshot(target, _view=view)
+            report.update(
+                passed=checks["passed"],
+                checks=checks,
+                after_sha256=after["sha256"],
+                changes=compare_snapshots(before, after),
+            )
+        except (ValueError, OSError, sqlite3.Error) as error:
+            report["error"] = str(error)
+        reports.append(report)
+    return reports
