@@ -15,6 +15,7 @@ from .harness import check_client
 from .parameters import scrub
 from .protocol import verify_protocol
 from .suite_config import SuitePlan, named
+from .sqlite_state import prepare_states, inspect_states
 
 
 def utc_now():
@@ -76,6 +77,9 @@ def case_metadata(case):
         "command_sha256": hashlib.sha256(
             json.dumps(case.command, separators=(",", ":")).encode()
         ).hexdigest(),
+        "sqlite_definitions": [
+            {"path": state.path, "sha256": state.sha256} for state in case.states
+        ],
         "inputs": [
             {"path": item.path, "sha256": item.sha256, "bytes": len(item.content)}
             for item in case.files
@@ -107,6 +111,7 @@ def run_case(case, workspace, should_cancel):
         def case_cancelled():
             return should_cancel() or time.monotonic() >= deadline
 
+        prepared = prepare_states(workspace, case.states, should_cancel=case_cancelled)
         if case.mode == "application":
             detail = check_client(
                 case.fixture,
@@ -126,6 +131,11 @@ def run_case(case, workspace, should_cancel):
             if not detail.get("cancelled")
             else []
         )
+        states = (
+            inspect_states(workspace, prepared, should_cancel=case_cancelled)
+            if not detail.get("cancelled")
+            else []
+        )
         if should_cancel():
             detail["cancelled"], detail["passed"] = True, False
         elif time.monotonic() >= deadline:
@@ -136,7 +146,9 @@ def run_case(case, workspace, should_cancel):
             if detail.get("cancelled")
             else (
                 "passed"
-                if detail["passed"] and all(item["passed"] for item in artifacts)
+                if detail["passed"]
+                and all(item["passed"] for item in artifacts)
+                and all(item["passed"] for item in states)
                 else "failed"
             )
         )
@@ -144,12 +156,20 @@ def run_case(case, workspace, should_cancel):
             status=status,
             detail=compact_detail(detail),
             artifacts=compact_detail({"items": artifacts})["items"],
+            sqlite=compact_detail({"items": states})["items"],
         )
     except Exception as error:
-        result.update(
-            status="error",
-            error={"type": type(error).__name__, "message": str(error)[:8192]},
-        )
+        if should_cancel():
+            result.update(
+                status="cancelled", reason="cancelled_during_state_setup_or_inspection"
+            )
+        elif time.monotonic() >= started + case.timeout:
+            result.update(status="failed", reason="case_time_limit_exceeded")
+        else:
+            result.update(
+                status="error",
+                error={"type": type(error).__name__, "message": str(error)[:8192]},
+            )
     result["duration_seconds"] = time.monotonic() - started
     return scrub(result, case.secrets)
 
