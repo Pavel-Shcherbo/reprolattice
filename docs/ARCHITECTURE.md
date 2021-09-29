@@ -28,10 +28,14 @@ authorization or organization model yet.
 
 ## Next architectural increment
 
-Add explicit application-state adapters, database snapshot/reset recipes and semantic behavior comparisons, then retain immutable run collections. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
+Retain immutable run collections and comparisons, expose SQLite state in management views, then qualify additional state providers and migration workflows. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
 
 ## Suite execution and CI reports
 
 `parameters` expands bounded JSON matrices without evaluating expressions. `suite_config` compiles every case before execution, snapshots explicit workspace files and identifies the full resolved input set separately from the suite definition. `suite_runner` creates independent temporary workspaces and fixture servers, bounds concurrent submission and retains deterministic case ordering. Fail-fast, cancellation and case deadlines remain explicit outcomes.
 
 `artifact_checks` validates declared JSON/text outputs without copying arbitrary files into reports. `reports` validates status/count consistency and exports JSON, escaped HTML and JUnit XML with a completion manifest and file hashes. `suites` is the local operator CLI; `suite_web` restricts HTTP-triggered execution to the reviewed bundled suite. See SUITES.md for scope, bounds and exit semantics.
+
+## SQLite application state
+
+`sqlite_seed` compiles structured constrained fixtures and publishes fresh databases without overwriting existing files. `sqlite_inspect` enforces read-only bounded query checks and creates canonical typed logical snapshots; query results are streamed under byte limits. `sqlite_state` integrates setup and coherent postcondition/snapshot reads into isolated suite cases. State checks contribute to case status and report failure summaries independently of HTTP output. `sqlite_cli` exposes create-only seed/snapshot operations and validated comparisons. See SQLITE_STATE.md for resource bounds and current logical-identity exclusions.
