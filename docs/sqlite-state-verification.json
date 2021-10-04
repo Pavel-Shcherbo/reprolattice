@@ -1,0 +1,36 @@
+{
+  "scope": "Clean installed SQLite state control, not other database providers or full product acceptance",
+  "passed": true,
+  "healthy_counts": {
+    "passed": 3,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "omitted_write_counts": {
+    "passed": 0,
+    "failed": 3,
+    "error": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "omitted_write_http_passed": true,
+  "omitted_write_sqlite_failed": true,
+  "standalone_difference": {
+    "equal": false,
+    "before_sha256": "df8fc30ed5fb8c785327ed154fc76156e6966e48b16e59882bdc603bdf4360c7",
+    "after_sha256": "4854a8be5ba6d130a4628186a44f94001e5d60ba0c8db1cda769d5467ae6688b",
+    "schema_changed": false,
+    "tables": [
+      {
+        "table": "inventory",
+        "kind": "changed",
+        "schema_changed": false,
+        "rows_added": 1,
+        "rows_removed": 1
+      }
+    ]
+  },
+  "report_manifest_hashes_verified": true
+}
