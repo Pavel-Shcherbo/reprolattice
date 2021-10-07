@@ -1,7 +1,5 @@
 {
-  "verified_at": "2026-11-04T03:50:33.041787+00:00",
-  "scope": "Current local core, not the full product scope or the 20,000-SLOC acceptance",
-  "unit_tests": 89,
+  "unit_tests": 108,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
@@ -19,16 +17,19 @@
     "reprolattice/protocol.py": "8d6b49d3f17c06ad990bfb594a17546b719101c6d5991090918af25f9123749c",
     "reprolattice/redaction.py": "fb98e901a34d60df988b505f2b4377c50a4ff3d954ca6820df1c2915f1ed9ec1",
     "reprolattice/replay.py": "ccb6ccdd01e78f1f6921fcd5138e274c5f7646c0bfa527ba25d6a1e1790426a7",
-    "reprolattice/reports.py": "9df22d49ef5685136aeaed38f9e3444f5af8962207492879afeda9d99c826be8",
+    "reprolattice/reports.py": "cf82ad18fcf6a96ba2c23f59d9ee6c2e3b3d3ea39ab88ce687b6a3de52fde789",
     "reprolattice/resources.py": "7b4881ac5e208822eea3c485114e2482ba81fc4336e113fdd301e87610b7d62e",
+    "reprolattice/sqlite_cli.py": "df3f9d39e44400ad3de28efe4b13ec266a50f0915fa2452b23fded951a17033c",
+    "reprolattice/sqlite_inspect.py": "bb18993e3e53c183b44d2afb87ff67524667ccd0209424a473b5735fa64be624",
+    "reprolattice/sqlite_seed.py": "b829ae47cbbc5c71a95c166d9e2c3422fd0e7304c21281381c100098a4077431",
+    "reprolattice/sqlite_state.py": "698de30bdfb0467837bdf392c15264bc48adc75a4406e5052d50f48414c5e868",
     "reprolattice/static/app.js": "a80a155bfbb1818e85fe71441dbe0e31d59826beae559836726c4a793ed5e984",
     "reprolattice/static/index.html": "9420962c49d9ca8b2767aae2e6496ced0ba085eff38f15d728ba32e08c98cb25",
     "reprolattice/static/style.css": "d5a71dc2eb7430ef242fa7d85539b313f62aab5110d1554dbd515e4f826f252d",
-    "reprolattice/suite_config.py": "17f50b1a75c1694e18d26bb83818ffe9655adab6ee0e237414d0467692bd3f6c",
-    "reprolattice/suite_runner.py": "e7d16c95df328bf866b34296831b51b4340bff9017af1f23cb6a3c4f1dc1722d",
+    "reprolattice/suite_config.py": "50057f6a9767cd16b1053be4c51d4e43ef065bfa7b550c3159852bb07ef25633",
+    "reprolattice/suite_runner.py": "fd067855cbee2c8d89d02f5aba1308bd10e4b816bfdaa4ebf7daa0c918cf4518",
     "reprolattice/suite_web.py": "9132253109f759c2b986d36ef1950d56c8c581bd6a05f33516d7b5df78eaf9d3",
     "reprolattice/suites.py": "f492c49dfb0425f135bed8782ccb8bc7addb18253d06c04c80a5228be4ed4832",
     "reprolattice/web.py": "71abad44fdf8af6edd53765e8606df02df8e9eed7e3d7820be32b0b46cc60eff"
-  },
-  "full_portfolio_acceptance": false
+  }
 }
