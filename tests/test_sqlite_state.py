@@ -26,3 +26,20 @@ from reprolattice.reports import failure_summary, write_reports
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
+def seed():
+    return {
+        "version": 1,
+        "tables": [
+            {
+                "name": "items",
+                "columns": [
+                    {"name": "id", "type": "INTEGER", "nullable": False},
+                    {"name": "value", "type": "TEXT", "nullable": True},
+                ],
+                "primary_key": ["id"],
+                "rows": [{"id": 1, "value": "one"}, {"id": 2, "value": None}],
+            }
+        ],
+    }
+
+
