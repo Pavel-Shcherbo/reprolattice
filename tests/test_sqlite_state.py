@@ -43,3 +43,15 @@ def seed():
     }
 
 
+def checks():
+    return [
+        {
+            "id": "rows",
+            "sql": "SELECT id, value FROM items ORDER BY id",
+            "expected": [{"id": 1, "value": "one"}, {"id": 2, "value": None}],
+        }
+    ]
+
+
+class SQLiteStateTests(unittest.TestCase):
+    pass
