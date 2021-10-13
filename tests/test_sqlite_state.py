@@ -60,3 +60,6 @@ class SQLiteStateTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.path = self.root / "data.sqlite"
 
+    def create(self, definition=None):
+        return create_database(seed() if definition is None else definition, self.path)
+
