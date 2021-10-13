@@ -54,4 +54,9 @@ def checks():
 
 
 class SQLiteStateTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.path = self.root / "data.sqlite"
+
