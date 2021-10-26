@@ -63,3 +63,18 @@ class SQLiteStateTests(unittest.TestCase):
     def create(self, definition=None):
         return create_database(seed() if definition is None else definition, self.path)
 
+    def test_seed_typed_nulls_and_keys(self):
+        self.create()
+        self.assertTrue(check_queries(self.path, checks())["passed"])
+        with closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(
+                db.execute("PRAGMA table_info(items)").fetchall()[0][2], "INTEGER"
+            )
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM items").fetchone()[0], 2)
+        self.assertEqual(
+            verify_database_snapshot(database_snapshot(self.path))["tables"]["items"][
+                "rows"
+            ][0]["id"]["type"],
+            "integer",
+        )
+
