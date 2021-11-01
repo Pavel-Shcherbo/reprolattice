@@ -78,3 +78,30 @@ class SQLiteStateTests(unittest.TestCase):
             "integer",
         )
 
+    def test_binary_real_and_integer_results_are_distinct(self):
+        definition = {
+            "version": 1,
+            "tables": [
+                {
+                    "name": "cells",
+                    "columns": [
+                        {"name": "i", "type": "INTEGER", "nullable": False},
+                        {"name": "r", "type": "REAL", "nullable": False},
+                        {"name": "b", "type": "BLOB", "nullable": False},
+                    ],
+                    "rows": [{"i": 1, "r": 1.0, "b": {"$blob": "00ff"}}],
+                }
+            ],
+        }
+        self.create(definition)
+        rule = [
+            {
+                "id": "typed",
+                "sql": "SELECT * FROM cells",
+                "expected": [{"i": 1, "r": 1.0, "b": {"$blob": "00ff"}}],
+            }
+        ]
+        self.assertTrue(check_queries(self.path, rule)["passed"])
+        rule[0]["expected"][0]["r"] = 1
+        self.assertFalse(check_queries(self.path, rule)["passed"])
+
