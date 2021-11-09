@@ -105,3 +105,26 @@ class SQLiteStateTests(unittest.TestCase):
         rule[0]["expected"][0]["r"] = 1
         self.assertFalse(check_queries(self.path, rule)["passed"])
 
+    def test_duplicate_unique_foreign_keys_and_nulls_rejected_before_creation(self):
+        for transform in ["duplicate", "null", "wrongtype", "foreign"]:
+            definition = seed()
+            if transform == "duplicate":
+                definition["tables"][0]["rows"].append({"id": 1, "value": "other"})
+            elif transform == "null":
+                definition["tables"][0]["rows"][0]["id"] = None
+            elif transform == "wrongtype":
+                definition["tables"][0]["rows"][0]["id"] = True
+            else:
+                definition["tables"][0]["foreign_keys"] = [
+                    {
+                        "columns": ["id"],
+                        "table": "items",
+                        "references": ["id"],
+                        "on_delete": "SET NULL",
+                    }
+                ]
+            with self.subTest(transform=transform), self.assertRaises(ValueError):
+                create_database(definition, self.path)
+            self.assertFalse(self.path.exists())
+        self.assertEqual(list(self.root.iterdir()), [])
+
