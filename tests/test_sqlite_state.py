@@ -128,3 +128,13 @@ class SQLiteStateTests(unittest.TestCase):
             self.assertFalse(self.path.exists())
         self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_parent_after_child_seed_order_with_deferred_foreign_keys(self):
+        definition = json.loads((EXAMPLES / "inventory-seed.json").read_text())
+        definition["tables"][1]["rows"] = [{"id": 1, "part": "part-42", "quantity": 8}]
+        definition["tables"].reverse()
+        self.create(definition)
+        self.assertTrue(database_snapshot(self.path)["tables"]["receipts"]["rows"])
+        definition["tables"][0]["rows"][0]["part"] = "missing"
+        with self.assertRaisesRegex(ValueError, "referenced"):
+            compile_seed(definition)
+
