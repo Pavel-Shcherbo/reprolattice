@@ -138,3 +138,15 @@ class SQLiteStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "referenced"):
             compile_seed(definition)
 
+    def test_no_overwrite_of_database_or_symlink(self):
+        self.create()
+        original = self.path.read_bytes()
+        with self.assertRaises(FileExistsError):
+            self.create()
+        self.assertEqual(self.path.read_bytes(), original)
+        link = self.root / "link.sqlite"
+        link.symlink_to(self.path)
+        with self.assertRaises(FileExistsError):
+            create_database(seed(), link)
+        self.assertFalse(list(self.root.glob(".sqlite-seed-*")))
+
