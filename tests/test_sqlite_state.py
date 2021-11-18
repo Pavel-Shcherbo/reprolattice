@@ -150,3 +150,24 @@ class SQLiteStateTests(unittest.TestCase):
             create_database(seed(), link)
         self.assertFalse(list(self.root.glob(".sqlite-seed-*")))
 
+    def test_queries_deny_writes_attachments_pragmas_and_unsafe_functions(self):
+        self.create()
+        before = database_snapshot(self.path)["sha256"]
+        for sql in [
+            "DELETE FROM items",
+            "UPDATE items SET value='changed'",
+            "DROP TABLE items",
+            "ATTACH DATABASE 'other.sqlite' AS other",
+            "PRAGMA writable_schema=ON",
+            "SELECT load_extension('anything')",
+            "SELECT randomblob(100)",
+        ]:
+            with self.subTest(sql=sql):
+                report = check_queries(
+                    self.path, [{"id": "denied", "sql": sql, "expected": []}]
+                )
+                self.assertFalse(report["passed"])
+                self.assertIn("error", report["queries"][0])
+        self.assertEqual(database_snapshot(self.path)["sha256"], before)
+        self.assertFalse((self.root / "other.sqlite").exists())
+
