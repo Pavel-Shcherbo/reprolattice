@@ -171,3 +171,18 @@ class SQLiteStateTests(unittest.TestCase):
         self.assertEqual(database_snapshot(self.path)["sha256"], before)
         self.assertFalse((self.root / "other.sqlite").exists())
 
+    def test_parameters_aggregates_and_cte(self):
+        self.create()
+        report = check_queries(
+            self.path,
+            [
+                {
+                    "id": "aggregate",
+                    "sql": "WITH selected AS (SELECT id FROM items WHERE id>?) SELECT count(*) AS n, sum(id) AS total FROM selected",
+                    "parameters": [0],
+                    "expected": [{"n": 2, "total": 3}],
+                }
+            ],
+        )
+        self.assertTrue(report["passed"])
+
