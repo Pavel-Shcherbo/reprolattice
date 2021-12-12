@@ -186,3 +186,16 @@ class SQLiteStateTests(unittest.TestCase):
         )
         self.assertTrue(report["passed"])
 
+    def test_order_and_duplicate_row_multiplicity(self):
+        self.create()
+        rule = {
+            "id": "order",
+            "sql": "SELECT id FROM items ORDER BY id DESC",
+            "expected": [{"id": 1}, {"id": 2}],
+        }
+        self.assertFalse(check_queries(self.path, [rule])["passed"])
+        rule["order"] = "unordered"
+        self.assertTrue(check_queries(self.path, [rule])["passed"])
+        rule["sql"] = "SELECT id FROM items UNION ALL SELECT id FROM items"
+        self.assertFalse(check_queries(self.path, [rule])["passed"])
+
