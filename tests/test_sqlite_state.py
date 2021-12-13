@@ -199,3 +199,19 @@ class SQLiteStateTests(unittest.TestCase):
         rule["sql"] = "SELECT id FROM items UNION ALL SELECT id FROM items"
         self.assertFalse(check_queries(self.path, [rule])["passed"])
 
+    def test_row_vm_and_cancellation_budgets(self):
+        self.create()
+        sql = "WITH RECURSIVE n(v) AS (VALUES(1) UNION ALL SELECT v+1 FROM n WHERE v<2000) SELECT v FROM n"
+        result = check_queries(
+            self.path, [{"id": "bounded", "sql": sql, "expected": []}]
+        )
+        self.assertFalse(result["passed"])
+        self.assertIn("1,000", result["queries"][0]["error"])
+        infinite = "WITH RECURSIVE n(v) AS (VALUES(1) UNION ALL SELECT v+1 FROM n) SELECT sum(v) FROM n"
+        with self.assertRaisesRegex(ValueError, "budget"):
+            check_queries(
+                self.path, [{"id": "bounded", "sql": infinite, "expected": []}]
+            )
+        with self.assertRaisesRegex(ValueError, "cancelled"):
+            database_snapshot(self.path, should_cancel=lambda: True)
+
