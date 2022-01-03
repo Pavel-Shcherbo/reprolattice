@@ -215,3 +215,14 @@ class SQLiteStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cancelled"):
             database_snapshot(self.path, should_cancel=lambda: True)
 
+    def test_logical_snapshot_ignores_row_insertion_order(self):
+        definition = seed()
+        definition["tables"][0]["primary_key"] = []
+        self.create(definition)
+        before = database_snapshot(self.path)
+        definition["tables"][0]["rows"].reverse()
+        other = self.root / "other.sqlite"
+        create_database(definition, other)
+        self.assertTrue(compare_snapshots(before, database_snapshot(other))["equal"])
+        self.assertNotEqual(self.path.read_bytes(), other.read_bytes())
+
