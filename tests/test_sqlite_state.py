@@ -226,3 +226,20 @@ class SQLiteStateTests(unittest.TestCase):
         self.assertTrue(compare_snapshots(before, database_snapshot(other))["equal"])
         self.assertNotEqual(self.path.read_bytes(), other.read_bytes())
 
+    def test_diff_reports_rows_and_schema_without_retaining_values(self):
+        self.create()
+        before = database_snapshot(self.path)
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("UPDATE items SET value='changed' WHERE id=1")
+            db.execute("ALTER TABLE items ADD COLUMN extra TEXT")
+        diff = compare_snapshots(before, database_snapshot(self.path))
+        self.assertFalse(diff["equal"])
+        self.assertTrue(diff["schema_changed"])
+        self.assertEqual(diff["tables"][0]["rows_added"], 2)
+        self.assertNotIn(
+            "changed",
+            json.dumps(diff)
+            .replace("schema_changed", "")
+            .replace('"kind": "changed"', ""),
+        )
+
