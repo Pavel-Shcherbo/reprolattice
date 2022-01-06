@@ -243,3 +243,19 @@ class SQLiteStateTests(unittest.TestCase):
             .replace('"kind": "changed"', ""),
         )
 
+    def test_tampered_snapshot_or_storage_type_is_rejected(self):
+        self.create()
+        snapshot = database_snapshot(self.path)
+        snapshot["tables"]["items"]["rows"][0]["id"]["value"] = 123
+        with self.assertRaisesRegex(ValueError, "identity"):
+            verify_database_snapshot(snapshot)
+        snapshot = database_snapshot(self.path)
+        snapshot["tables"]["items"]["rows"][0]["id"]["type"] = "text"
+        table = snapshot["tables"]["items"]
+        table["sha256"] = identity(table["rows"])
+        snapshot["sha256"] = identity(
+            {k: v for k, v in snapshot.items() if k != "sha256"}
+        )
+        with self.assertRaisesRegex(ValueError, "storage"):
+            verify_database_snapshot(snapshot)
+
