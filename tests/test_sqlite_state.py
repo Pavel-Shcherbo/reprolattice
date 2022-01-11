@@ -278,3 +278,17 @@ class SQLiteStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "foreign"):
             database_snapshot(foreign)
 
+    def test_state_setup_and_failed_postcondition(self):
+        states = compile_states(
+            [{"path": "nested/app.sqlite", "seed": seed(), "checks": checks()}]
+        )
+        workspace = self.root / "work"
+        workspace.mkdir()
+        prepared = prepare_states(workspace, states)
+        self.assertTrue(inspect_states(workspace, prepared)[0]["passed"])
+        with closing(sqlite3.connect(workspace / "nested/app.sqlite")) as db, db:
+            db.execute("DELETE FROM items")
+        result = inspect_states(workspace, prepared)[0]
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["changes"]["tables"][0]["rows_removed"], 2)
+
