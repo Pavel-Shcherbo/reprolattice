@@ -259,3 +259,22 @@ class SQLiteStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "storage"):
             verify_database_snapshot(snapshot)
 
+    def test_invalid_file_sidecar_symlink_and_corrupt_fk(self):
+        self.path.write_bytes(b"not a database")
+        with self.assertRaises((ValueError, sqlite3.Error)):
+            database_snapshot(self.path)
+        self.path.unlink()
+        self.create()
+        sidecar = Path(str(self.path) + "-wal")
+        sidecar.symlink_to(self.path)
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            database_snapshot(self.path)
+        sidecar.unlink()
+        foreign = self.root / "foreign.sqlite"
+        definition = json.loads((EXAMPLES / "inventory-seed.json").read_text())
+        create_database(definition, foreign)
+        with closing(sqlite3.connect(foreign)) as db, db:
+            db.execute("INSERT INTO receipts VALUES(1,'missing',1)")
+        with self.assertRaisesRegex(ValueError, "foreign"):
+            database_snapshot(foreign)
+
