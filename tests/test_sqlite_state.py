@@ -292,3 +292,13 @@ class SQLiteStateTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertEqual(result["changes"]["tables"][0]["rows_removed"], 2)
 
+    def test_seed_pins_path_overlap_and_full_preflight(self):
+        definition = json.loads((EXAMPLES / "inventory-state-suite.json").read_text())
+        definition["cases"][0]["sqlite"][0]["seed_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "pinned"):
+            compile_suite(definition, EXAMPLES)
+        definition = json.loads((EXAMPLES / "inventory-state-suite.json").read_text())
+        definition["cases"][0]["sqlite"][0]["path"] = "inventory_state_client.py"
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            compile_suite(definition, EXAMPLES)
+
