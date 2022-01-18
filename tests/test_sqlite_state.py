@@ -302,3 +302,21 @@ class SQLiteStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "overlap"):
             compile_suite(definition, EXAMPLES)
 
+    def test_healthy_and_omitted_write_are_distinguished_after_same_http_output(self):
+        definition = json.loads((EXAMPLES / "inventory-state-suite.json").read_text())
+        plan = compile_suite(definition, EXAMPLES)
+        healthy = run_suite(plan, jobs=2)
+        self.assertTrue(healthy["passed"])
+        self.assertEqual(healthy["counts"]["passed"], 3)
+        definition["command"].append("--omit-write")
+        bad = run_suite(compile_suite(definition, EXAMPLES), jobs=2)
+        self.assertFalse(bad["passed"])
+        self.assertEqual(bad["counts"]["failed"], 3)
+        for case in bad["cases"]:
+            self.assertTrue(case["detail"]["passed"])
+            self.assertFalse(case["sqlite"][0]["passed"])
+            self.assertIn("SQLite", failure_summary(case))
+        reports = self.root / "reports"
+        write_reports(bad, reports)
+        self.assertIn("SQLite inventory.sqlite", (reports / "junit.xml").read_text())
+
