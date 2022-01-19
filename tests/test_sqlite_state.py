@@ -320,3 +320,30 @@ class SQLiteStateTests(unittest.TestCase):
         write_reports(bad, reports)
         self.assertIn("SQLite inventory.sqlite", (reports / "junit.xml").read_text())
 
+    def test_cli_and_atomic_snapshot_no_overwrite(self):
+        definition = self.root / "seed.json"
+        definition.write_text(json.dumps(seed()))
+        snap = self.root / "snapshot.json"
+
+        def cli(*args, expected=0):
+            result = subprocess.run(
+                [sys.executable, "-m", "reprolattice.sqlite_cli", *map(str, args)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout) if result.stdout else None
+
+        cli("seed", definition, self.path)
+        cli("snapshot", self.path, "--output", snap)
+        self.assertTrue(cli("verify-snapshot", snap)["passed"])
+        self.assertTrue(cli("compare", snap, snap)["equal"])
+        cli("snapshot", self.path, "--output", snap, expected=2)
+        second = self.root / "changed.json"
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("DELETE FROM items")
+        cli("snapshot", self.path, "--output", second)
+        self.assertFalse(cli("compare", snap, second, expected=1)["equal"])
+        self.assertFalse(list(self.root.glob(".sqlite-snapshot-*")))
+
