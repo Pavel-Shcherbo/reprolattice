@@ -347,3 +347,16 @@ class SQLiteStateTests(unittest.TestCase):
         self.assertFalse(cli("compare", snap, second, expected=1)["equal"])
         self.assertFalse(list(self.root.glob(".sqlite-snapshot-*")))
 
+    def test_generated_results_stop_at_cell_and_byte_limits(self):
+        self.create()
+        report = check_queries(
+            self.path,
+            [{"id": "blob", "sql": "SELECT zeroblob(65537) AS value", "expected": []}],
+        )
+        self.assertFalse(report["passed"])
+        self.assertIn("64 KiB", report["queries"][0]["error"])
+        sql = "WITH RECURSIVE n(v) AS (VALUES(1) UNION ALL SELECT v+1 FROM n WHERE v<900) SELECT hex(zeroblob(1000)) AS value FROM n"
+        report = check_queries(self.path, [{"id": "bytes", "sql": sql, "expected": []}])
+        self.assertFalse(report["passed"])
+        self.assertIn("1 MiB", report["queries"][0]["error"])
+
