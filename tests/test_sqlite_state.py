@@ -360,3 +360,24 @@ class SQLiteStateTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn("1 MiB", report["queries"][0]["error"])
 
+    def test_malformed_field_types_are_input_errors(self):
+        definition = json.loads((EXAMPLES / "inventory-seed.json").read_text())
+        definition["tables"][1]["foreign_keys"][0]["on_delete"] = []
+        with self.assertRaises(ValueError):
+            compile_seed(definition)
+        self.create()
+        rule = checks()[0]
+        rule["order"] = []
+        with self.assertRaises(ValueError):
+            check_queries(self.path, [rule])
+        snapshot = database_snapshot(self.path)
+        snapshot["schema"][0]["type"] = []
+        snapshot["sha256"] = identity(
+            {k: v for k, v in snapshot.items() if k != "sha256"}
+        )
+        with self.assertRaises(ValueError):
+            verify_database_snapshot(snapshot)
+
+
+if __name__ == "__main__":
+    unittest.main()
