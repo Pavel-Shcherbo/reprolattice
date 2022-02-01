@@ -74,3 +74,7 @@ work in those years. The 2019–2026 roadmap is proposed scope, not a completed-
 ## SQLite application state
 
 Suites can create a fresh structured SQLite fixture for each case, run the application and check typed read-only SQL results. Logical snapshots compare schema and rows independently of physical file layout. A bundled inventory example detects omitted database writes even when the HTTP response is correct. See [SQLite state guide](docs/SQLITE_STATE.md); standalone operations are available through `python3 -m reprolattice.sqlite_cli --help`.
+
+## Run registry and regression comparisons
+
+The local registry archives immutable suite reports with source/build revision metadata, indexed case history and generation-fenced named baselines. Comparison distinguishes changed test conditions from changed subject code, regressions/fixes, missing coverage and optional timing thresholds. See [run registry guide](docs/RUNS.md); use `python3 -m reprolattice.runs --help` for operator commands.
