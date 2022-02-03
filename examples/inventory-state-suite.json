@@ -58,7 +58,8 @@
       "files": [
         {
           "path": "inventory_state_client.py",
-          "sha256": "ea9ffe1e93ed247c4be649c9c4293daeb34f8b499d45eab57af26c61c08368c6"
+          "sha256": "ea9ffe1e93ed247c4be649c9c4293daeb34f8b499d45eab57af26c61c08368c6",
+          "role": "subject"
         }
       ],
       "sqlite": [
