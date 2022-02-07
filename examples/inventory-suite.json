@@ -60,7 +60,8 @@
       "files": [
         {
           "path": "inventory_client.py",
-          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2"
+          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2",
+          "role": "subject"
         }
       ],
       "artifacts": [
@@ -110,7 +111,8 @@
       "files": [
         {
           "path": "inventory_client.py",
-          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2"
+          "sha256": "5fe87d8eb104205208e7610573f17ed132057d721f3892869ae30689d4cc37b2",
+          "role": "subject"
         }
       ]
     },
