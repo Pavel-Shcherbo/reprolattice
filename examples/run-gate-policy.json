@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "require_full_suite": true,
+  "require_same_context": true,
+  "allow_changed_inputs": false,
+  "allow_removed": false,
+  "allow_new_cases": true,
+  "allow_existing_failures": false,
+  "allow_legacy_metadata": false,
+  "allow_tag_filtered": false,
+  "max_slowdown_ratio": null,
+  "minimum_duration_seconds": 0.05
+}
