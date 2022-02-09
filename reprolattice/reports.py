@@ -221,7 +221,10 @@ summary {{ cursor: pointer; overflow-wrap: anywhere; }} pre {{ max-width: 65ch; 
 
 def write_reports(report, directory):
     validate_report(report)
-    destination = Path(directory).resolve()
+    requested = Path(directory).expanduser()
+    if requested.is_symlink():
+        raise ValueError("report destination cannot be a symbolic link")
+    destination = requested.resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     payloads = {
         "report.json": (json.dumps(report, indent=2, allow_nan=False) + "\n").encode(),
