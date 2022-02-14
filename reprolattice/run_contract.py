@@ -15,3 +15,9 @@ CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 REPORT_LIMIT = 8 * 1024 * 1024
 
 
+def canonical(value):
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+
+
