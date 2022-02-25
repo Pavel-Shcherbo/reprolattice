@@ -25,3 +25,9 @@ def fingerprint(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def sha(value):
+    if not isinstance(value, str) or not SHA.fullmatch(value):
+        raise ValueError("run identities require lowercase SHA-256")
+    return value
+
+
