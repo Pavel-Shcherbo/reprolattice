@@ -31,3 +31,18 @@ def sha(value):
     return value
 
 
+def utc(value):
+    if not isinstance(value, str) or len(value) > 40:
+        raise ValueError("run timestamps require bounded timezone-aware ISO text")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("invalid run timestamp") from error
+    if parsed.tzinfo is None:
+        raise ValueError("run timestamps require a timezone")
+    try:
+        return parsed.astimezone(timezone.utc)
+    except (ValueError, OverflowError) as error:
+        raise ValueError("run timestamp is outside the UTC range") from error
+
+
