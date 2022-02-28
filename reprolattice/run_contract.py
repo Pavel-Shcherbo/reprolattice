@@ -46,3 +46,21 @@ def utc(value):
         raise ValueError("run timestamp is outside the UTC range") from error
 
 
+def context(value):
+    validate_json(value, max_bytes=16384, max_depth=5, max_nodes=1000)
+    if (
+        not isinstance(value, dict)
+        or len(value) > 32
+        or any(
+            not isinstance(key, str)
+            or not key
+            or len(key) > 64
+            or not isinstance(item, str)
+            or len(item) > 1024
+            for key, item in value.items()
+        )
+    ):
+        raise ValueError("run context requires at most 32 bounded text fields")
+    return dict(value)
+
+
