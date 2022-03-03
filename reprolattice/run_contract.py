@@ -211,3 +211,10 @@ def validate_run(report):
     return report
 
 
+def modern(case):
+    return all(
+        key in case
+        for key in ("parameters_sha256", "artifact_contract_sha256", "timeout_seconds")
+    )
+
+
