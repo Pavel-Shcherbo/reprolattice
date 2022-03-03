@@ -218,3 +218,14 @@ def modern(case):
     )
 
 
+def pair_key(case, *, modern):
+    if modern and "parameters_sha256" in case:
+        return fingerprint(
+            {
+                "source_id": case["source_id"],
+                "parameters_sha256": case["parameters_sha256"],
+            }
+        )
+    return "case:" + case["id"]
+
+
