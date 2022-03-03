@@ -64,3 +64,150 @@ def context(value):
     return dict(value)
 
 
+def validate_run(report):
+    validate_json(report, max_bytes=REPORT_LIMIT, max_depth=70, max_nodes=100000)
+    validate_report(report)
+    named(report.get("suite"), "suite")
+    run_id = report.get("run_id")
+    if not isinstance(run_id, str) or not CASE_ID.fullmatch(run_id):
+        raise ValueError("run ID requires bounded ASCII text")
+    sha(report.get("suite_sha256"))
+    sha(report.get("definition_sha256"))
+    if utc(report.get("started_at")) > utc(report.get("finished_at")):
+        raise ValueError("run finish precedes start")
+    if "execution_context" in report:
+        context(report["execution_context"])
+    keys = set()
+    excluded = 0
+    for case in report["cases"]:
+        if not CASE_ID.fullmatch(case["id"]):
+            raise ValueError("case ID exceeds archive bounds")
+        named(case.get("source_id"), "source case ID")
+        if case.get("mode") not in ("application", "protocol"):
+            raise ValueError("unsupported archived case mode")
+        if not isinstance(case.get("parameters"), dict):
+            raise ValueError("case parameters must be an object")
+        sha(case.get("fixture_sha256"))
+        sha(case.get("command_sha256"))
+        if "parameters_sha256" in case:
+            sha(case["parameters_sha256"])
+        if "artifact_contract_sha256" in case:
+            sha(case["artifact_contract_sha256"])
+        if "timeout_seconds" in case and (
+            type(case["timeout_seconds"]) not in (int, float)
+            or not 0 < case["timeout_seconds"] <= 120
+        ):
+            raise ValueError("invalid archived case timeout")
+        tags = case.get("tags")
+        if not isinstance(tags, list) or len(tags) > 20:
+            raise ValueError("archived case tags must be a bounded list")
+        for tag in tags:
+            named(tag, "case tag")
+        inputs = case.get("inputs", [])
+        states = case.get("sqlite_definitions", [])
+        if (
+            not isinstance(inputs, list)
+            or len(inputs) > 32
+            or not isinstance(states, list)
+            or len(states) > 4
+        ):
+            raise ValueError("archived case input/state budget exceeded")
+        seen = set()
+        for item in inputs:
+            if (
+                not isinstance(item, dict)
+                or set(item) - {"path", "sha256", "bytes", "role"}
+                or not {"path", "sha256", "bytes"} <= set(item)
+            ):
+                raise ValueError("invalid archived input metadata")
+            path = relative_path(item["path"])
+            sha(item["sha256"])
+            if (
+                path in seen
+                or item.get("role", "fixture") not in ("fixture", "subject")
+                or type(item["bytes"]) is not int
+                or not 0 <= item["bytes"] <= 4 * 1024 * 1024
+            ):
+                raise ValueError("invalid or duplicate archived file input")
+            seen.add(path)
+        seen = set()
+        for item in states:
+            if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+                raise ValueError("invalid archived state definition")
+            path = relative_path(item["path"])
+            sha(item["sha256"])
+            if path in seen:
+                raise ValueError("duplicate archived state definition")
+            seen.add(path)
+        detail = case.get("detail", {})
+        if (
+            not isinstance(detail, dict)
+            or not isinstance(detail.get("checks", {}), dict)
+            or any(
+                type(value) is not bool for value in detail.get("checks", {}).values()
+            )
+        ):
+            raise ValueError("invalid recorded check structure")
+        if "application" in detail and not isinstance(detail["application"], dict):
+            raise ValueError("invalid archived application detail")
+        if "error" in case and not isinstance(case["error"], dict):
+            raise ValueError("invalid archived error detail")
+        for key in ("assertions", "results"):
+            entries = detail.get(key, [])
+            if not isinstance(entries, list) or any(
+                not isinstance(item, dict) or type(item.get("passed")) is not bool
+                for item in entries
+            ):
+                raise ValueError("invalid recorded diagnostic entries")
+            if key == "assertions" and any(
+                not isinstance(item.get("id"), str)
+                or not item["id"]
+                or len(item["id"]) > 128
+                for item in entries
+            ):
+                raise ValueError("invalid archived assertion ID")
+        for key, maximum in (("artifacts", 16), ("sqlite", 4)):
+            entries = case.get(key, [])
+            if (
+                not isinstance(entries, list)
+                or len(entries) > maximum
+                or any(
+                    not isinstance(item, dict) or type(item.get("passed")) is not bool
+                    for item in entries
+                )
+            ):
+                raise ValueError("invalid archived output/state checks")
+            for item in entries:
+                relative_path(item.get("path"))
+        if case["status"] == "passed":
+            if (
+                detail.get("passed") is not True
+                or any(value is not True for value in detail.get("checks", {}).values())
+                or any(
+                    item.get("passed") is not True
+                    for item in detail.get("assertions", [])
+                )
+                or any(
+                    item.get("passed") is not True for item in detail.get("results", [])
+                )
+                or any(
+                    item.get("passed") is not True for item in case.get("artifacts", [])
+                )
+                or any(
+                    item.get("passed") is not True for item in case.get("sqlite", [])
+                )
+            ):
+                raise ValueError("passed case contradicts its recorded checks")
+        if case["status"] == "skipped" and case.get("reason") == "tag_filter":
+            excluded += 1
+        key = pair_key(case, modern=True)
+        if key in keys:
+            raise ValueError(
+                "archive contains duplicate source/parameter case identities"
+            )
+        keys.add(key)
+    if report["selected_cases"] != len(report["cases"]) - excluded:
+        raise ValueError("selection count contradicts tag-filter exclusions")
+    return report
+
+
