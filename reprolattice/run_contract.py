@@ -229,3 +229,33 @@ def pair_key(case, *, modern):
     return "case:" + case["id"]
 
 
+def case_identity_parts(case):
+    inputs = case.get("inputs", [])
+    conditions = {
+        "mode": case["mode"],
+        "fixture_sha256": case["fixture_sha256"],
+        "parameters": case["parameters"],
+        "parameters_sha256": case.get("parameters_sha256"),
+        "artifact_contract_sha256": case.get("artifact_contract_sha256"),
+        "timeout_seconds": case.get("timeout_seconds"),
+        "fixtures": sorted(
+            (item["path"], item["sha256"])
+            for item in inputs
+            if item.get("role", "fixture") == "fixture"
+        ),
+        "sqlite": sorted(
+            (item["path"], item["sha256"])
+            for item in case.get("sqlite_definitions", [])
+        ),
+    }
+    subject = {
+        "command_sha256": case["command_sha256"],
+        "files": sorted(
+            (item["path"], item["sha256"])
+            for item in inputs
+            if item.get("role", "fixture") == "subject"
+        ),
+    }
+    return conditions, subject
+
+
