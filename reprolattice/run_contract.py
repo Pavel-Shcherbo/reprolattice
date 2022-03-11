@@ -259,3 +259,6 @@ def case_identity_parts(case):
     return conditions, subject
 
 
+def case_signatures(case):
+    conditions, subject = case_identity_parts(case)
+    return fingerprint(conditions), fingerprint(subject)
