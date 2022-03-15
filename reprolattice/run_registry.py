@@ -47,3 +47,9 @@ CREATE INDEX case_history ON cases(source_id,status,run);
 """
 
 
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+class RunRegistry:
+    pass
