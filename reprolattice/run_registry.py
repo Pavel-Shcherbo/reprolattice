@@ -113,3 +113,14 @@ class RunRegistry:
             db.execute("PRAGMA foreign_keys=ON")
             yield db
 
+    @contextmanager
+    def _tx(self, write=True):
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            try:
+                yield db
+                db.commit()
+            except BaseException:
+                db.rollback()
+                raise
+
