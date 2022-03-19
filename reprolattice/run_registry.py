@@ -124,3 +124,11 @@ class RunRegistry:
                 db.rollback()
                 raise
 
+    def project(self, name):
+        named(name, "project")
+        with self._tx() as db:
+            db.execute("INSERT OR IGNORE INTO projects VALUES(?,?)", (name, now()))
+            return dict(
+                db.execute("SELECT * FROM projects WHERE name=?", (name,)).fetchone()
+            )
+
