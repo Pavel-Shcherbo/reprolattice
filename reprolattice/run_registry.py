@@ -132,3 +132,11 @@ class RunRegistry:
                 db.execute("SELECT * FROM projects WHERE name=?", (name,)).fetchone()
             )
 
+    def _project(self, db, name):
+        named(name, "project")
+        if (
+            db.execute("SELECT name FROM projects WHERE name=?", (name,)).fetchone()
+            is None
+        ):
+            raise ValueError("unknown registry project")
+
