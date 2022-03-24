@@ -234,3 +234,38 @@ class RunRegistry:
             result["reused"] = existing is not None
             return result
 
+    def _get(self, db, project, record_id):
+        self._project(db, project)
+        sha(record_id)
+        row = db.execute(
+            "SELECT * FROM runs WHERE project=? AND id=?", (project, record_id)
+        ).fetchone()
+        if row is None:
+            raise ValueError("unknown archived run in this project")
+        metadata = json.loads(row["metadata"])
+        raw = bytes(row["report"])
+        report = strict_json(raw, max_bytes=REPORT_LIMIT)
+        validate_run(report)
+        if (
+            fingerprint(report) != row["report_sha256"]
+            or metadata.get("report_sha256") != row["report_sha256"]
+            or fingerprint(metadata) != record_id
+            or metadata.get("project") != project
+            or metadata.get("run_id") != row["run_id"]
+            or metadata.get("suite") != row["suite"]
+            or metadata.get("revision") != row["revision"]
+            or report["run_id"] != row["run_id"]
+            or report["suite"] != row["suite"]
+        ):
+            raise ValueError("archived run metadata/content identity mismatch")
+        return {
+            "id": record_id,
+            "sequence": row["seq"],
+            **metadata,
+            "recorded_at": row["recorded_at"],
+            "passed": report["passed"],
+            "full_suite": report["full_suite"],
+            "counts": report["counts"],
+            "report": report,
+        }
+
