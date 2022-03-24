@@ -140,3 +140,97 @@ class RunRegistry:
         ):
             raise ValueError("unknown registry project")
 
+    def record(
+        self, project, report, *, revision, request_key, label="", run_context=None
+    ):
+        named(request_key, "request key")
+        validate_run(report)
+        if not isinstance(revision, str) or not REVISION.fullmatch(revision):
+            raise ValueError("revision requires a full lowercase 40/64-digit hash")
+        if not isinstance(label, str) or len(label) > 256:
+            raise ValueError("run label exceeds 256 characters")
+        observed = context(
+            report.get("execution_context", {}) if run_context is None else run_context
+        )
+        raw = canonical(report)
+        report_sha = fingerprint(report)
+        metadata = {
+            "project": project,
+            "revision": revision,
+            "label": label,
+            "context": observed,
+            "report_sha256": report_sha,
+            "run_id": report["run_id"],
+            "suite": report["suite"],
+            "passed": report["passed"],
+            "full_suite": report["full_suite"],
+            "counts": report["counts"],
+        }
+        record_id = fingerprint(metadata)
+        with self._tx() as db:
+            self._project(db, project)
+            request = db.execute(
+                "SELECT record_id FROM requests WHERE project=? AND request_key=?",
+                (project, request_key),
+            ).fetchone()
+            if request and request["record_id"] != record_id:
+                raise ValueError(
+                    "request key conflicts with different run content or metadata"
+                )
+            prior = db.execute(
+                "SELECT id FROM runs WHERE project=? AND run_id=?",
+                (project, report["run_id"]),
+            ).fetchone()
+            if prior and prior["id"] != record_id:
+                raise ValueError(
+                    "run ID is already archived with different content or metadata"
+                )
+            existing = db.execute(
+                "SELECT id FROM runs WHERE id=?", (record_id,)
+            ).fetchone()
+            if not existing:
+                if (
+                    db.execute(
+                        "SELECT count(*) FROM runs WHERE project=?", (project,)
+                    ).fetchone()[0]
+                    >= 10000
+                ):
+                    raise ValueError("project exceeds 10,000 retained runs")
+                db.execute(
+                    "INSERT INTO runs(id,project,run_id,suite,revision,metadata,report,report_sha256,recorded_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                    (
+                        record_id,
+                        project,
+                        report["run_id"],
+                        report["suite"],
+                        revision,
+                        canonical(metadata).decode(),
+                        raw,
+                        report_sha,
+                        now(),
+                    ),
+                )
+                for case in report["cases"]:
+                    conditions, subject = case_signatures(case)
+                    db.execute(
+                        "INSERT INTO cases VALUES(?,?,?,?,?,?,?,?)",
+                        (
+                            record_id,
+                            case["id"],
+                            pair_key(case, modern=True),
+                            case["source_id"],
+                            case["status"],
+                            case["duration_seconds"],
+                            conditions,
+                            subject,
+                        ),
+                    )
+            db.execute(
+                "INSERT OR IGNORE INTO requests VALUES(?,?,?)",
+                (project, request_key, record_id),
+            )
+            result = self._get(db, project, record_id)
+            result.pop("report")
+            result["reused"] = existing is not None
+            return result
+
