@@ -269,3 +269,7 @@ class RunRegistry:
             "report": report,
         }
 
+    def get(self, project, record_id):
+        with self._tx(False) as db:
+            return self._get(db, project, record_id)
+
