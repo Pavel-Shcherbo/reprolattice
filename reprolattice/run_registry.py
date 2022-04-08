@@ -273,3 +273,47 @@ class RunRegistry:
         with self._tx(False) as db:
             return self._get(db, project, record_id)
 
+    def list(self, project, *, after=0, limit=100, suite=None):
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("invalid run cursor or page limit")
+        if suite is not None:
+            named(suite, "suite")
+        with self._tx(False) as db:
+            self._project(db, project)
+            parameters = [project, after]
+            condition = "project=? AND seq>?"
+            if suite is not None:
+                condition += " AND suite=?"
+                parameters.append(suite)
+            rows = db.execute(
+                "SELECT id,seq,metadata,recorded_at FROM runs WHERE "
+                + condition
+                + " ORDER BY seq LIMIT ?",
+                [*parameters, limit + 1],
+            )
+            items = []
+            size = 0
+            cursor = None
+            for row in rows:
+                item = {
+                    "id": row["id"],
+                    "sequence": row["seq"],
+                    **json.loads(row["metadata"]),
+                    "recorded_at": row["recorded_at"],
+                }
+                size += len(canonical(item))
+                if len(items) >= limit or size > 4 * 1024 * 1024:
+                    cursor = items[-1]["sequence"] if items else after
+                    break
+                items.append(item)
+        return {
+            "items": items,
+            "next_cursor": cursor,
+            "scope": "Metadata listing; use get/audit to verify archived payloads.",
+        }
+
