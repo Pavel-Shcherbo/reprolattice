@@ -317,3 +317,58 @@ class RunRegistry:
             "scope": "Metadata listing; use get/audit to verify archived payloads.",
         }
 
+    def move_baseline(self, project, name, record_id, *, expected_generation, reason):
+        named(name, "baseline")
+        if type(expected_generation) is not int or expected_generation < 0:
+            raise ValueError("baseline generation must be nonnegative")
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 512:
+            raise ValueError("baseline move requires a reason of 1–512 characters")
+        with self._tx() as db:
+            candidate = self._get(db, project, record_id)
+            report = candidate["report"]
+            if (
+                not report["full_suite"]
+                or not report["passed"]
+                or report["counts"]["passed"] != report["total_cases"]
+            ):
+                raise ValueError("baseline requires a fully executed passing suite")
+            prior = db.execute(
+                "SELECT * FROM baselines WHERE project=? AND name=?", (project, name)
+            ).fetchone()
+            current = prior["generation"] if prior else 0
+            if current != expected_generation:
+                raise ValueError("baseline generation conflict; refresh before moving")
+            if (
+                prior is None
+                and db.execute(
+                    "SELECT count(*) FROM baselines WHERE project=?", (project,)
+                ).fetchone()[0]
+                >= 1000
+            ):
+                raise ValueError("project exceeds 1,000 named baselines")
+            generation = current + 1
+            moment = now()
+            db.execute(
+                "INSERT INTO baselines VALUES(?,?,?,?,?) ON CONFLICT(project,name) DO UPDATE SET record_id=excluded.record_id,generation=excluded.generation,updated_at=excluded.updated_at",
+                (project, name, record_id, generation, moment),
+            )
+            db.execute(
+                "INSERT INTO baseline_events(project,name,previous_record,record_id,generation,reason,created_at) VALUES(?,?,?,?,?,?,?)",
+                (
+                    project,
+                    name,
+                    prior["record_id"] if prior else None,
+                    record_id,
+                    generation,
+                    reason,
+                    moment,
+                ),
+            )
+            return {
+                "project": project,
+                "name": name,
+                "record_id": record_id,
+                "generation": generation,
+                "updated_at": moment,
+            }
+
