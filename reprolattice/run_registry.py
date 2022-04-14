@@ -372,3 +372,15 @@ class RunRegistry:
                 "updated_at": moment,
             }
 
+    def baseline(self, project, name):
+        named(name, "baseline")
+        with self._tx(False) as db:
+            self._project(db, project)
+            row = db.execute(
+                "SELECT * FROM baselines WHERE project=? AND name=?", (project, name)
+            ).fetchone()
+            if row is None:
+                raise ValueError("unknown named baseline")
+            self._get(db, project, row["record_id"])
+            return dict(row)
+
