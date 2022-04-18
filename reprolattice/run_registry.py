@@ -384,3 +384,25 @@ class RunRegistry:
             self._get(db, project, row["record_id"])
             return dict(row)
 
+    def compare(self, project, before_id, after_id, *, policy=None):
+        with self._tx(False) as db:
+            before = self._get(db, project, before_id)
+            after = self._get(db, project, after_id)
+            result = comparison(
+                before["report"],
+                after["report"],
+                before_context=before["context"],
+                after_context=after["context"],
+                policy=policy,
+            )
+            result.pop("sha256")
+            result.update(
+                project=project,
+                before_record=before_id,
+                after_record=after_id,
+                before_revision=before["revision"],
+                after_revision=after["revision"],
+            )
+            result["sha256"] = fingerprint(result)
+            return result
+
