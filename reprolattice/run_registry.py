@@ -406,3 +406,7 @@ class RunRegistry:
             result["sha256"] = fingerprint(result)
             return result
 
+    def export(self, project, record_id, destination):
+        record = self.get(project, record_id)
+        return write_reports(record["report"], destination)
+
