@@ -410,3 +410,39 @@ class RunRegistry:
         record = self.get(project, record_id)
         return write_reports(record["report"], destination)
 
+    def history(self, project, source_id, *, after=0, limit=100, status=None):
+        named(source_id, "source case")
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("invalid case-history cursor or limit")
+        if status is not None and status not in (
+            "passed",
+            "failed",
+            "error",
+            "skipped",
+            "cancelled",
+        ):
+            raise ValueError("invalid history status")
+        with self._tx(False) as db:
+            self._project(db, project)
+            condition = "r.project=? AND c.source_id=? AND c.rowid>?"
+            parameters = [project, source_id, after]
+            if status is not None:
+                condition += " AND c.status=?"
+                parameters.append(status)
+            rows = db.execute(
+                "SELECT c.rowid AS cursor,c.run,c.case_id,c.pair_key,c.status,c.duration,c.input_sha256,c.subject_sha256,r.revision,r.recorded_at FROM cases c JOIN runs r ON r.id=c.run WHERE "
+                + condition
+                + " ORDER BY c.rowid LIMIT ?",
+                [*parameters, limit + 1],
+            ).fetchall()
+        return {
+            "items": [dict(row) for row in rows[:limit]],
+            "next_cursor": rows[limit - 1]["cursor"] if len(rows) > limit else None,
+            "scope": "Indexed outcomes; payload integrity is verified by get/audit.",
+        }
+
