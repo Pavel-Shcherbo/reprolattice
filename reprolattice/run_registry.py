@@ -466,3 +466,123 @@ class RunRegistry:
             "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
         }
 
+    def audit(self, project, *, limit=1000):
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("registry audit limit must be 1–1000 runs")
+        errors = []
+        checked = 0
+        raw_bytes = 0
+        case_count = 0
+        eligibility = {}
+        with self._tx(False) as db:
+            self._project(db, project)
+            rows = db.execute(
+                "SELECT id,length(report) AS bytes FROM runs WHERE project=? ORDER BY seq LIMIT ?",
+                (project, limit + 1),
+            ).fetchall()
+            complete = len(rows) <= limit
+            for row in rows[:limit]:
+                raw_bytes += row["bytes"]
+                if raw_bytes > 64 * 1024 * 1024:
+                    complete = False
+                    break
+                try:
+                    record = self._get(db, project, row["id"])
+                    report = record["report"]
+                    case_count += len(report["cases"])
+                    if case_count > 50000:
+                        complete = False
+                        break
+                    expected = {}
+                    for case in report["cases"]:
+                        conditions, subject = case_signatures(case)
+                        expected[case["id"]] = {
+                            "case_id": case["id"],
+                            "pair_key": pair_key(case, modern=True),
+                            "source_id": case["source_id"],
+                            "status": case["status"],
+                            "duration": case["duration_seconds"],
+                            "input_sha256": conditions,
+                            "subject_sha256": subject,
+                        }
+                    actual = {
+                        item["case_id"]: dict(item)
+                        for item in db.execute(
+                            "SELECT case_id,pair_key,source_id,status,duration,input_sha256,subject_sha256 FROM cases WHERE run=?",
+                            (row["id"],),
+                        )
+                    }
+                    if actual != expected:
+                        raise ValueError(
+                            "indexed case outcomes differ from immutable report"
+                        )
+                    eligibility[row["id"]] = (
+                        report["passed"]
+                        and report["full_suite"]
+                        and report["counts"]["passed"] == report["total_cases"]
+                    )
+                    checked += 1
+                except (ValueError, TypeError, KeyError):
+                    errors.append(
+                        {
+                            "record_id": row["id"],
+                            "error": "archived report, metadata or case index failed validation",
+                        }
+                    )
+            if complete and not errors:
+                events = db.execute(
+                    "SELECT * FROM baseline_events WHERE project=? ORDER BY seq LIMIT 10001",
+                    (project,),
+                ).fetchall()
+                if len(events) > 10000:
+                    complete = False
+                else:
+                    pointers = {}
+                    for event in events:
+                        previous = pointers.get(event["name"])
+                        generation = previous["generation"] if previous else 0
+                        if (
+                            event["generation"] != generation + 1
+                            or event["previous_record"]
+                            != (previous["record_id"] if previous else None)
+                            or not eligibility.get(event["record_id"], False)
+                            or not event["reason"].strip()
+                        ):
+                            errors.append(
+                                {
+                                    "baseline": event["name"],
+                                    "error": "baseline event chain or candidate eligibility mismatch",
+                                }
+                            )
+                            break
+                        pointers[event["name"]] = {
+                            "record_id": event["record_id"],
+                            "generation": event["generation"],
+                            "updated_at": event["created_at"],
+                        }
+                    actual = {
+                        item["name"]: {
+                            "record_id": item["record_id"],
+                            "generation": item["generation"],
+                            "updated_at": item["updated_at"],
+                        }
+                        for item in db.execute(
+                            "SELECT * FROM baselines WHERE project=?", (project,)
+                        )
+                    }
+                    if actual != pointers:
+                        errors.append(
+                            {
+                                "error": "baseline pointers differ from append-only move events"
+                            }
+                        )
+                if db.execute("PRAGMA foreign_key_check").fetchone():
+                    errors.append({"error": "run registry foreign key inconsistency"})
+        return {
+            "passed": complete and not errors,
+            "complete": complete,
+            "checked_runs": checked,
+            "checked_cases": case_count,
+            "report_bytes": raw_bytes,
+            "errors": errors,
+        }
