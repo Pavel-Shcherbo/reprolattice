@@ -446,3 +446,23 @@ class RunRegistry:
             "scope": "Indexed outcomes; payload integrity is verified by get/audit.",
         }
 
+    def baseline_history(self, project, name, *, after=0, limit=100):
+        named(name, "baseline")
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("invalid baseline-history cursor or limit")
+        with self._tx(False) as db:
+            self._project(db, project)
+            rows = db.execute(
+                "SELECT * FROM baseline_events WHERE project=? AND name=? AND seq>? ORDER BY seq LIMIT ?",
+                (project, name, after, limit + 1),
+            ).fetchall()
+        return {
+            "items": [dict(row) for row in rows[:limit]],
+            "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
+        }
+
