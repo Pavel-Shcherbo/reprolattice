@@ -6,6 +6,8 @@ import tempfile
 import threading
 import time
 import uuid
+import platform
+from dataclasses import asdict
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
@@ -73,6 +75,20 @@ def case_metadata(case):
         "mode": case.mode,
         "tags": list(case.tags),
         "parameters": case.parameters,
+        "parameters_sha256": hashlib.sha256(
+            json.dumps(
+                case.parameters, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+        ).hexdigest(),
+        "artifact_contract_sha256": hashlib.sha256(
+            json.dumps(
+                [asdict(item) for item in case.artifacts],
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode()
+        ).hexdigest(),
+        "timeout_seconds": case.timeout,
         "fixture_sha256": case.fixture_sha256,
         "command_sha256": hashlib.sha256(
             json.dumps(case.command, separators=(",", ":")).encode()
@@ -81,7 +97,12 @@ def case_metadata(case):
             {"path": state.path, "sha256": state.sha256} for state in case.states
         ],
         "inputs": [
-            {"path": item.path, "sha256": item.sha256, "bytes": len(item.content)}
+            {
+                "path": item.path,
+                "sha256": item.sha256,
+                "bytes": len(item.content),
+                "role": item.role,
+            }
             for item in case.files
         ],
     }
@@ -303,6 +324,11 @@ def run_suite(
         "format": "reprolattice.suite-report.v1",
         "run_id": str(uuid.uuid4()),
         "suite": plan.name,
+        "execution_context": {
+            "python": platform.python_version(),
+            "system": platform.system(),
+            "machine": platform.machine(),
+        },
         "suite_sha256": plan.snapshot_sha256,
         "definition_sha256": plan.definition_sha256,
         "started_at": started,
