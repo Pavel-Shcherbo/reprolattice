@@ -63,6 +63,7 @@ class FileInput:
     path: str
     content: bytes
     sha256: str
+    role: str = "fixture"
 
 
 @dataclass(frozen=True)
@@ -106,10 +107,10 @@ def compile_files(definitions, root):
     for definition in definitions:
         if (
             not isinstance(definition, dict)
-            or set(definition) - {"path", "sha256"}
+            or set(definition) - {"path", "sha256", "role"}
             or "path" not in definition
         ):
-            raise ValueError("workspace file requires path and optional sha256")
+            raise ValueError("workspace file requires path and optional sha256/role")
         name = relative_path(definition["path"])
         canonical_name = str(Path(name))
         if canonical_name in names:
@@ -129,7 +130,10 @@ def compile_files(definitions, root):
             or definition["sha256"] != actual
         ):
             raise ValueError("workspace input differs from its pinned SHA-256")
-        files.append(FileInput(name, raw, actual))
+        role = definition.get("role", "fixture")
+        if role not in ("fixture", "subject"):
+            raise ValueError("workspace file role must be fixture or subject")
+        files.append(FileInput(name, raw, actual, role))
     for left in names:
         if any(left != right and Path(left) in Path(right).parents for right in names):
             raise ValueError(
@@ -382,7 +386,7 @@ def compile_suite(definition, root="."):
                 "id": item.id,
                 "fixture_sha256": item.fixture_sha256,
                 "command": item.command,
-                "files": [(file.path, file.sha256) for file in item.files],
+                "files": [(file.path, file.sha256, file.role) for file in item.files],
                 "sqlite": [(state.path, state.sha256) for state in item.states],
             }
             for item in result
