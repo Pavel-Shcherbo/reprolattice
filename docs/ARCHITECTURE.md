@@ -28,7 +28,7 @@ authorization or organization model yet.
 
 ## Next architectural increment
 
-Retain immutable run collections and comparisons, expose SQLite state in management views, then qualify additional state providers and migration workflows. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
+Expose archived run/SQLite/baseline state in management views, then qualify additional providers, migrations, signed provenance and scalable retained-history audits. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
 
 ## Suite execution and CI reports
 
@@ -39,3 +39,7 @@ Retain immutable run collections and comparisons, expose SQLite state in managem
 ## SQLite application state
 
 `sqlite_seed` compiles structured constrained fixtures and publishes fresh databases without overwriting existing files. `sqlite_inspect` enforces read-only bounded query checks and creates canonical typed logical snapshots; query results are streamed under byte limits. `sqlite_state` integrates setup and coherent postcondition/snapshot reads into isolated suite cases. State checks contribute to case status and report failure summaries independently of HTTP output. `sqlite_cli` exposes create-only seed/snapshot operations and validated comparisons. See SQLITE_STATE.md for resource bounds and current logical-identity exclusions.
+
+## Immutable run archive and comparisons
+
+`run_contract` validates bounded execution evidence and separates test-condition identities from subject identities. The runner records original environment and parameter/assertion fingerprints; workspace files explicitly declare fixture/subject roles. `run_registry` transactionally archives canonical reports and indexed outcomes, with project scoping, idempotent imports and generation-checked baseline events. `run_compare` pairs cases by source/parameter identity and emits explicit status/input/coverage/context findings under a declared gate policy. `runs` supplies local operator commands and create-only comparison/export outputs. Imports never infer the execution environment from the importing host. See RUNS.md for trust boundaries and current bounds.
