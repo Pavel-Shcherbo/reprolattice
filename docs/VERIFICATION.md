@@ -2,7 +2,7 @@
 
 Verified locally on 2026-11-04. This is not full product acceptance.
 
-- 108 domain, integration and negative-path tests passed.
+- 129 domain, integration and negative-path tests passed.
 - The documented CLI control scenario completed and its result was checked.
 - Local HTTP success/failure scenarios and foreign-Origin rejection were checked.
 - Desktop and mobile workbench screens were inspected; the review includes defect corrections.
@@ -19,3 +19,7 @@ Suite verification covers typed matrix expansion, all-case preflight, file snaps
 Verified increment: structured SQLite fixtures, typed read-only postconditions, bounded logical snapshots and differences, and suite/JSON/JUnit/HTML integration. 19 new state tests and 108 total Reprolattice tests passed. Clean installed healthy suites passed; omitted-write suites failed despite correct HTTP results. Standalone snapshots/differences and report hashes passed. Evidence: `docs/SQLITE_STATE.md`, `docs/sqlite-state-verification.json`. Browser state inspection, other database providers, run collections and ≥20,000 useful SLOC remain open.
 
 State checks cover type distinctions, BLOB/null handling, relational seed preflight, read-only authorizer denial, recursive-query/row/byte/cancellation limits, logical insertion-order independence, schema/data differences, corrupted state, source pins and create-only exports. The installed suite checks demonstrate correct HTTP output with failed persistence. Prior browser evidence concerns the existing protocol/client/suite screens; SQLite state management has no browser UI yet.
+
+Verified increment: immutable local run archives, indexed case histories, generation-fenced passing baselines, source/parameter pairing, subject/fixture roles and explicit regression/coverage/context gates. 21 new checks and 129 total Reprolattice tests passed. Installed archive/retry/baseline/regression/fix/history/export/audit controls passed; current workbench suite HTTP remains healthy. Evidence: `docs/RUNS.md`, `docs/run-registry-verification.json`, `docs/run-registry-workbench-http.json`. Browser archive/baseline management, signed provenance, retention/paged full audit and ≥20,000 useful SLOC remain open.
+
+Registry controls include real healthy/faulty suite classification, stable matrix pairing after reordering/redaction, changed subject versus changed test conditions, partial/removed/cancelled coverage, legacy/unknown environment handling, finite extreme timing ratios, import immutability, concurrent baseline moves, cursor boundaries, archive/index/pointer corruption, safe export symlinks and operator exit codes. Installed controls archive two real local runs and verify three regressions, three fixes, stale-generation rejection, six case-history entries, ten indexed cases and regenerated export hashes. Registry management is CLI/library only; live workbench HTTP evidence covers the existing reviewed suite endpoint.
