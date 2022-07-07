@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "1bc01d016c408875d7979089519c0b3029cbccb6449eab6d0fc5f3de9f53e6f1",
+  "wheel_sha256": "6fc26479463a64c1438a5764608e441c08079152f11edf6b775245eb26a5b647",
   "examples_exported": [
     "dynamic-order.json",
     "inventory-seed.json",
@@ -7,7 +7,8 @@
     "inventory-suite.json",
     "inventory_client.py",
     "inventory_state_client.py",
-    "retry.json"
+    "retry.json",
+    "run-gate-policy.json"
   ],
   "existing_destination_preserved": true,
   "installed_import": true,
@@ -16,5 +17,6 @@
   "state_outside_package": true,
   "suite_cli_and_report_hashes_passed": true,
   "suite_http_healthy_and_faulty_passed": true,
-  "sqlite_state_suites_and_standalone_snapshots_passed": true
+  "sqlite_state_suites_and_standalone_snapshots_passed": true,
+  "run_registry_baseline_and_regression_control_passed": true
 }
