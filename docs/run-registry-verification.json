@@ -1,0 +1,32 @@
+{
+  "scope": "Clean installed local run archive/comparison; test revision identifiers are synthetic caller metadata",
+  "passed": true,
+  "before_record": "c0847c77c67c1ac077f8c710dc9b6e4b01f66692d46b77c14afcd7208786c0f8",
+  "after_record": "c00789272adfa3e1c6372f13e6e98375d6edc8910a38e49a16b1a3711c6dc5f1",
+  "regression_counts": {
+    "regressed": 3,
+    "stable_pass": 2
+  },
+  "subject_changed_cases": 4,
+  "changed_input_cases": 0,
+  "regression_gate_passed": false,
+  "fixed_counts": {
+    "fixed": 3,
+    "stable_pass": 2
+  },
+  "fixed_gate_passed": true,
+  "baseline_generation": 1,
+  "stale_move_rejected": true,
+  "retry_import_reused": true,
+  "case_history_entries": 6,
+  "archived_export_matches_source_json": true,
+  "archived_export_hashes_verified": true,
+  "audit": {
+    "passed": true,
+    "complete": true,
+    "checked_runs": 2,
+    "checked_cases": 10,
+    "report_bytes": 16691,
+    "errors": []
+  }
+}
