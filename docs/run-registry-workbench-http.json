@@ -1,0 +1,31 @@
+{
+  "scope": "Current loopback workbench suite HTTP after backend restart; no run-registry browser UI",
+  "passed": true,
+  "url": "http://127.0.0.1:8413",
+  "scenarios": [
+    {
+      "faulty_client": false,
+      "counts": {
+        "passed": 5,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0,
+        "cancelled": 0
+      },
+      "role_metadata": "subject",
+      "runner_context_recorded": true
+    },
+    {
+      "faulty_client": true,
+      "counts": {
+        "passed": 2,
+        "failed": 3,
+        "error": 0,
+        "skipped": 0,
+        "cancelled": 0
+      },
+      "role_metadata": "subject",
+      "runner_context_recorded": true
+    }
+  ]
+}
