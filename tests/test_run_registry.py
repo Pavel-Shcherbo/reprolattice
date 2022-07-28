@@ -79,3 +79,11 @@ def report(statuses=("passed",), *, names=None, full=True):
     }
 
 
+def compare(a, b, policy=None):
+    return comparison(
+        a, b, before_context=CONTEXT, after_context=CONTEXT, policy=policy
+    )
+
+
+class RunComparisonTests(unittest.TestCase):
+    pass
