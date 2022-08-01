@@ -86,4 +86,25 @@ def compare(a, b, policy=None):
 
 
 class RunComparisonTests(unittest.TestCase):
-    pass
+    def test_regression_fix_existing_failure_and_subject_change_are_distinct(self):
+        before = report(("passed", "failed", "failed"))
+        after = report(("failed", "passed", "failed"))
+        after["cases"][0]["command_sha256"] = "e" * 64
+        result = compare(before, after)
+        self.assertEqual(
+            result["counts"], {"fixed": 1, "regressed": 1, "stable_failure": 1}
+        )
+        self.assertEqual(result["subject_changed_cases"], 1)
+        self.assertFalse(result["gate"]["passed"])
+        self.assertEqual(
+            {item["code"] for item in result["gate"]["findings"]},
+            {"regression", "candidate_failure"},
+        )
+        self.assertTrue(
+            compare(
+                report(("failed",)),
+                report(("failed",)),
+                {"allow_existing_failures": True},
+            )["gate"]["passed"]
+        )
+
