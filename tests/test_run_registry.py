@@ -108,3 +108,12 @@ class RunComparisonTests(unittest.TestCase):
             )["gate"]["passed"]
         )
 
+    def test_fixture_changes_do_not_masquerade_as_fixes(self):
+        a = report(("failed",))
+        b = report()
+        b["cases"][0]["fixture_sha256"] = "f" * 64
+        result = compare(a, b)
+        self.assertEqual(result["counts"], {"changed_inputs": 1})
+        self.assertFalse(result["gate"]["passed"])
+        self.assertTrue(compare(a, b, {"allow_changed_inputs": True})["gate"]["passed"])
+
