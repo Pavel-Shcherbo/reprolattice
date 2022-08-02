@@ -129,3 +129,18 @@ class RunComparisonTests(unittest.TestCase):
         b["cases"][0]["inputs"][0]["role"] = "fixture"
         self.assertEqual(compare(a, b)["counts"], {"changed_inputs": 1})
 
+    def test_reordered_matrix_variants_pair_by_parameters_not_case_index(self):
+        a = report(("passed", "passed"))
+        b = report(("failed", "passed"))
+        for value in (a, b):
+            for index, case in enumerate(value["cases"]):
+                case["source_id"] = "matrix"
+                case["parameters"] = {"size": index + 1}
+                case["parameters_sha256"] = fingerprint(case["parameters"])
+        b["cases"].reverse()
+        for index, case in enumerate(b["cases"]):
+            case["id"] = "reordered-" + str(index)
+        result = compare(a, b)
+        self.assertEqual(result["counts"], {"regressed": 1, "stable_pass": 1})
+        self.assertEqual(len(result["changes"]), 2)
+
