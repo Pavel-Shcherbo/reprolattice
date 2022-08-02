@@ -117,3 +117,15 @@ class RunComparisonTests(unittest.TestCase):
         self.assertFalse(result["gate"]["passed"])
         self.assertTrue(compare(a, b, {"allow_changed_inputs": True})["gate"]["passed"])
 
+    def test_subject_file_role_allows_code_changes_without_changing_oracle(self):
+        a = report()
+        b = report(("failed",))
+        for value, digest in [(a, "1" * 64), (b, "2" * 64)]:
+            value["cases"][0]["inputs"] = [
+                {"path": "client.py", "role": "subject", "sha256": digest, "bytes": 10}
+            ]
+        self.assertEqual(compare(a, b)["counts"], {"regressed": 1})
+        a["cases"][0]["inputs"][0]["role"] = "fixture"
+        b["cases"][0]["inputs"][0]["role"] = "fixture"
+        self.assertEqual(compare(a, b)["counts"], {"changed_inputs": 1})
+
