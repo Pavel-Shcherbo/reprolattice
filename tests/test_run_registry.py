@@ -144,3 +144,15 @@ class RunComparisonTests(unittest.TestCase):
         self.assertEqual(result["counts"], {"regressed": 1, "stable_pass": 1})
         self.assertEqual(len(result["changes"]), 2)
 
+    def test_removed_added_and_unexecuted_cases_block_greenwashing(self):
+        a = report(("passed", "passed"), names=["a", "b"])
+        b = report(("passed", "cancelled"), names=["a", "new"])
+        result = compare(a, b)
+        self.assertEqual(
+            result["counts"], {"added_unexecuted": 1, "removed": 1, "stable_pass": 1}
+        )
+        self.assertFalse(result["gate"]["passed"])
+        self.assertEqual(
+            compare(report(), report(("skipped",)))["counts"], {"lost_coverage": 1}
+        )
+
