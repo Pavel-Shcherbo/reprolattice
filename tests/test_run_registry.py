@@ -156,3 +156,13 @@ class RunComparisonTests(unittest.TestCase):
             compare(report(), report(("skipped",)))["counts"], {"lost_coverage": 1}
         )
 
+    def test_partial_selection_requires_explicit_scope_policy(self):
+        a = report(("passed", "passed"))
+        b = report(("passed", "skipped"), full=False)
+        self.assertFalse(compare(a, b)["gate"]["passed"])
+        scoped = compare(
+            a, b, {"require_full_suite": False, "allow_tag_filtered": True}
+        )
+        self.assertTrue(scoped["gate"]["passed"])
+        self.assertFalse(scoped["after_full_suite"])
+
