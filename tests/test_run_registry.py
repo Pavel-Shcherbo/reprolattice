@@ -217,3 +217,19 @@ class RunComparisonTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 validate_run(invalid)
 
+    def test_extreme_finite_timings_keep_comparison_json_finite(self):
+        before = report()
+        after = report()
+        before["cases"][0]["duration_seconds"] = 1e-320
+        result = compare(before, after)
+        json.dumps(result, allow_nan=False)
+        self.assertTrue(result["changes"][0]["duration_ratio_overflow"])
+        self.assertIsNone(result["changes"][0]["duration_ratio"])
+        gated = compare(
+            before, after, {"max_slowdown_ratio": 2, "minimum_duration_seconds": 1e-321}
+        )
+        self.assertFalse(gated["gate"]["passed"])
+
+
+class RunRegistryTests(unittest.TestCase):
+    pass
