@@ -201,3 +201,19 @@ class RunComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate"):
             validate_run(value)
 
+    def test_malformed_import_diagnostics_are_value_errors(self):
+        invalid_context = report()
+        invalid_context["execution_context"] = None
+        with self.assertRaises(ValueError):
+            validate_run(invalid_context)
+        for field, value in [
+            ("artifacts", [1]),
+            ("sqlite", [{}]),
+            ("detail", {"checks": []}),
+            ("error", "invalid"),
+        ]:
+            invalid = report()
+            invalid["cases"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                validate_run(invalid)
+
