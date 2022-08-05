@@ -191,3 +191,13 @@ class RunComparisonTests(unittest.TestCase):
             compare(a, b, {"allow_legacy_metadata": True})["gate"]["passed"]
         )
 
+    def test_passed_case_contradiction_and_duplicate_pair_identity_rejected(self):
+        value = report()
+        value["cases"][0]["detail"]["checks"]["value"] = False
+        with self.assertRaisesRegex(ValueError, "contradicts"):
+            validate_run(value)
+        value = report(("passed", "passed"))
+        value["cases"][1]["source_id"] = value["cases"][0]["source_id"]
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            validate_run(value)
+
