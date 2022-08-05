@@ -166,3 +166,28 @@ class RunComparisonTests(unittest.TestCase):
         self.assertTrue(scoped["gate"]["passed"])
         self.assertFalse(scoped["after_full_suite"])
 
+    def test_context_unknown_legacy_and_single_run_timing_are_explicit(self):
+        a = report()
+        b = report()
+        b["cases"][0]["duration_seconds"] = 3
+        self.assertFalse(compare(a, b, {"max_slowdown_ratio": 2})["gate"]["passed"])
+        self.assertTrue(compare(a, b)["gate"]["passed"])
+        self.assertFalse(comparison(a, b)["gate"]["passed"])
+        self.assertFalse(
+            comparison(
+                a, b, before_context={"python": "old"}, after_context={"python": "new"}
+            )["gate"]["passed"]
+        )
+        for value in (a, b):
+            for key in (
+                "parameters_sha256",
+                "artifact_contract_sha256",
+                "timeout_seconds",
+            ):
+                value["cases"][0].pop(key)
+        self.assertEqual(compare(a, b)["pairing_policy"], "legacy_case_id")
+        self.assertFalse(compare(a, b)["gate"]["passed"])
+        self.assertTrue(
+            compare(a, b, {"allow_legacy_metadata": True})["gate"]["passed"]
+        )
+
