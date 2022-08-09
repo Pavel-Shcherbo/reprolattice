@@ -239,3 +239,8 @@ class RunRegistryTests(unittest.TestCase):
         self.registry = RunRegistry(self.root / "runs.sqlite", create=True)
         self.registry.project("demo")
 
+    def record(self, value=None, key="first", revision="1" * 40):
+        return self.registry.record(
+            "demo", value or report(), revision=revision, request_key=key
+        )
+
