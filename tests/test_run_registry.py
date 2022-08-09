@@ -232,4 +232,10 @@ class RunComparisonTests(unittest.TestCase):
 
 
 class RunRegistryTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.registry = RunRegistry(self.root / "runs.sqlite", create=True)
+        self.registry.project("demo")
+
