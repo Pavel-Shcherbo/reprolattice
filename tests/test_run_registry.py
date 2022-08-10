@@ -244,3 +244,30 @@ class RunRegistryTests(unittest.TestCase):
             "demo", value or report(), revision=revision, request_key=key
         )
 
+    def test_immutable_import_retry_metadata_conflict_and_export(self):
+        value = report()
+        a = self.record(value)
+        b = self.record(value)
+        self.assertFalse(a["reused"])
+        self.assertTrue(b["reused"])
+        self.assertEqual(a["id"], b["id"])
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            self.record(report())
+        with self.assertRaisesRegex(ValueError, "run ID"):
+            self.record(value, key="other", revision="2" * 40)
+        out = self.root / "export"
+        manifest = self.registry.export("demo", a["id"], out)
+        restored = json.loads((out / "report.json").read_text())
+        self.assertEqual(restored, value)
+        self.assertEqual(manifest["run_id"], value["run_id"])
+        with self.assertRaises(FileExistsError):
+            self.registry.export("demo", a["id"], out)
+        outside = self.root / "unexpected-target"
+        link = self.root / "dangling-export"
+        link.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, "symbolic"):
+            self.registry.export("demo", a["id"], link)
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(outside.exists())
+        self.assertTrue(self.registry.audit("demo")["passed"])
+
