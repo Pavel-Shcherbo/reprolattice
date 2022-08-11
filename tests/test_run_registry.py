@@ -271,3 +271,31 @@ class RunRegistryTests(unittest.TestCase):
         self.assertFalse(outside.exists())
         self.assertTrue(self.registry.audit("demo")["passed"])
 
+    def test_baseline_compare_and_generation_fencing(self):
+        first = self.record()
+        bad = self.record(report(("failed",)), key="bad", revision="2" * 40)
+        baseline = self.registry.move_baseline(
+            "demo",
+            "main",
+            first["id"],
+            expected_generation=0,
+            reason="Initial passing control",
+        )
+        self.assertEqual(baseline["generation"], 1)
+        with self.assertRaisesRegex(ValueError, "passing"):
+            self.registry.move_baseline(
+                "demo", "main", bad["id"], expected_generation=1, reason="Rejected"
+            )
+        with self.assertRaisesRegex(ValueError, "generation"):
+            self.registry.move_baseline(
+                "demo",
+                "main",
+                first["id"],
+                expected_generation=0,
+                reason="Stale writer",
+            )
+        result = self.registry.compare("demo", first["id"], bad["id"])
+        self.assertEqual(result["counts"], {"regressed": 1})
+        self.assertFalse(result["gate"]["passed"])
+        self.assertTrue(self.registry.audit("demo")["passed"])
+
