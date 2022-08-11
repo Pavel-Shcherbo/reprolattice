@@ -299,3 +299,35 @@ class RunRegistryTests(unittest.TestCase):
         self.assertFalse(result["gate"]["passed"])
         self.assertTrue(self.registry.audit("demo")["passed"])
 
+    def test_concurrent_imports_and_baseline_moves(self):
+        value = report()
+
+        def record_one(_):
+            return RunRegistry(self.registry.path).record(
+                "demo", value, revision="1" * 40, request_key="same"
+            )
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(record_one, range(8)))
+        self.assertEqual(sum(not r["reused"] for r in results), 1)
+        first = results[0]
+
+        def move(_):
+            try:
+                return self.registry.move_baseline(
+                    "demo",
+                    "main",
+                    first["id"],
+                    expected_generation=0,
+                    reason="Race control",
+                )
+            except ValueError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(move, range(4)))
+        self.assertEqual(sum(row is not None for row in results), 1)
+        self.assertEqual(
+            len(self.registry.baseline_history("demo", "main")["items"]), 1
+        )
+
