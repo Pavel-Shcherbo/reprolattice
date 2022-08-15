@@ -331,3 +331,20 @@ class RunRegistryTests(unittest.TestCase):
             len(self.registry.baseline_history("demo", "main")["items"]), 1
         )
 
+    def test_case_history_cursor_does_not_skip_multiple_variants_of_one_run(self):
+        value = report(("passed", "failed"))
+        for index, case in enumerate(value["cases"]):
+            case["source_id"] = "matrix"
+            case["parameters"] = {"n": index}
+            case["parameters_sha256"] = fingerprint(case["parameters"])
+        self.record(value)
+        first = self.registry.history("demo", "matrix", limit=1)
+        second = self.registry.history(
+            "demo", "matrix", after=first["next_cursor"], limit=1
+        )
+        self.assertEqual(len(first["items"]) + len(second["items"]), 2)
+        self.assertNotEqual(first["items"][0]["case_id"], second["items"][0]["case_id"])
+        self.assertEqual(
+            len(self.registry.history("demo", "matrix", status="failed")["items"]), 1
+        )
+
