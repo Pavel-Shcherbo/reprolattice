@@ -360,3 +360,16 @@ class RunRegistryTests(unittest.TestCase):
             self.registry.get("demo", value["id"])
         self.assertFalse(self.registry.audit("demo")["passed"])
 
+    def test_partial_audit_project_scoping_and_listing(self):
+        first = self.record()
+        self.record(key="second")
+        self.assertFalse(self.registry.audit("demo", limit=1)["passed"])
+        listing = self.registry.list("demo", limit=1)
+        self.assertTrue(listing["items"][0]["passed"])
+        self.assertEqual(listing["items"][0]["counts"]["passed"], 1)
+        second = self.registry.list("demo", after=listing["next_cursor"], limit=1)
+        self.assertEqual(len(listing["items"]) + len(second["items"]), 2)
+        self.registry.project("other")
+        with self.assertRaisesRegex(ValueError, "unknown archived"):
+            self.registry.get("other", first["id"])
+
