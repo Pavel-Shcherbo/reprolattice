@@ -348,3 +348,15 @@ class RunRegistryTests(unittest.TestCase):
             len(self.registry.history("demo", "matrix", status="failed")["items"]), 1
         )
 
+    def test_metadata_and_index_corruption_are_detected(self):
+        value = self.record()
+        self.assertTrue(self.registry.audit("demo")["passed"])
+        with closing(sqlite3.connect(self.registry.path)) as db, db:
+            db.execute("UPDATE cases SET status='failed'")
+        self.assertFalse(self.registry.audit("demo")["passed"])
+        with closing(sqlite3.connect(self.registry.path)) as db, db:
+            db.execute("UPDATE runs SET report_sha256=?", ("0" * 64,))
+        with self.assertRaisesRegex(ValueError, "identity"):
+            self.registry.get("demo", value["id"])
+        self.assertFalse(self.registry.audit("demo")["passed"])
+
