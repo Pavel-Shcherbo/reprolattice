@@ -401,3 +401,33 @@ class RunRegistryTests(unittest.TestCase):
         self.assertEqual(result["subject_changed_cases"], 4)
         self.assertTrue(self.registry.audit("demo")["passed"])
 
+    def test_secret_matrix_variants_remain_distinct_after_report_redaction(self):
+        definition = {
+            "version": 1,
+            "name": "secret-control",
+            "mode": "protocol",
+            "cases": [
+                {
+                    "id": "variant",
+                    "matrix": {"api_key": ["secret-one", "secret-two"]},
+                    "secret_parameters": ["api_key"],
+                    "fixture": {
+                        "interactions": [
+                            {
+                                "request": {"method": "GET", "path": "/ok"},
+                                "response": {"json": {"ok": True}},
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+        observed = run_suite(compile_suite(definition), jobs=2)
+        self.assertNotIn("secret-one", json.dumps(observed))
+        self.assertNotIn("secret-two", json.dumps(observed))
+        record = self.record(observed)
+        self.assertEqual(
+            len(self.registry.get("demo", record["id"])["report"]["cases"]), 2
+        )
+        self.assertTrue(self.registry.audit("demo")["passed"])
+
