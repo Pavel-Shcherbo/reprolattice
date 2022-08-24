@@ -373,3 +373,19 @@ class RunRegistryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown archived"):
             self.registry.get("other", first["id"])
 
+    def test_cold_initializers_missing_and_unrelated_schema(self):
+        path = self.root / "fresh.sqlite"
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            registries = list(
+                pool.map(lambda _: RunRegistry(path, create=True), range(8))
+            )
+        self.assertEqual(len({registry.id for registry in registries}), 1)
+        missing = self.root / "missing.sqlite"
+        with self.assertRaises(ValueError):
+            RunRegistry(missing)
+        self.assertFalse(missing.exists())
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("PRAGMA user_version=99")
+        with self.assertRaisesRegex(ValueError, "schema"):
+            RunRegistry(path)
+
