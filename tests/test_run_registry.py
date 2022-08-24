@@ -431,3 +431,12 @@ class RunRegistryTests(unittest.TestCase):
         )
         self.assertTrue(self.registry.audit("demo")["passed"])
 
+    def test_baseline_pointer_corruption_is_detected_by_event_chain(self):
+        first = self.record()
+        self.registry.move_baseline(
+            "demo", "main", first["id"], expected_generation=0, reason="Initial"
+        )
+        with closing(sqlite3.connect(self.registry.path)) as db, db:
+            db.execute("UPDATE baselines SET generation=99")
+        self.assertFalse(self.registry.audit("demo")["passed"])
+
