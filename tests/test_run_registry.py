@@ -389,3 +389,15 @@ class RunRegistryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "schema"):
             RunRegistry(path)
 
+    def test_real_bundled_suite_faulty_subject_is_a_regression(self):
+        definition = json.loads((EXAMPLES / "inventory-suite.json").read_text())
+        good = run_suite(compile_suite(definition, EXAMPLES), jobs=2)
+        definition["command"].append("--faulty")
+        bad = run_suite(compile_suite(definition, EXAMPLES), jobs=2)
+        a = self.record(good)
+        b = self.record(bad, key="bad", revision="2" * 40)
+        result = self.registry.compare("demo", a["id"], b["id"])
+        self.assertEqual(result["counts"], {"regressed": 3, "stable_pass": 2})
+        self.assertEqual(result["subject_changed_cases"], 4)
+        self.assertTrue(self.registry.audit("demo")["passed"])
+
