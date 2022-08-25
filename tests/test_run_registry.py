@@ -440,3 +440,63 @@ class RunRegistryTests(unittest.TestCase):
             db.execute("UPDATE baselines SET generation=99")
         self.assertFalse(self.registry.audit("demo")["passed"])
 
+    def test_cli_lifecycle_compares_and_exports_without_overwrite(self):
+        source = self.root / "report.json"
+        value = report()
+        source.write_text(json.dumps(value))
+
+        def cli(*args, expected=0):
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "reprolattice.runs",
+                    "--database",
+                    str(self.registry.path),
+                    *map(str, args),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout) if result.stdout else None
+
+        a = cli(
+            "record", "demo", source, "--revision", "1" * 40, "--request-key", "cli"
+        )
+        cli(
+            "baseline-move",
+            "demo",
+            "main",
+            a["id"],
+            "--expected-generation",
+            "0",
+            "--reason",
+            "CLI control",
+        )
+        bad = report(("failed",))
+        source.write_text(json.dumps(bad))
+        b = cli(
+            "record", "demo", source, "--revision", "2" * 40, "--request-key", "bad"
+        )
+        output = self.root / "comparison.json"
+        result = cli(
+            "compare",
+            "demo",
+            "main",
+            b["id"],
+            "--baseline",
+            "--output",
+            output,
+            expected=1,
+        )
+        self.assertEqual(result["baseline_resolution"]["generation"], 1)
+        self.assertFalse(result["gate"]["passed"])
+        cli("compare", "demo", a["id"], b["id"], "--output", output, expected=2)
+        self.assertTrue(cli("audit", "demo")["passed"])
+        cli("export", "demo", a["id"], "--output", self.root / "export")
+
+
+if __name__ == "__main__":
+    unittest.main()
