@@ -16,7 +16,7 @@ Bundled examples are included in the wheel. Runtime state is stored outside the 
 
 ## Workbench preview
 
-![Local workbench](docs/workbench.png)
+![Saved run comparison](docs/archive-desktop.png)
 
 ## Command line
 
@@ -36,6 +36,10 @@ Request rules and application assertions are described in [the assertion guide](
 Run `python3 -m reprolattice.suites examples/inventory-suite.json --output .local/control-run --jobs 2` for five real application/protocol cases. The runner preflights all variants, copies explicit workspace inputs, checks declared output artifacts and writes JSON, standalone HTML and JUnit XML reports to a new directory.
 
 The workbench includes the same reviewed suite, a faulty-client comparison and JSON/JUnit downloads. See [suite guide](docs/SUITES.md) for parameter matrices, cancellation, filtering, file identities and current limits.
+
+## Saved run review
+
+The **Saved runs** workbench retains executed suite reports and explains regressions, fixes, changed inputs and missing coverage. Review a complete passing run as a named baseline, retain its generation/reason history, inspect case outcomes across parameter variants and export saved JSON/JUnit or comparison evidence. See the [archive workbench guide](docs/ARCHIVE_WORKBENCH.md) for the complete local workflow and evidence boundaries.
 
 ## Boundaries
 
