@@ -21,3 +21,9 @@ FIELDS = {
 }
 
 
+def cursor(value, label="cursor"):
+    if type(value) is not int or not 0 <= value <= 9223372036854775807:
+        raise ValueError(label + " must be a bounded nonnegative integer")
+    return value
+
+
