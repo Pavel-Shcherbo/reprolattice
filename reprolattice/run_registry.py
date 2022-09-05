@@ -273,27 +273,36 @@ class RunRegistry:
         with self._tx(False) as db:
             return self._get(db, project, record_id)
 
-    def list(self, project, *, after=0, limit=100, suite=None):
+    def list(self, project, *, after=0, limit=100, suite=None, order="oldest"):
         if (
             type(after) is not int
-            or after < 0
+            or not 0 <= after <= 9223372036854775807
             or type(limit) is not int
             or not 1 <= limit <= 1000
         ):
             raise ValueError("invalid run cursor or page limit")
         if suite is not None:
             named(suite, "suite")
+        if order not in ("oldest", "newest"):
+            raise ValueError("run order must be oldest or newest")
         with self._tx(False) as db:
             self._project(db, project)
-            parameters = [project, after]
-            condition = "project=? AND seq>?"
+            parameters = [project]
+            condition = "project=?"
+            if order == "oldest" or after:
+                condition += " AND seq" + (">?" if order == "oldest" else "<?")
+                parameters.append(after)
             if suite is not None:
                 condition += " AND suite=?"
                 parameters.append(suite)
             rows = db.execute(
                 "SELECT id,seq,metadata,recorded_at FROM runs WHERE "
                 + condition
-                + " ORDER BY seq LIMIT ?",
+                + (
+                    " ORDER BY seq ASC LIMIT ?"
+                    if order == "oldest"
+                    else " ORDER BY seq DESC LIMIT ?"
+                ),
                 [*parameters, limit + 1],
             )
             items = []
@@ -372,37 +381,112 @@ class RunRegistry:
                 "updated_at": moment,
             }
 
+    def _baseline(self, db, project, name, *, missing_ok=False):
+        self._project(db, project)
+        row = db.execute(
+            "SELECT * FROM baselines WHERE project=? AND name=?", (project, name)
+        ).fetchone()
+        if row is None:
+            if missing_ok:
+                return None
+            raise ValueError("unknown named baseline")
+        target = self._get(db, project, row["record_id"])
+        if (
+            not target["passed"]
+            or not target["full_suite"]
+            or target["counts"]["passed"] != target["report"]["total_cases"]
+        ):
+            raise ValueError("stored baseline target is not a complete passing suite")
+        return dict(row)
+
     def baseline(self, project, name):
         named(name, "baseline")
         with self._tx(False) as db:
+            return self._baseline(db, project, name)
+
+    def baseline_view(self, project, name, *, after=0, limit=25):
+        named(name, "baseline")
+        if (
+            type(after) is not int
+            or not 0 <= after <= 9223372036854775807
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("invalid baseline history cursor or limit")
+        with self._tx(False) as db:
+            current = self._baseline(db, project, name, missing_ok=True)
+            rows = db.execute(
+                "SELECT * FROM baseline_events WHERE project=? AND name=? AND seq>? ORDER BY seq LIMIT ?",
+                (project, name, after, limit + 1),
+            ).fetchall()
+            return {
+                "baseline": current,
+                "events": [dict(row) for row in rows[:limit]],
+                "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
+            }
+
+    def baselines(self, project, *, after="", limit=25):
+        if after != "":
+            named(after, "baseline cursor")
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("invalid baseline page limit")
+        with self._tx(False) as db:
             self._project(db, project)
-            row = db.execute(
-                "SELECT * FROM baselines WHERE project=? AND name=?", (project, name)
-            ).fetchone()
-            if row is None:
-                raise ValueError("unknown named baseline")
-            self._get(db, project, row["record_id"])
-            return dict(row)
+            rows = db.execute(
+                "SELECT * FROM baselines WHERE project=? AND name>? ORDER BY name LIMIT ?",
+                (project, after, limit + 1),
+            ).fetchall()
+            return {
+                "items": [dict(row) for row in rows[:limit]],
+                "next_cursor": rows[limit - 1]["name"] if len(rows) > limit else None,
+                "scope": "Baseline pointers; inspect a baseline to verify its target payload.",
+            }
+
+    def _compare(self, db, project, before_id, after_id, *, policy=None):
+        before = self._get(db, project, before_id)
+        after = self._get(db, project, after_id)
+        result = comparison(
+            before["report"],
+            after["report"],
+            before_context=before["context"],
+            after_context=after["context"],
+            policy=policy,
+        )
+        result.pop("sha256")
+        result.update(
+            project=project,
+            before_record=before_id,
+            after_record=after_id,
+            before_revision=before["revision"],
+            after_revision=after["revision"],
+        )
+        result["sha256"] = fingerprint(result)
+        return result
 
     def compare(self, project, before_id, after_id, *, policy=None):
         with self._tx(False) as db:
-            before = self._get(db, project, before_id)
-            after = self._get(db, project, after_id)
-            result = comparison(
-                before["report"],
-                after["report"],
-                before_context=before["context"],
-                after_context=after["context"],
-                policy=policy,
+            return self._compare(db, project, before_id, after_id, policy=policy)
+
+    def compare_baseline(
+        self, project, name, after_id, *, expected_generation, policy=None
+    ):
+        named(name, "baseline")
+        if (
+            type(expected_generation) is not int
+            or not 1 <= expected_generation <= 9223372036854775807
+        ):
+            raise ValueError("comparison requires a positive baseline generation")
+        with self._tx(False) as db:
+            baseline = self._baseline(db, project, name)
+            if baseline["generation"] != expected_generation:
+                raise ValueError(
+                    "baseline generation conflict; refresh before comparing"
+                )
+            result = self._compare(
+                db, project, baseline["record_id"], after_id, policy=policy
             )
             result.pop("sha256")
-            result.update(
-                project=project,
-                before_record=before_id,
-                after_record=after_id,
-                before_revision=before["revision"],
-                after_revision=after["revision"],
-            )
+            result["baseline"] = baseline
             result["sha256"] = fingerprint(result)
             return result
 
