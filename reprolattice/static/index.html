@@ -14,7 +14,8 @@
         <div class="brand">Reprolattice</div>
         <p class="caption">Repeatable HTTP failure scenarios</p>
         <nav aria-label="Workspace">
-          <a href="#scenario">Scenario</a
+          <a href="#archive" aria-current="location">Saved runs</a
+          ><a href="#scenario">Scenario</a
           ><a href="#verification">Verification</a><a href="#suite">Suite</a
           ><a href="#boundaries">Replay boundaries</a>
         </nav>
@@ -26,9 +27,201 @@
           ><span class="context">Local environment</span>
         </div>
         <div id="error" class="error" role="alert" hidden></div>
+        <section class="section archive" id="archive">
+          <header class="pagehead">
+            <div>
+              <h1>Saved run review</h1>
+              <p>Keep suite evidence. Explain what changed.</p>
+            </div>
+            <button id="archive-refresh">Refresh saved runs</button>
+          </header>
+          <div class="error" id="archive-error" role="alert" hidden></div>
+          <p id="archive-status" class="secondary" role="status">
+            Reading local archive…
+          </p>
+          <p id="archive-empty" class="notice">
+            Run the inventory suite below, then save its result to begin.
+          </p>
+          <div class="archive-layout">
+            <section class="panel">
+              <div class="panelhead">
+                <h2>Run history</h2>
+                <a href="#suite">Run inventory suite</a>
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Run</th>
+                      <th>Outcome</th>
+                      <th class="archive-date">Saved</th>
+                    </tr>
+                  </thead>
+                  <tbody id="archive-runs"></tbody>
+                </table>
+              </div>
+              <div class="panelbody">
+                <button id="archive-older" hidden>Load older runs</button>
+              </div>
+            </section>
+            <section class="panel archive-detail">
+              <div class="panelhead">
+                <h2 id="archive-title">Run inspection</h2>
+              </div>
+              <div class="panelbody">
+                <p id="archive-selection" class="secondary">
+                  Select a saved run to inspect its recorded checks.
+                </p>
+                <div id="archive-record" hidden>
+                  <p id="archive-identity" class="mono notice"></p>
+                  <div class="actions">
+                    <button id="archive-json">Export saved JSON</button
+                    ><button id="archive-junit">Export saved JUnit</button>
+                  </div>
+                  <div id="archive-cases" class="archive-cases"></div>
+                  <h3 id="archive-case-title">Case evidence</h3>
+                  <pre id="archive-case"></pre>
+                  <details>
+                    <summary>Source and execution context</summary>
+                    <pre id="archive-context"></pre>
+                  </details>
+                </div>
+              </div>
+            </section>
+          </div>
+          <section class="panel section" id="archive-comparison-panel" hidden>
+            <div class="panelhead">
+              <h2>Comparison</h2>
+              <span id="archive-gate" role="status"
+                >Choose a saved candidate</span
+              >
+            </div>
+            <div class="panelbody archive-controls">
+              <label
+                >Compare against<select id="archive-reference"></select></label
+              ><button id="archive-compare" class="primary" disabled>
+                Compare selected run</button
+              ><button id="archive-comparison-json" disabled>
+                Export comparison
+              </button>
+            </div>
+            <div class="panelbody">
+              <p id="archive-comparison-summary" class="secondary">
+                Comparisons check inputs, coverage, execution context and case
+                outcomes.
+              </p>
+              <ul id="archive-findings"></ul>
+            </div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case</th>
+                    <th class="archive-before">Before</th>
+                    <th class="archive-after">After</th>
+                    <th>Change</th>
+                  </tr>
+                </thead>
+                <tbody id="archive-changes"></tbody>
+              </table>
+            </div>
+            <div class="panelbody">
+              <pre id="archive-change-detail" hidden></pre>
+              <p class="notice">
+                Strict comparison policy. Recorded durations describe individual
+                runs; they do not establish a performance trend.
+              </p>
+            </div>
+          </section>
+          <div class="archive-layout section" id="archive-secondary" hidden>
+            <section class="panel">
+              <div class="panelhead"><h2>Reviewed baseline</h2></div>
+              <div class="panelbody">
+                <label class="archive-field"
+                  >Baseline name<input
+                    id="archive-baseline-name"
+                    value="accepted"
+                    maxlength="80"
+                    list="archive-baseline-names"
+                    autocomplete="off" /></label
+                ><datalist id="archive-baseline-names"></datalist>
+                <p id="archive-baseline-current" class="secondary">
+                  Save a run to manage local baselines.
+                </p>
+                <label class="archive-field"
+                  >Reason for changing the baseline<textarea
+                    id="archive-baseline-reason"
+                    maxlength="512"
+                    rows="2"
+                    placeholder="Describe the checks reviewed"
+                  ></textarea>
+                </label>
+                <button id="archive-baseline-move" disabled>
+                  Set selected run as baseline
+                </button>
+                <p class="notice">
+                  Requires a complete passing suite and the current baseline
+                  generation.
+                </p>
+                <ol id="archive-baseline-events" class="archive-events"></ol>
+                <button id="archive-baseline-more" hidden>
+                  Load more baseline changes</button
+                ><button id="archive-baselines-more" hidden>
+                  Load more baseline names
+                </button>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panelhead">
+                <h2 id="archive-history-title">Case history</h2>
+              </div>
+              <div class="panelbody">
+                <p class="notice">
+                  Select a case above to inspect saved outcomes across all of
+                  its parameter variants.
+                </p>
+                <label class="archive-field"
+                  >History state<select id="archive-history-filter">
+                    <option value="">All states</option>
+                    <option value="passed">Passed</option>
+                    <option value="failed">Failed</option>
+                    <option value="error">Error</option>
+                    <option value="skipped">Skipped</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select></label
+                >
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Saved case</th>
+                      <th>State</th>
+                      <th class="number">Seconds</th>
+                    </tr>
+                  </thead>
+                  <tbody id="archive-history"></tbody>
+                </table>
+              </div>
+              <div class="panelbody">
+                <p id="archive-history-empty" class="notice">
+                  No case selected.
+                </p>
+                <button id="archive-history-more" hidden>
+                  Load more case history
+                </button>
+              </div>
+            </section>
+          </div>
+          <p class="notice">
+            Local saved evidence. Metadata listings are checked when opened.
+            Subject content identifiers describe supplied report metadata; they
+            are not authenticated Git revisions.
+          </p>
+        </section>
         <header class="pagehead" id="scenario">
           <div>
-            <h1>Inventory retry scenario</h1>
+            <h2>Inventory retry scenario</h2>
             <p>Keep the failure. Check the recovery.</p>
           </div>
           <div class="actions">
@@ -138,7 +331,16 @@ Run the suite, then select a case to inspect its checks</pre>
               <div class="actions">
                 <button id="suite-json" disabled>Export suite JSON</button
                 ><button id="suite-junit" disabled>Export JUnit XML</button>
+                <label class="archive-field"
+                  >Run label<input
+                    id="archive-save-label"
+                    maxlength="128"
+                    placeholder="Optional review label" /></label
+                ><button id="archive-save" disabled>Save suite run</button>
               </div>
+              <p id="archive-save-status" class="secondary" role="status">
+                Run the suite before saving its evidence.
+              </p>
               <p id="suite-hash" class="mono notice"></p>
             </div>
           </div>
