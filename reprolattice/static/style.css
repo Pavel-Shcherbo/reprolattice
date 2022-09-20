@@ -138,7 +138,7 @@ pre {
   border-radius: 8px;
   min-height: 36px;
 }
-.sidebar nav a:first-child {
+.sidebar nav a[aria-current="location"] {
   background: var(--raised);
 }
 .sidebar footer {
@@ -525,4 +525,179 @@ textarea {
 #suite-details {
   max-height: 320px;
   overflow: auto;
+}
+
+.archive {
+  margin-top: 24px;
+  margin-bottom: 48px;
+}
+.archive-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+}
+.archive-layout > *,
+.archive-detail,
+.archive-controls > * {
+  min-width: 0;
+}
+.archive .panelhead {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.archive .panelhead h2 {
+  margin: 0;
+}
+.archive-field,
+.archive-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.archive-field input,
+.archive-field textarea {
+  width: 100%;
+}
+.archive-controls {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.archive-controls label {
+  margin: 0;
+  max-width: 100%;
+}
+.archive-controls select {
+  max-width: 100%;
+}
+.archive-cases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0;
+}
+.archive .actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.archive pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.archive summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+.archive td {
+  padding: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.archive button[aria-pressed="true"] {
+  border-color: var(--review-accent);
+  background: var(--raised);
+}
+#archive-runs tr[data-selected="true"] {
+  box-shadow: inset 4px 0 var(--review-accent);
+}
+.archive-identity,
+#archive-identity {
+  overflow-wrap: anywhere;
+}
+.archive-events {
+  padding-left: 24px;
+  font-size: 13px;
+}
+.archive-events li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.archive-mobile-date {
+  display: none;
+}
+.archive button:disabled,
+#archive-save:disabled {
+  cursor: default;
+}
+.archive-state {
+  font-weight: 500;
+  font-size: 13px;
+}
+.archive-state.passed,
+.archive-state.fixed {
+  color: var(--positive);
+}
+.archive-state.failed,
+.archive-state.error,
+.archive-state.regressed {
+  color: var(--negative);
+}
+#archive-save-label {
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .archive-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .archive button,
+  .archive select,
+  .archive input {
+    min-height: 44px;
+  }
+  .archive-date {
+    display: none;
+  }
+  .archive-mobile-date {
+    display: block;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .archive-layout {
+    gap: 16px;
+  }
+  .archive td {
+    padding: 8px;
+  }
+  .archive-controls label {
+    width: 100%;
+  }
+  #archive-changes button {
+    padding: 8px;
+    font-size: 13px;
+  }
+}
+
+.archive {
+  --review-accent: #e0ac88;
+}
+.archive summary,
+.archive .panelhead a {
+  color: var(--review-accent);
+}
+.archive :focus-visible {
+  outline-color: var(--review-accent);
+}
+.archive-mobile-states {
+  display: none;
+}
+@media (max-width: 700px) {
+  .archive-before,
+  .archive-after {
+    display: none;
+  }
+  .archive-mobile-states {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
 }
