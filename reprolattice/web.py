@@ -6,6 +6,7 @@ from .harness import check_client
 from .protocol import verify_protocol
 from .resources import examples_directory
 from .suite_web import evaluate_suite
+from .archive_web import evaluate_archive
 
 
 def example():
@@ -13,6 +14,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "archive":
+        return evaluate_archive(params)
     if params.get("mode") == "suite":
         return evaluate_suite(params)
     fixture = params.get("fixture", example())
