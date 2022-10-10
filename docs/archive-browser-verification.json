@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "browser": {
+    "passed": true,
+    "good": "6c8050ee88b6bcce9092d53874c4e4cd3e9e110f25699808ff6e54cd3bf7001b",
+    "bad": "33fff3ce756ca64eb3d1229077a153b7968c522139017a9211e929866238a22f",
+    "regressions": 3,
+    "fixes": 3,
+    "failed_promotion_disabled": true,
+    "history_filter": true,
+    "keyboard_selection": true,
+    "reload_persistence": true,
+    "default_reference_retained": true,
+    "stale_generation_rejected": true,
+    "late_inspection_ignored": true,
+    "late_comparison_ignored": true,
+    "baseline_generation": 3,
+    "mobile_no_overflow": true,
+    "page_errors": []
+  },
+  "mobile_layout": {
+    "passed": true,
+    "overflow": false,
+    "visible_columns": 2,
+    "states": "passed \u2192 failed",
+    "selected_color": "rgb(236, 238, 240)",
+    "selected_background": "rgb(50, 54, 60)"
+  },
+  "download_checks": {
+    "saved_reports_match_durable_archive": true,
+    "comparisons_match_recorded_payloads_and_generation": true,
+    "independent_status_parameter_pairing": true,
+    "independent_regressions": 3,
+    "fixture_and_assertion_contracts_unchanged": true,
+    "junit_counts_and_case_ids_match_json": true,
+    "file_sha256": {
+      "archive-good.json": "f6ac49716a48bb8547d037dec6cad44ba27cb8276e3c8e1538fad59a766029b5",
+      "archive-faulty.json": "43214c408c442b455b723966738ed2cbb44ae20a79495a9630942735b1a98649",
+      "archive-comparison.json": "210e23ed2ee6265938632b1d38216661336373ea325d45b816eec4cc38df7449",
+      "archive-fixes.json": "5b87813b93f820b323be6c273a35e915c1a395dfa1dd0b4bc2c8bd670069a1b4",
+      "archive-faulty.xml": "e5848a1548f7394b698b9eb6d686a9c96d86e2a09c260d598c86f939d72d25b3"
+    }
+  },
+  "screenshots": [
+    "archive-desktop.png",
+    "archive-mobile.png"
+  ],
+  "full_portfolio_acceptance": false,
+  "archive_and_baseline_survived_service_restart": true
+}
