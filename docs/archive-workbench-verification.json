@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "scope": "Clean installed local archive API; content identities are not authenticated Git provenance",
+  "before_record": "96fd15a3262413237f53962e514ebb7a6cff9fe657f4933787e0bfb1cb8836fd",
+  "after_record": "e3f9eb5e86c906107bfc7fececca96d0194880cf6599ac579e2aaf1af43c78be",
+  "idempotent_save": true,
+  "stored_report_matches_execution": true,
+  "newest_first": true,
+  "regression_counts": {
+    "regressed": 3,
+    "stable_pass": 2
+  },
+  "fixed_counts": {
+    "fixed": 3,
+    "stable_pass": 2
+  },
+  "strict_regression_gate": false,
+  "strict_fix_gate": true,
+  "changed_input_cases": 0,
+  "subject_changed_cases": 4,
+  "baseline_generation": 1,
+  "failed_baseline_rejected": true,
+  "stale_generation_rejected": true,
+  "failed_history_entries": 3,
+  "saved_junit_matches_json_counts": true,
+  "full_portfolio_acceptance": false
+}
