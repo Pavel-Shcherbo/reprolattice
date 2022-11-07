@@ -19,4 +19,10 @@ from test_run_registry import report
 
 
 class ArchiveWebTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.healthy = evaluate_suite({"mode": "suite", "jobs": 2})["report"]
+        cls.faulty = evaluate_suite(
+            {"mode": "suite", "jobs": 2, "faulty_client": True}
+        )["report"]
+
