@@ -26,3 +26,13 @@ class ArchiveWebTests(unittest.TestCase):
             {"mode": "suite", "jobs": 2, "faulty_client": True}
         )["report"]
 
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / "state"
+        self.environment = patch.dict(
+            "os.environ", {"REPROLATTICE_STATE_DIR": str(self.root)}
+        )
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
