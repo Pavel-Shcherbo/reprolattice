@@ -36,3 +36,6 @@ class ArchiveWebTests(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
+    def api(self, action, **fields):
+        return evaluate({"mode": "archive", "action": action, **fields})
+
