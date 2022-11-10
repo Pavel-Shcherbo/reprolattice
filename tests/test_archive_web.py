@@ -39,3 +39,11 @@ class ArchiveWebTests(unittest.TestCase):
     def api(self, action, **fields):
         return evaluate({"mode": "archive", "action": action, **fields})
 
+    def save(self, value=None, key="first", label="Reviewed control"):
+        return self.api(
+            "archive",
+            report=copy.deepcopy(value or self.healthy),
+            request_key=key,
+            label=label,
+        )["record"]
+
