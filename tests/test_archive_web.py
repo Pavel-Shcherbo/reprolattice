@@ -47,3 +47,6 @@ class ArchiveWebTests(unittest.TestCase):
             label=label,
         )["record"]
 
+    def registry(self):
+        return RunRegistry(self.root / "run-workbench/runs.sqlite")
+
