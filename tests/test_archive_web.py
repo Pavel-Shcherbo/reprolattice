@@ -88,3 +88,20 @@ class ArchiveWebTests(unittest.TestCase):
                 evaluate({"mode": "archive", **request})
         self.assertFalse((self.root / "run-workbench/runs.sqlite").exists())
 
+    def test_real_suite_save_retry_and_reopen_preserve_exact_report(self):
+        first = self.save()
+        repeated = self.save()
+        self.assertEqual(first["id"], repeated["id"])
+        self.assertTrue(repeated["reused"])
+        self.assertEqual(
+            self.api("inspect", record=first["id"])["record"]["report"], self.healthy
+        )
+        self.assertEqual(
+            self.registry().get(PROJECT, first["id"])["context"],
+            self.healthy["execution_context"],
+        )
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            self.save(label="Changed label")
+        self.assertEqual(len(self.api("overview")["items"]), 1)
+        self.assertEqual(len(first["revision"]), 64)
+
