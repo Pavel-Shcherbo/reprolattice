@@ -50,3 +50,41 @@ class ArchiveWebTests(unittest.TestCase):
     def registry(self):
         return RunRegistry(self.root / "run-workbench/runs.sqlite")
 
+    def test_empty_overview_and_invalid_requests_do_not_initialize_database(self):
+        self.assertFalse(self.api("overview")["initialized"])
+        self.assertFalse((self.root / "run-workbench/runs.sqlite").exists())
+        bad = [
+            {"action": "archive", "report": {}, "request_key": "bad"},
+            {"action": "inspect", "record": "../../outside"},
+            {"action": "overview", "after": True},
+            {"action": "overview", "after": 2**64},
+            {"action": "overview", "project": "other"},
+            {"action": "history", "source": "case", "status": []},
+            {
+                "action": "move",
+                "name": "accepted",
+                "record": "a" * 64,
+                "generation": 0,
+                "reason": " ",
+            },
+            {
+                "action": "compare",
+                "record": "a" * 64,
+                "before": "b" * 64,
+                "baseline": "accepted",
+            },
+            {
+                "action": "archive",
+                "report": self.healthy,
+                "request_key": "good",
+                "command": ["bad"],
+            },
+        ]
+        for request in bad:
+            with (
+                self.subTest(request=request.get("action")),
+                self.assertRaises(ValueError),
+            ):
+                evaluate({"mode": "archive", **request})
+        self.assertFalse((self.root / "run-workbench/runs.sqlite").exists())
+
