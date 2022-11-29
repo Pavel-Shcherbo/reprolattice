@@ -105,3 +105,15 @@ class ArchiveWebTests(unittest.TestCase):
         self.assertEqual(len(self.api("overview")["items"]), 1)
         self.assertEqual(len(first["revision"]), 64)
 
+    def test_actual_faulty_run_explains_three_regressions_and_reverse_fixes(self):
+        before = self.save()
+        after = self.save(self.faulty, key="faulty", label="Faulty client")
+        changed = self.api("compare", before=before["id"], record=after["id"])
+        self.assertEqual(changed["counts"], {"regressed": 3, "stable_pass": 2})
+        self.assertFalse(changed["gate"]["passed"])
+        self.assertEqual(changed["changed_input_cases"], 0)
+        self.assertEqual(sum(item["subject_changed"] for item in changed["changes"]), 4)
+        fixed = self.api("compare", before=after["id"], record=before["id"])
+        self.assertEqual(fixed["counts"], {"fixed": 3, "stable_pass": 2})
+        self.assertTrue(fixed["gate"]["passed"])
+
