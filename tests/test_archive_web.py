@@ -117,3 +117,52 @@ class ArchiveWebTests(unittest.TestCase):
         self.assertEqual(fixed["counts"], {"fixed": 3, "stable_pass": 2})
         self.assertTrue(fixed["gate"]["passed"])
 
+    def test_green_baseline_reason_events_and_stale_generation_fencing(self):
+        green = self.save()
+        bad = self.save(self.faulty, key="bad")
+        self.assertIsNone(self.api("baseline", name="accepted")["baseline"])
+        with self.assertRaisesRegex(ValueError, "fully executed passing"):
+            self.api(
+                "move",
+                name="accepted",
+                record=bad["id"],
+                generation=0,
+                reason="Invalid candidate",
+            )
+        moved = self.api(
+            "move",
+            name="accepted",
+            record=green["id"],
+            generation=0,
+            reason="Five isolated checks passed",
+        )
+        self.assertEqual(moved["generation"], 1)
+        state = self.api("baseline", name="accepted")
+        self.assertEqual(state["events"][0]["reason"], "Five isolated checks passed")
+        self.assertEqual(state["baseline"]["record_id"], green["id"])
+        comparison = self.api(
+            "compare", baseline="accepted", generation=1, record=bad["id"]
+        )
+        self.assertEqual(comparison["baseline"]["generation"], 1)
+        self.assertEqual(comparison["before_record"], green["id"])
+        with self.assertRaisesRegex(ValueError, "generation conflict"):
+            self.api(
+                "move",
+                name="accepted",
+                record=green["id"],
+                generation=0,
+                reason="Stale page",
+            )
+        self.api(
+            "move",
+            name="accepted",
+            record=green["id"],
+            generation=1,
+            reason="Rechecked same content",
+        )
+        with self.assertRaisesRegex(ValueError, "generation conflict"):
+            self.api("compare", baseline="accepted", generation=1, record=bad["id"])
+        self.assertEqual(
+            self.api("baseline", name="accepted")["baseline"]["generation"], 2
+        )
+
