@@ -166,3 +166,15 @@ class ArchiveWebTests(unittest.TestCase):
             self.api("baseline", name="accepted")["baseline"]["generation"], 2
         )
 
+    def test_filtered_suite_cannot_be_promoted_even_when_selected_case_passed(self):
+        partial = self.save(report(("passed", "skipped"), full=False))
+        with self.assertRaisesRegex(ValueError, "fully executed passing"):
+            self.api(
+                "move",
+                name="accepted",
+                record=partial["id"],
+                generation=0,
+                reason="Only selected case passed",
+            )
+        self.assertIsNone(self.api("baseline", name="accepted")["baseline"])
+
