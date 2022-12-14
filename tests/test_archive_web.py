@@ -178,3 +178,13 @@ class ArchiveWebTests(unittest.TestCase):
             )
         self.assertIsNone(self.api("baseline", name="accepted")["baseline"])
 
+    def test_case_history_contains_all_variants_and_status_filter_is_exact(self):
+        self.save()
+        self.save(self.faulty, key="faulty")
+        history = self.api("history", source="retry-quantity")
+        self.assertEqual(len(history["items"]), 6)
+        failures = self.api("history", source="retry-quantity", status="failed")
+        self.assertEqual(len(failures["items"]), 3)
+        self.assertTrue(all(item["status"] == "failed" for item in failures["items"]))
+        self.assertIsNone(history["next_cursor"])
+
