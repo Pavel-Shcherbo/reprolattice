@@ -188,3 +188,12 @@ class ArchiveWebTests(unittest.TestCase):
         self.assertTrue(all(item["status"] == "failed" for item in failures["items"]))
         self.assertIsNone(history["next_cursor"])
 
+    def test_saved_junit_matches_immutable_report_counts(self):
+        saved = self.save(self.faulty)
+        exported = self.api("junit", record=saved["id"])
+        self.assertEqual(exported["record"], saved["id"])
+        document = ET.fromstring(exported["junit_xml"]).find("testsuite")
+        self.assertEqual(document.get("tests"), "5")
+        self.assertEqual(document.get("failures"), "3")
+        self.assertEqual(len(document.findall("testcase")), 5)
+
