@@ -197,3 +197,17 @@ class ArchiveWebTests(unittest.TestCase):
         self.assertEqual(document.get("failures"), "3")
         self.assertEqual(len(document.findall("testcase")), 5)
 
+    def test_listing_is_metadata_but_inspection_and_baseline_verify_payload(self):
+        saved = self.save()
+        self.api(
+            "move", name="accepted", record=saved["id"], generation=0, reason="Reviewed"
+        )
+        registry = self.registry()
+        with registry._tx() as db:
+            db.execute("UPDATE runs SET report=? WHERE id=?", (b"{}", saved["id"]))
+        self.assertEqual(self.api("overview")["items"][0]["id"], saved["id"])
+        with self.assertRaises(ValueError):
+            self.api("inspect", record=saved["id"])
+        with self.assertRaises(ValueError):
+            self.api("baseline", name="accepted")
+
