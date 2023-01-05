@@ -211,3 +211,23 @@ class ArchiveWebTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.api("baseline", name="accepted")
 
+    def test_manually_damaged_baseline_pointer_cannot_qualify_a_failed_target(self):
+        green = self.save()
+        failed = self.save(self.faulty, key="failed")
+        self.api(
+            "move",
+            name="accepted",
+            record=green["id"],
+            generation=0,
+            reason="Reviewed green run",
+        )
+        with self.registry()._tx() as db:
+            db.execute(
+                "UPDATE baselines SET record_id=? WHERE project=? AND name=?",
+                (failed["id"], PROJECT, "accepted"),
+            )
+        with self.assertRaisesRegex(ValueError, "not a complete passing suite"):
+            self.api("baseline", name="accepted")
+        with self.assertRaisesRegex(ValueError, "not a complete passing suite"):
+            self.api("compare", baseline="accepted", generation=1, record=green["id"])
+
