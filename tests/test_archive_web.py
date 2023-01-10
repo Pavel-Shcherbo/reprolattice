@@ -231,3 +231,16 @@ class ArchiveWebTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not a complete passing suite"):
             self.api("compare", baseline="accepted", generation=1, record=green["id"])
 
+    def test_foreign_project_records_are_not_exposed_by_workbench(self):
+        saved = self.save()
+        registry = self.registry()
+        registry.project("other")
+        foreign = registry.record(
+            "other", self.faulty, revision="a" * 40, request_key="foreign"
+        )
+        with self.assertRaisesRegex(ValueError, "unknown archived run"):
+            self.api("inspect", record=foreign["id"])
+        self.assertEqual(
+            [item["id"] for item in self.api("overview")["items"]], [saved["id"]]
+        )
+
