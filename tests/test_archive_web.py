@@ -244,3 +244,12 @@ class ArchiveWebTests(unittest.TestCase):
             [item["id"] for item in self.api("overview")["items"]], [saved["id"]]
         )
 
+    def test_concurrent_first_archives_are_idempotent_in_one_project(self):
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            values = list(pool.map(lambda _: self.save(), range(4)))
+        self.assertEqual(len({item["id"] for item in values}), 1)
+        self.assertEqual(len(self.api("overview")["items"]), 1)
+
+
+class RegistryReviewTests(unittest.TestCase):
+    pass
