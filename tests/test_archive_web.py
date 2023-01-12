@@ -252,4 +252,19 @@ class ArchiveWebTests(unittest.TestCase):
 
 
 class RegistryReviewTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.registry = RunRegistry(Path(self.temp.name) / "runs.sqlite", create=True)
+        self.registry.project("review")
+        self.saved = []
+        for index in range(3):
+            self.saved.append(
+                self.registry.record(
+                    "review",
+                    report(),
+                    revision="a" * 40,
+                    request_key="run-" + str(index),
+                )
+            )
+
