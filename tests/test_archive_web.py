@@ -268,3 +268,18 @@ class RegistryReviewTests(unittest.TestCase):
                 )
             )
 
+    def test_newest_first_cursor_is_stable_while_new_runs_arrive(self):
+        page = self.registry.list("review", limit=1, order="newest")
+        self.assertEqual(page["items"][0]["id"], self.saved[2]["id"])
+        self.registry.record("review", report(), revision="b" * 40, request_key="later")
+        older = self.registry.list(
+            "review", after=page["next_cursor"], limit=2, order="newest"
+        )
+        self.assertEqual(
+            [item["id"] for item in older["items"]],
+            [self.saved[1]["id"], self.saved[0]["id"]],
+        )
+        self.assertIsNone(older["next_cursor"])
+        with self.assertRaises(ValueError):
+            self.registry.list("review", order="random")
+
