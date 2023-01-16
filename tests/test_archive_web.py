@@ -283,3 +283,37 @@ class RegistryReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.registry.list("review", order="random")
 
+    def test_baseline_listing_and_coherent_history_have_continuation_cursors(self):
+        for index in range(27):
+            self.registry.move_baseline(
+                "review",
+                f"baseline-{index:02d}",
+                self.saved[0]["id"],
+                expected_generation=0,
+                reason="Reviewed",
+            )
+        first = self.registry.baselines("review", limit=25)
+        second = self.registry.baselines("review", after=first["next_cursor"], limit=25)
+        self.assertEqual(len(first["items"]), 25)
+        self.assertEqual(len(second["items"]), 2)
+        self.assertFalse(
+            {item["name"] for item in first["items"]}
+            & {item["name"] for item in second["items"]}
+        )
+        for generation in range(1, 4):
+            self.registry.move_baseline(
+                "review",
+                "baseline-00",
+                self.saved[generation % 3]["id"],
+                expected_generation=generation,
+                reason="Rechecked",
+            )
+        view = self.registry.baseline_view("review", "baseline-00", limit=2)
+        self.assertEqual(view["baseline"]["generation"], 4)
+        self.assertEqual(len(view["events"]), 2)
+        more = self.registry.baseline_view(
+            "review", "baseline-00", after=view["next_cursor"], limit=2
+        )
+        self.assertEqual([item["generation"] for item in more["events"]], [3, 4])
+        self.assertIsNone(more["next_cursor"])
+
