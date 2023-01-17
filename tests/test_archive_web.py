@@ -317,3 +317,40 @@ class RegistryReviewTests(unittest.TestCase):
         self.assertEqual([item["generation"] for item in more["events"]], [3, 4])
         self.assertIsNone(more["next_cursor"])
 
+    def test_baseline_comparison_binds_record_and_generation_in_one_read_view(self):
+        self.registry.move_baseline(
+            "review",
+            "accepted",
+            self.saved[0]["id"],
+            expected_generation=0,
+            reason="Initial",
+        )
+        compared = self.registry.compare_baseline(
+            "review", "accepted", self.saved[1]["id"], expected_generation=1
+        )
+        self.assertEqual(compared["before_record"], self.saved[0]["id"])
+        self.assertTrue(compared["gate"]["passed"])
+        self.assertEqual(
+            fingerprint(
+                {key: value for key, value in compared.items() if key != "sha256"}
+            ),
+            compared["sha256"],
+        )
+        self.registry.move_baseline(
+            "review",
+            "accepted",
+            self.saved[2]["id"],
+            expected_generation=1,
+            reason="New result",
+        )
+        with self.assertRaisesRegex(ValueError, "generation conflict"):
+            self.registry.compare_baseline(
+                "review", "accepted", self.saved[1]["id"], expected_generation=1
+            )
+        self.assertEqual(
+            self.registry.compare_baseline(
+                "review", "accepted", self.saved[1]["id"], expected_generation=2
+            )["before_record"],
+            self.saved[2]["id"],
+        )
+
