@@ -354,3 +354,18 @@ class RegistryReviewTests(unittest.TestCase):
             self.saved[2]["id"],
         )
 
+    def test_unknown_project_and_invalid_baseline_parameters_cannot_read_or_mutate(
+        self,
+    ):
+        for operation in (
+            lambda: self.registry.baselines("other"),
+            lambda: self.registry.baseline_view("other", "accepted"),
+            lambda: self.registry.baseline_view("review", "accepted", after=True),
+            lambda: self.registry.baseline_view("review", "accepted", after=2**64),
+            lambda: self.registry.baselines("review", after="../outside"),
+            lambda: self.registry.compare_baseline(
+                "review", "accepted", self.saved[0]["id"], expected_generation=True
+            ),
+        ):
+            with self.assertRaises(ValueError):
+                operation()
