@@ -82,3 +82,5 @@ Suites can create a fresh structured SQLite fixture for each case, run the appli
 ## Run registry and regression comparisons
 
 The local registry archives immutable suite reports with source/build revision metadata, indexed case history and generation-fenced named baselines. Comparison distinguishes changed test conditions from changed subject code, regressions/fixes, missing coverage and optional timing thresholds. See [run registry guide](docs/RUNS.md); use `python3 -m reprolattice.runs --help` for operator commands.
+
+[Retained SQLite state workbench](docs/STATE_WORKBENCH.md): actual before/after evidence, typed row differences, bounded local archive and portable verification.
