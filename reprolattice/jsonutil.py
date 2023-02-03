@@ -34,7 +34,7 @@ def validate_json(value, max_bytes=1024 * 1024, max_depth=100, max_nodes=100000)
     return value
 
 
-def strict_json(payload, max_bytes=1024 * 1024):
+def strict_json(payload, max_bytes=1024 * 1024, *, max_nodes=100000):
     if not isinstance(payload, (str, bytes, bytearray)):
         raise ValueError("JSON input must be text or bytes")
     size = len(payload.encode()) if isinstance(payload, str) else len(payload)
@@ -58,4 +58,4 @@ def strict_json(payload, max_bytes=1024 * 1024):
         )
     except RecursionError as error:
         raise ValueError("JSON nesting exceeds the supported limit") from error
-    return validate_json(result, max_bytes=max_bytes)
+    return validate_json(result, max_bytes=max_bytes, max_nodes=max_nodes)
