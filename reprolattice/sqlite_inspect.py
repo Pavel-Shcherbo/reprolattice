@@ -390,6 +390,7 @@ def verify_database_snapshot(snapshot):
     total = 0
     cells = 0
     schema_tables = set()
+    schema_keys = set()
     for item in snapshot["schema"]:
         if (
             not isinstance(item, dict)
@@ -399,6 +400,15 @@ def verify_database_snapshot(snapshot):
             or not all(isinstance(item[key], str) for key in ["name", "table", "sql"])
         ):
             raise ValueError("invalid SQLite schema object")
+        key = (item["type"], item["name"])
+        if (
+            key in schema_keys
+            or not item["name"]
+            or len(item["name"]) > 256
+            or len(item["sql"].encode()) > 65536
+        ):
+            raise ValueError("duplicate or oversized SQLite schema object")
+        schema_keys.add(key)
         if item["type"] == "table":
             schema_tables.add(item["name"])
     if schema_tables != set(snapshot["tables"]):
@@ -428,6 +438,20 @@ def verify_database_snapshot(snapshot):
                     "hidden",
                 }
                 or not isinstance(col["name"], str)
+                or not col["name"]
+                or len(col["name"]) > 256
+                or type(col["cid"]) is not int
+                or col["cid"] != len(columns)
+                or not isinstance(col["declared_type"], str)
+                or len(col["declared_type"]) > 256
+                or type(col["not_null"]) is not int
+                or col["not_null"] not in (0, 1)
+                or type(col["primary_key"]) is not int
+                or not 0 <= col["primary_key"] <= 64
+                or type(col["hidden"]) is not int
+                or col["hidden"] not in (0, 1, 2, 3)
+                or col["default"] is not None
+                and not isinstance(col["default"], str)
             ):
                 raise ValueError("invalid SQLite snapshot column")
             columns.append(col["name"])
