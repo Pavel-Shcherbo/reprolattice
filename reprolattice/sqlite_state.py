@@ -81,7 +81,7 @@ def prepare_states(workspace, definitions, *, should_cancel=None):
     return prepared
 
 
-def inspect_states(workspace, prepared, *, should_cancel=None):
+def inspect_states(workspace, prepared, *, should_cancel=None, on_snapshot=None):
     from .suite_config import rooted
 
     workspace = Path(workspace).resolve()
@@ -106,6 +106,8 @@ def inspect_states(workspace, prepared, *, should_cancel=None):
             with reader(target, should_cancel=should_cancel) as view:
                 checks = check_queries(target, state.queries, _view=view)
                 after = database_snapshot(target, _view=view)
+            if on_snapshot is not None:
+                on_snapshot(state, before, after)
             report.update(
                 passed=checks["passed"],
                 checks=checks,
