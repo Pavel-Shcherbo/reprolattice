@@ -23,3 +23,11 @@ CREATE INDEX state_project_cursor ON state_runs(project,seq);
 MAX_STORE = 256 * 1024 * 1024
 
 
+def cursor(value):
+    if type(value) is not int or not 0 <= value <= 9223372036854775807:
+        raise ValueError("state archive cursor must be a bounded nonnegative integer")
+    return value
+
+
+class StateArchive:
+    pass
