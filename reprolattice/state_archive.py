@@ -30,4 +30,44 @@ def cursor(value):
 
 
 class StateArchive:
-    pass
+    def __init__(self, path, *, create=False):
+        self.path = Path(path)
+        if self.path.is_symlink() or not create and not self.path.is_file():
+            raise ValueError(
+                "state archive requires an existing ordinary file or explicit initialization"
+            )
+        for suffix in ("-wal", "-shm", "-journal"):
+            if Path(str(self.path) + suffix).is_symlink():
+                raise ValueError("state archive sidecar symlinks are unsupported")
+        if create:
+            self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                version = db.execute("PRAGMA user_version").fetchone()[0]
+                if version == 0 and create:
+                    if db.execute(
+                        "SELECT name FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'"
+                    ).fetchone():
+                        raise ValueError("refusing an unrelated database")
+                    for statement in SCHEMA.split(";"):
+                        if statement.strip():
+                            db.execute(statement)
+                    db.execute(
+                        "INSERT INTO state_meta VALUES(1,'reprolattice.state-archive.v1')"
+                    )
+                    db.execute("PRAGMA user_version=1")
+                    self.path.chmod(0o600)
+                elif version != 1:
+                    raise ValueError("unsupported state archive schema")
+                marker = db.execute(
+                    "SELECT kind FROM state_meta WHERE singleton=1"
+                ).fetchone()
+                if marker is None or marker[0] != "reprolattice.state-archive.v1":
+                    raise ValueError("unsupported state archive identity")
+                db.commit()
+            except BaseException:
+                db.rollback()
+                raise
+            db.execute("PRAGMA journal_mode=WAL")
+
