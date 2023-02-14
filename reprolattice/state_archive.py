@@ -71,3 +71,13 @@ class StateArchive:
                 raise
             db.execute("PRAGMA journal_mode=WAL")
 
+    @contextmanager
+    def _connect(self):
+        with closing(
+            sqlite3.connect(self.path, timeout=10, isolation_level=None)
+        ) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            db.execute("PRAGMA trusted_schema=OFF")
+            yield db
+
