@@ -81,3 +81,14 @@ class StateArchive:
             db.execute("PRAGMA trusted_schema=OFF")
             yield db
 
+    @contextmanager
+    def _transaction(self, write=False):
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            try:
+                yield db
+                db.commit()
+            except BaseException:
+                db.rollback()
+                raise
+
