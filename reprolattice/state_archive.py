@@ -92,3 +92,89 @@ class StateArchive:
                 db.rollback()
                 raise
 
+    def record(
+        self, project, document, *, request_key, label="", request_fingerprint=None
+    ):
+        named(project, "state project")
+        named(request_key, "state request key")
+        if (
+            not isinstance(label, str)
+            or len(label) > 128
+            or any(ord(char) < 32 for char in label)
+        ):
+            raise ValueError("state label must be at most 128 printable characters")
+        validate_evidence(document)
+        request_fingerprint = sha(request_fingerprint or document["sha256"])
+        raw = canonical(document)
+        summary = evidence_summary(document)
+        with self._transaction(True) as db:
+            existing = db.execute(
+                "SELECT record,fingerprint FROM state_requests WHERE project=? AND request_key=?",
+                (project, request_key),
+            ).fetchone()
+            if existing:
+                row = db.execute(
+                    "SELECT * FROM state_runs WHERE project=? AND id=?",
+                    (project, existing[0]),
+                ).fetchone()
+                if (
+                    row is None
+                    or existing["fingerprint"] != request_fingerprint
+                    or row["id"] != document["sha256"]
+                    or row["label"] != label
+                ):
+                    raise ValueError(
+                        "state request key conflicts with different evidence or label"
+                    )
+                return self._read(db, project, row["id"])["record"]
+            row = db.execute(
+                "SELECT * FROM state_runs WHERE id=?", (document["sha256"],)
+            ).fetchone()
+            if row is not None:
+                if (
+                    row["project"] != project
+                    or row["label"] != label
+                    or bytes(row["document"]) != raw
+                ):
+                    raise ValueError(
+                        "state evidence already belongs to another project or label"
+                    )
+                self._read(db, project, row["id"])
+            else:
+                if db.execute(
+                    "SELECT 1 FROM state_runs WHERE project=? AND run_id=?",
+                    (project, document["report"]["run_id"]),
+                ).fetchone():
+                    raise ValueError("run ID already has different retained evidence")
+                size, count = db.execute(
+                    "SELECT coalesce(sum(length(document)),0),count(*) FROM state_runs"
+                ).fetchone()
+                if size + len(raw) > MAX_STORE or count >= 500:
+                    raise ValueError(
+                        "state archive exceeds 256 MiB or 500 runs; use another archive"
+                    )
+                recorded = datetime.now(timezone.utc).isoformat()
+                db.execute(
+                    "INSERT INTO state_runs(id,project,run_id,label,recorded_at,summary,document) VALUES(?,?,?,?,?,?,?)",
+                    (
+                        document["sha256"],
+                        project,
+                        document["report"]["run_id"],
+                        label,
+                        recorded,
+                        canonical(summary),
+                        raw,
+                    ),
+                )
+            if db.execute("SELECT count(*) FROM state_requests").fetchone()[0] >= 2000:
+                raise ValueError("state archive exceeds 2,000 idempotency requests")
+            db.execute(
+                "INSERT INTO state_requests VALUES(?,?,?,?)",
+                (project, request_key, document["sha256"], request_fingerprint),
+            )
+            return self._header(
+                db.execute(
+                    "SELECT * FROM state_runs WHERE id=?", (document["sha256"],)
+                ).fetchone()
+            )
+
