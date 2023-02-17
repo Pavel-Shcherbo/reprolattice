@@ -178,3 +178,24 @@ class StateArchive:
                 ).fetchone()
             )
 
+    def requested(self, project, request_key, request_fingerprint, label=""):
+        named(project, "state project")
+        named(request_key, "state request key")
+        sha(request_fingerprint)
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT record,fingerprint FROM state_requests WHERE project=? AND request_key=?",
+                (project, request_key),
+            ).fetchone()
+            if row is None:
+                return None
+            stored = self._read(db, project, row["record"])
+            if (
+                row["fingerprint"] != request_fingerprint
+                or stored["record"]["label"] != label
+            ):
+                raise ValueError(
+                    "state request key conflicts with different controls or label"
+                )
+            return stored
+
