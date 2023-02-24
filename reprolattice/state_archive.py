@@ -199,3 +199,15 @@ class StateArchive:
                 )
             return stored
 
+    def _header(self, row):
+        value = strict_json(row["summary"], max_bytes=256 * 1024)
+        if value.get("id") != row["id"] or value.get("run_id") != row["run_id"]:
+            raise ValueError("state archive summary identity mismatch")
+        return {
+            **value,
+            "sequence": row["seq"],
+            "label": row["label"],
+            "recorded_at": row["recorded_at"],
+            "project": row["project"],
+        }
+
