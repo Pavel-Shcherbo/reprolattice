@@ -211,3 +211,24 @@ class StateArchive:
             "project": row["project"],
         }
 
+    def _read(self, db, project, record):
+        row = db.execute(
+            "SELECT seq,id,project,run_id,label,recorded_at,summary,length(document) AS bytes FROM state_runs WHERE project=? AND id=?",
+            (project, record),
+        ).fetchone()
+        if row is None:
+            raise ValueError("unknown retained state run in this project")
+        if row["bytes"] > MAX_EVIDENCE:
+            raise ValueError("stored state evidence exceeds byte budget")
+        raw = db.execute(
+            "SELECT substr(document,1,?) FROM state_runs WHERE project=? AND id=?",
+            (MAX_EVIDENCE + 1, project, record),
+        ).fetchone()[0]
+        document = strict_json(raw, max_bytes=MAX_EVIDENCE, max_nodes=1800000)
+        validate_evidence(document)
+        if document["sha256"] != row["id"] or canonical(
+            evidence_summary(document)
+        ) != bytes(row["summary"]):
+            raise ValueError("stored state evidence/index mismatch")
+        return {"record": self._header(row), "document": document}
+
