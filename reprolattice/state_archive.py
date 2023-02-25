@@ -232,3 +232,9 @@ class StateArchive:
             raise ValueError("stored state evidence/index mismatch")
         return {"record": self._header(row), "document": document}
 
+    def get(self, project, record):
+        named(project, "state project")
+        sha(record)
+        with self._transaction() as db:
+            return self._read(db, project, record)
+
