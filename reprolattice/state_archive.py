@@ -254,3 +254,49 @@ class StateArchive:
                 "next_cursor": items[-1]["sequence"] if len(rows) > limit else None,
             }
 
+    def audit(self, project, *, after=0, limit=20):
+        named(project, "state project")
+        cursor(after)
+        if type(limit) is not int or not 1 <= limit <= 20:
+            raise ValueError("state audit page limit must be 1–20")
+        with self._transaction() as db:
+            rows = db.execute(
+                "SELECT seq,id,length(document) AS bytes FROM state_runs WHERE project=? AND seq>? ORDER BY seq LIMIT ?",
+                (project, after, limit + 1),
+            ).fetchall()
+            reports = []
+            read_bytes = 0
+            next_cursor = None
+            for row in rows[:limit]:
+                if read_bytes + row["bytes"] > 64 * 1024 * 1024:
+                    next_cursor = reports[-1]["sequence"] if reports else after
+                    break
+                try:
+                    self._read(db, project, row["id"])
+                    reports.append(
+                        {"sequence": row["seq"], "id": row["id"], "passed": True}
+                    )
+                except (ValueError, TypeError, KeyError) as error:
+                    reports.append(
+                        {
+                            "sequence": row["seq"],
+                            "id": row["id"],
+                            "passed": False,
+                            "error": str(error),
+                        }
+                    )
+                read_bytes += row["bytes"]
+            if next_cursor is None and len(rows) > len(reports):
+                next_cursor = reports[-1]["sequence"] if reports else after
+            complete = next_cursor is None
+            return {
+                "items": reports,
+                "checked_bytes": read_bytes,
+                "page_passed": all(item["passed"] for item in reports),
+                "complete": complete,
+                "passed": complete
+                and after == 0
+                and all(item["passed"] for item in reports),
+                "next_cursor": next_cursor,
+                "scope": "Content/index consistency within this read snapshot; not source authentication",
+            }
