@@ -238,3 +238,19 @@ class StateArchive:
         with self._transaction() as db:
             return self._read(db, project, record)
 
+    def list(self, project, *, after=0, limit=25):
+        named(project, "state project")
+        cursor(after)
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("state archive list limit must be 1–100")
+        with self._transaction() as db:
+            rows = db.execute(
+                "SELECT seq,id,project,run_id,label,recorded_at,summary FROM state_runs WHERE project=? AND (?=0 OR seq<?) ORDER BY seq DESC LIMIT ?",
+                (project, after, after, limit + 1),
+            ).fetchall()
+            items = [self._header(row) for row in rows[:limit]]
+            return {
+                "items": items,
+                "next_cursor": items[-1]["sequence"] if len(rows) > limit else None,
+            }
+
