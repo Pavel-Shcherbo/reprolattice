@@ -17,3 +17,27 @@ def page_limits(offset, limit):
         raise ValueError("state pages require offset 0–40,000 and limit 1–100")
 
 
+def bounded_page(items, offset, limit):
+    page_limits(offset, limit)
+    if offset > len(items):
+        raise ValueError("state page offset exceeds result length")
+    output, size = [], 0
+    for item in items[offset : offset + limit]:
+        encoded = len(canonical(item))
+        if encoded > 1024 * 1024:
+            raise ValueError(
+                "one state row exceeds the 1 MiB display budget; export full evidence"
+            )
+        if output and size + encoded > 1024 * 1024:
+            break
+        output.append(copy.deepcopy(item))
+        size += encoded
+    next_offset = offset + len(output)
+    return {
+        "items": output,
+        "offset": offset,
+        "total": len(items),
+        "next_offset": next_offset if next_offset < len(items) else None,
+    }
+
+
