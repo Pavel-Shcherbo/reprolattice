@@ -41,3 +41,16 @@ def bounded_page(items, offset, limit):
     }
 
 
+def table_page(snapshot, table, *, offset=0, limit=25):
+    verify_database_snapshot(snapshot)
+    if not isinstance(table, str) or table not in snapshot["tables"]:
+        raise ValueError("unknown retained table")
+    data = snapshot["tables"][table]
+    return {
+        "snapshot_sha256": snapshot["sha256"],
+        "table": table,
+        "columns": copy.deepcopy(data["columns"]),
+        **bounded_page(data["rows"], offset, limit),
+    }
+
+
