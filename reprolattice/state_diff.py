@@ -54,3 +54,31 @@ def table_page(snapshot, table, *, offset=0, limit=25):
     }
 
 
+def primary_key(table):
+    if not table:
+        return []
+    columns = table["columns"]
+    indexes = []
+    for column in columns:
+        value = column["primary_key"]
+        if type(value) is not int or not 0 <= value <= len(columns):
+            return []
+        if value:
+            indexes.append((value, column["name"]))
+    indexes.sort()
+    if [index for index, _ in indexes] != list(range(1, len(indexes) + 1)):
+        return []
+    keys = [name for _, name in indexes]
+    seen = set()
+    if not keys:
+        return []
+    for row in table["rows"]:
+        if any(row[name]["type"] == "null" for name in keys):
+            return []
+        encoded = canonical({name: row[name] for name in keys})
+        if encoded in seen:
+            return []
+        seen.add(encoded)
+    return keys
+
+
