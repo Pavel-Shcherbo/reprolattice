@@ -15,3 +15,18 @@ MAX_EVIDENCE = 32 * 1024 * 1024
 MAX_PAIR = 2 * 1024 * 1024
 
 
+def ensure_retainable(plan):
+    for case in plan.cases:
+        if case.secrets:
+            raise ValueError(
+                "raw state retention is unavailable for secret-parameter cases"
+            )
+        for state in case.states:
+            for table in state.seed["tables"]:
+                for column in table["columns"]:
+                    if secret_key(column["name"]):
+                        raise ValueError(
+                            "raw state retention refuses named sensitive columns"
+                        )
+
+
