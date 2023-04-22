@@ -30,3 +30,16 @@ def ensure_retainable(plan):
                         )
 
 
+def safe_snapshot(snapshot):
+    verify_database_snapshot(snapshot)
+    for name, table in snapshot["tables"].items():
+        if secret_key(name) or any(
+            secret_key(column["name"]) for column in table["columns"]
+        ):
+            raise ValueError(
+                "raw state retention refuses named sensitive tables/columns"
+            )
+
+
+class StateCollector:
+    pass
