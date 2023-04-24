@@ -42,4 +42,9 @@ def safe_snapshot(snapshot):
 
 
 class StateCollector:
-    pass
+    def __init__(self, plan):
+        ensure_retainable(plan)
+        self.pairs = []
+        self.bytes = 0
+        self.lock = threading.Lock()
+
