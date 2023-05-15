@@ -48,3 +48,22 @@ class StateCollector:
         self.bytes = 0
         self.lock = threading.Lock()
 
+    def __call__(self, case, state, before, after):
+        safe_snapshot(before)
+        safe_snapshot(after)
+        pair = {
+            "case": case.id,
+            "path": state.path,
+            "definition_sha256": state.sha256,
+            "before": before,
+            "after": after,
+        }
+        size = len(canonical(pair))
+        if size > MAX_PAIR:
+            raise ValueError("state snapshot pair exceeds 2 MiB retention limit")
+        with self.lock:
+            if self.bytes + size > 24 * 1024 * 1024 or len(self.pairs) >= 1024:
+                raise ValueError("retained state collection exceeds its run budget")
+            self.pairs.append(copy.deepcopy(pair))
+            self.bytes += size
+
