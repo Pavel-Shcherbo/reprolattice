@@ -67,3 +67,14 @@ class StateCollector:
             self.pairs.append(copy.deepcopy(pair))
             self.bytes += size
 
+    def finish(self, report):
+        result = {
+            "format": FORMAT,
+            "report": copy.deepcopy(report),
+            "pairs": sorted(self.pairs, key=lambda row: (row["case"], row["path"])),
+        }
+        result["sha256"] = identity(result)
+        validate_evidence(result)
+        return result
+
+
