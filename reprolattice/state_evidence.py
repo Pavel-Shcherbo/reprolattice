@@ -78,3 +78,56 @@ class StateCollector:
         return result
 
 
+def validate_evidence(value):
+    validate_json(value, max_bytes=MAX_EVIDENCE, max_depth=75, max_nodes=1800000)
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"format", "report", "pairs", "sha256"}
+        or value["format"] != FORMAT
+    ):
+        raise ValueError("unsupported retained state evidence")
+    if identity({key: item for key, item in value.items() if key != "sha256"}) != sha(
+        value["sha256"]
+    ):
+        raise ValueError("retained state evidence identity mismatch")
+    validate_run(value["report"])
+    pairs = value["pairs"]
+    if not isinstance(pairs, list) or len(pairs) > 1024:
+        raise ValueError("retained evidence exceeds 1024 database pairs")
+    cases = {case["id"]: case for case in value["report"]["cases"]}
+    seen = set()
+    for pair in pairs:
+        if (
+            not isinstance(pair, dict)
+            or set(pair) != {"case", "path", "definition_sha256", "before", "after"}
+            or not isinstance(pair["case"], str)
+            or pair["case"] not in cases
+        ):
+            raise ValueError("snapshot pair requires a recorded case")
+        key = (pair["case"], relative_path(pair["path"]))
+        if key in seen or len(canonical(pair)) > MAX_PAIR:
+            raise ValueError("duplicate or oversized state pair")
+        seen.add(key)
+        case = cases[pair["case"]]
+        definitions = {
+            item["path"]: item["sha256"] for item in case.get("sqlite_definitions", [])
+        }
+        states = [
+            item for item in case.get("sqlite", []) if item["path"] == pair["path"]
+        ]
+        if len(states) != 1 or definitions.get(pair["path"]) != sha(
+            pair["definition_sha256"]
+        ):
+            raise ValueError("snapshot pair does not match recorded state definition")
+        state = states[0]
+        for side in ("before", "after"):
+            safe_snapshot(pair[side])
+            if state.get(side + "_sha256") != pair[side]["sha256"]:
+                raise ValueError("snapshot pair does not match recorded state identity")
+        if state.get("changes") != compare_snapshots(pair["before"], pair["after"]):
+            raise ValueError("snapshot differences contradict recorded state changes")
+    if pairs != sorted(pairs, key=lambda row: (row["case"], row["path"])):
+        raise ValueError("snapshot pairs require canonical ordering")
+    return value
+
+
