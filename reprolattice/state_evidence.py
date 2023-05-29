@@ -131,3 +131,27 @@ def validate_evidence(value):
     return value
 
 
+def evidence_summary(value):
+    report = value["report"]
+    retained = {(pair["case"], pair["path"]) for pair in value["pairs"]}
+    expected = {
+        (case["id"], state["path"])
+        for case in report["cases"]
+        for state in case.get("sqlite_definitions", [])
+    }
+    missing = sorted(expected - retained)
+    return {
+        "id": value["sha256"],
+        "run_id": report["run_id"],
+        "suite": report["suite"],
+        "passed": report["passed"],
+        "counts": report["counts"],
+        "finished_at": report["finished_at"],
+        "retained_pairs": len(retained),
+        "expected_pairs": len(expected),
+        "capture_complete": not missing,
+        "missing_pairs": [{"case": case, "path": path} for case, path in missing],
+        "source_authenticated": False,
+    }
+
+
