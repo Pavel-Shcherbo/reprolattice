@@ -155,3 +155,36 @@ def evidence_summary(value):
     }
 
 
+def verify_export(value):
+    if not isinstance(value, dict) or set(value) != {"record", "document"}:
+        raise ValueError("state export requires record metadata and evidence")
+    validate_evidence(value["document"])
+    summary = evidence_summary(value["document"])
+    record = value["record"]
+    if not isinstance(record, dict) or set(record) != set(summary) | {
+        "sequence",
+        "project",
+        "label",
+        "recorded_at",
+    }:
+        raise ValueError("state export metadata fields do not match contract")
+    if any(record[key] != item for key, item in summary.items()):
+        raise ValueError("state export summary contradicts retained evidence")
+    from .run_contract import utc
+    from .suite_config import named
+
+    named(record["project"], "state project")
+    utc(record["recorded_at"])
+    if (
+        type(record["sequence"]) is not int
+        or record["sequence"] < 1
+        or not isinstance(record["label"], str)
+        or len(record["label"]) > 128
+    ):
+        raise ValueError("invalid state export sequence or label")
+    return {
+        "passed": True,
+        "scope": "Portable content and recorded-check consistency; not program reexecution or source authentication",
+        **{key: item for key, item in summary.items() if key != "passed"},
+        "run_passed": summary["passed"],
+    }
