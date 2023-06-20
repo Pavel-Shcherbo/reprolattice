@@ -78,3 +78,11 @@ def inspect_record(archive, project, record):
     }
 
 
+def pair_for(archive, project, record, case, path):
+    value = archive.get(project, record)["document"]
+    for pair in value["pairs"]:
+        if pair["case"] == case and pair["path"] == path:
+            return pair
+    raise ValueError("unknown retained case/database pair")
+
+
