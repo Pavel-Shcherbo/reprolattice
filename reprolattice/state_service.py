@@ -86,3 +86,18 @@ def pair_for(archive, project, record, case, path):
     raise ValueError("unknown retained case/database pair")
 
 
+def inspect_table(
+    archive, project, record, case, path, table, *, side="after", offset=0, limit=25
+):
+    if side not in ("before", "after"):
+        raise ValueError("state table side must be before or after")
+    pair = pair_for(archive, project, record, case, path)
+    return {
+        "record": record,
+        "case": case,
+        "path": path,
+        "side": side,
+        **table_page(pair[side], table, offset=offset, limit=limit),
+    }
+
+
