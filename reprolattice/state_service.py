@@ -101,3 +101,20 @@ def inspect_table(
     }
 
 
+def inspect_diff(
+    archive, project, record, case, path, table, *, status="changed", offset=0, limit=25
+):
+    pair = pair_for(archive, project, record, case, path)
+    return {
+        "record": record,
+        "case": case,
+        "path": path,
+        **compare_rows(
+            pair["before"],
+            pair["after"],
+            table,
+            status=status,
+            offset=offset,
+            limit=limit,
+        ),
+    }
