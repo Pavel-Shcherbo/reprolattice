@@ -857,3 +857,464 @@ $("suite-junit").onclick = () => {
   controls();
   refresh().catch(fail);
 })();
+
+(() => {
+  const api = (action, fields = {}) =>
+    evaluate({ mode: "state", action, ...fields });
+  let records = [],
+    selected = "",
+    detail = null,
+    table = "",
+    pairIndex = 0;
+  let listCursor = null,
+    offset = 0,
+    previous = [],
+    page = null;
+  let epoch = 0,
+    pageSerial = 0,
+    listSerial = 0,
+    auditSerial = 0,
+    exportSerial = 0;
+  let running = false,
+    requestKey = null,
+    requestSettings = "";
+  const fail = (message) => {
+    $("db-error").hidden = !message;
+    $("db-error").textContent = message || "";
+  };
+  function invalidatePage() {
+    pageSerial++;
+    page = null;
+    clear($("db-columns"));
+    clear($("db-rows"));
+    $("db-page-export").disabled = true;
+    $("db-next").disabled = true;
+    $("db-previous").disabled = true;
+    $("db-page-range").textContent = "";
+    $("db-diff-summary").textContent = "";
+  }
+  function runOptions() {
+    clear($("db-runs"));
+    if (!records.length)
+      $("db-runs").append(
+        new Option("Run a control to retain its database state", ""),
+      );
+    for (const record of records) {
+      $("db-runs").append(
+        new Option(
+          "Run " +
+            record.sequence +
+            " · " +
+            (record.passed ? "passed" : "failed") +
+            (record.label ? " · " + record.label : ""),
+          record.id,
+        ),
+      );
+    }
+    $("db-runs").value = selected;
+    $("db-older").hidden = listCursor === null;
+  }
+  async function refresh(older = false) {
+    const serial = ++listSerial;
+    const result = await api("overview", older ? { after: listCursor } : {});
+    if (serial !== listSerial) return;
+    const fresh = older ? [...records, ...result.items] : result.items;
+    if (detail?.record && !fresh.some((record) => record.id === selected))
+      fresh.push(detail.record);
+    records = [...new Map(fresh.map((record) => [record.id, record])).values()];
+    listCursor = result.next_cursor;
+    runOptions();
+    if (!selected && records.length) await select(records[0].id);
+    if (!records.length)
+      $("db-status").textContent =
+        "No retained databases. Run either synthetic control to inspect its writes.";
+  }
+  async function select(id) {
+    const current = ++epoch;
+    exportSerial++;
+    selected = id;
+    detail = null;
+    pairIndex = 0;
+    table = "";
+    previous = [];
+    offset = 0;
+    invalidatePage();
+    runOptions();
+    $("db-record").hidden = true;
+    $("db-export").disabled = true;
+    $("db-status").textContent = "Reading retained database evidence…";
+    fail("");
+    try {
+      const result = await api("inspect", { record: id });
+      if (current !== epoch) return;
+      detail = result;
+      const record = detail.record;
+      $("db-status").textContent =
+        "Run " +
+        record.sequence +
+        ": " +
+        record.counts.passed +
+        " passed, " +
+        record.counts.failed +
+        " failed; " +
+        record.retained_pairs +
+        "/" +
+        record.expected_pairs +
+        " database pairs retained" +
+        (record.capture_complete ? "" : " — incomplete capture");
+      $("db-export").disabled = false;
+      clear($("db-pairs"));
+      detail.pairs.forEach((pair, index) => {
+        const parameters = Object.entries(pair.parameters)
+          .map(([key, value]) => key + "=" + JSON.stringify(value))
+          .join(", ");
+        $("db-pairs").append(
+          new Option(
+            (parameters || pair.case) + " · " + pair.path,
+            String(index),
+          ),
+        );
+      });
+      $("db-record").hidden = !detail.pairs.length;
+      if (detail.pairs.length) choosePair();
+    } catch (error) {
+      if (current === epoch) {
+        $("db-status").textContent =
+          "State inspection failed. Refresh or select another retained run.";
+        fail(error.message);
+      }
+    }
+  }
+  function typed(value) {
+    const node = element("div", undefined, "state-cell");
+    if (!value) {
+      node.append(element("span", "Absent", "secondary"));
+      return node;
+    }
+    const raw =
+      value.type === "null"
+        ? "NULL"
+        : value.type === "text"
+          ? JSON.stringify(value.value)
+          : String(value.value);
+    node.append(
+      element("span", value.type, "state-type"),
+      element(
+        "code",
+        raw.slice(0, 512) +
+          (raw.length > 512 ? "… [export for full value]" : ""),
+      ),
+    );
+    return node;
+  }
+  function fields(row, names = null) {
+    const node = element("div");
+    if (row === null) return element("span", "Absent", "secondary");
+    for (const name of names || Object.keys(row)) {
+      const field = element("div", undefined, "state-field");
+      field.append(element("span", name, "state-field-name"), typed(row[name]));
+      node.append(field);
+    }
+    return node;
+  }
+  function choosePair() {
+    $("db-export").disabled = !detail;
+    epoch++;
+    exportSerial++;
+    invalidatePage();
+    previous = [];
+    offset = 0;
+    const pair = detail?.pairs[pairIndex];
+    if (!pair) return;
+    $("db-case-id").textContent = pair.case + " · " + pair.path;
+    $("db-outcome").textContent =
+      pair.case_status +
+      " · SQL checks " +
+      (pair.checks?.passed ? "passed" : "failed or unavailable");
+    $("db-outcome").className =
+      "status " + (pair.checks?.passed ? "passed" : "failed");
+    clear($("db-checks"));
+    for (const check of pair.checks?.queries || []) {
+      const item = element("details"),
+        summary = element(
+          "summary",
+          check.id + " · " + (check.passed ? "passed" : "failed"),
+          "status " + (check.passed ? "passed" : "failed"),
+        );
+      item.append(summary, element("pre", JSON.stringify(check, null, 2)));
+      $("db-checks").append(item);
+    }
+    $("db-schema").textContent = JSON.stringify(
+      {
+        definition_sha256: pair.definition_sha256,
+        before_sha256: pair.before_sha256,
+        after_sha256: pair.after_sha256,
+        schema: pair.schema,
+      },
+      null,
+      2,
+    );
+    table = pair.tables[0]?.name || "";
+    renderTables();
+    if (table) loadPage();
+    else
+      $("db-page-status").textContent =
+        "This retained database has no user tables";
+  }
+  function renderTables() {
+    clear($("db-tables"));
+    for (const item of detail.pairs[pairIndex].tables) {
+      const button = element(
+        "button",
+        item.name + " (" + item.before_rows + " / " + item.after_rows + ")",
+      );
+      button.setAttribute("aria-pressed", String(table === item.name));
+      button.onclick = () => {
+        table = item.name;
+        previous = [];
+        offset = 0;
+        renderTables();
+        loadPage();
+      };
+      $("db-tables").append(button);
+    }
+  }
+  async function loadPage() {
+    invalidatePage();
+    const serial = ++pageSerial,
+      current = epoch,
+      pair = detail?.pairs[pairIndex];
+    if (!pair || !table) return;
+    const view = $("db-view").value;
+    $("db-filter-field").hidden = view !== "diff";
+    $("db-page-status").textContent = "Reading retained rows…";
+    fail("");
+    try {
+      const args = {
+        record: selected,
+        case: pair.case,
+        path: pair.path,
+        table,
+        offset,
+      };
+      const result = await api(view === "diff" ? "diff" : "table", {
+        ...args,
+        ...(view === "diff"
+          ? { status: $("db-filter").value }
+          : { side: view }),
+      });
+      if (serial !== pageSerial || current !== epoch) return;
+      page = result;
+      const head = element("tr");
+      if (view === "diff") {
+        for (const label of ["Change", "Key / copies", "Before", "After"])
+          head.append(element("th", label));
+        $("db-diff-summary").textContent =
+          Object.entries(result.counts)
+            .map(([key, value]) => value + " " + key)
+            .join(" · ") +
+          "; identity: " +
+          (result.identity_mode === "declared_primary_key"
+            ? result.primary_key.join(", ")
+            : "complete row values (duplicates counted)");
+        for (const row of result.items) {
+          const tr = element("tr"),
+            key = element("td", undefined, "state-key"),
+            before = element("td"),
+            after = element("td");
+          const names =
+            row.change === "modified"
+              ? Object.keys(row.before).filter(
+                  (name) =>
+                    JSON.stringify(row.before[name]) !==
+                    JSON.stringify(row.after[name]),
+                )
+              : null;
+          key.append(
+            row.key
+              ? fields(row.key)
+              : element(
+                  "span",
+                  row.count + (row.count === 1 ? " copy" : " copies"),
+                ),
+          );
+          before.append(fields(row.before, names));
+          after.append(fields(row.after, names));
+          tr.append(
+            element(
+              "td",
+              row.change,
+              "status " + (row.change === "removed" ? "failed" : ""),
+            ),
+            key,
+            before,
+            after,
+          );
+          $("db-rows").append(tr);
+        }
+      } else {
+        for (const column of result.columns)
+          head.append(element("th", column.name));
+        for (const row of result.items) {
+          const tr = element("tr");
+          for (const column of result.columns) {
+            const td = element("td");
+            td.append(typed(row[column.name]));
+            tr.append(td);
+          }
+          $("db-rows").append(tr);
+        }
+      }
+      $("db-columns").append(head);
+      $("db-page-status").textContent = result.total
+        ? view === "diff"
+          ? "Recorded row differences"
+          : "Retained " + view + " rows"
+        : view === "diff"
+          ? "No rows match this change filter. SQL checks may still fail."
+          : "This table was empty " + view + " execution";
+      $("db-page-range").textContent = result.total
+        ? result.offset +
+          1 +
+          "–" +
+          (result.offset + result.items.length) +
+          " of " +
+          result.total +
+          (view === "diff" ? " row groups" : " rows")
+        : "0 rows";
+      $("db-page-export").disabled = false;
+      $("db-next").disabled = result.next_offset === null;
+      $("db-previous").disabled = previous.length === 0;
+    } catch (error) {
+      if (serial === pageSerial && current === epoch) {
+        $("db-page-status").textContent =
+          "Rows could not be loaded. Select the table again to retry.";
+        fail(error.message);
+      }
+    }
+  }
+  $("db-run-form").onsubmit = async (event) => {
+    event.preventDefault();
+    if (running) return;
+    const settings = JSON.stringify({
+      omit_write: $("db-control").value === "omit",
+      label: $("db-label").value,
+    });
+    if (!requestKey || requestSettings !== settings) {
+      requestKey = "state-" + crypto.randomUUID();
+      requestSettings = settings;
+    }
+    running = true;
+    listSerial++;
+    fail("");
+    $("db-run").disabled = true;
+    $("db-control").disabled = true;
+    $("db-label").disabled = true;
+    $("db-status").textContent =
+      "Running isolated inventory cases and retaining their state…";
+    try {
+      const result = await api("run", {
+        ...JSON.parse(settings),
+        request_key: requestKey,
+      });
+      requestKey = null;
+      records = [
+        result.record,
+        ...records.filter((record) => record.id !== result.record.id),
+      ];
+      await select(result.record.id);
+    } catch (error) {
+      fail(error.message);
+      $("db-status").textContent =
+        "No confirmed result. Retry the same settings to recover the request.";
+    } finally {
+      running = false;
+      for (const id of ["db-run", "db-control", "db-label"])
+        $(id).disabled = false;
+    }
+  };
+  $("db-runs").onchange = () => {
+    if ($("db-runs").value) select($("db-runs").value);
+  };
+  $("db-pairs").onchange = () => {
+    pairIndex = Number($("db-pairs").value);
+    choosePair();
+  };
+  for (const id of ["db-view", "db-filter"])
+    $(id).onchange = () => {
+      previous = [];
+      offset = 0;
+      loadPage();
+    };
+  $("db-next").onclick = () => {
+    if (page?.next_offset !== null) {
+      previous.push(offset);
+      offset = page.next_offset;
+      loadPage();
+    }
+  };
+  $("db-previous").onclick = () => {
+    if (previous.length) {
+      offset = previous.pop();
+      loadPage();
+    }
+  };
+  $("db-refresh").onclick = () =>
+    refresh().catch((error) => fail(error.message));
+  $("db-older").onclick = () =>
+    refresh(true).catch((error) => fail(error.message));
+  $("db-page-export").onclick = () => {
+    if (page) download("reprolattice-state-page.json", page);
+  };
+  $("db-export").onclick = async () => {
+    const current = epoch,
+      serial = ++exportSerial,
+      record = selected;
+    $("db-export").disabled = true;
+    try {
+      const value = await api("export", { record });
+      if (current === epoch && serial === exportSerial)
+        download("reprolattice-state-" + record.slice(0, 12) + ".json", value);
+    } catch (error) {
+      if (current === epoch && serial === exportSerial) fail(error.message);
+    } finally {
+      if (current === epoch && serial === exportSerial)
+        $("db-export").disabled = !detail;
+    }
+  };
+  let auditCursor = 0;
+  $("db-audit").onclick = async () => {
+    const serial = ++auditSerial;
+    $("db-audit").disabled = true;
+    try {
+      const result = await api("audit", { after: auditCursor });
+      if (serial !== auditSerial) return;
+      $("db-audit-status").textContent =
+        result.items.length +
+        " records checked in this page; " +
+        (result.page_passed ? "content consistent" : "damage detected") +
+        (result.complete ? "; end of archive" : "; more records remain");
+      auditCursor = result.next_cursor || 0;
+      $("db-audit").textContent =
+        result.next_cursor === null
+          ? "Check archive integrity"
+          : "Check next archive page";
+    } catch (error) {
+      if (serial === auditSerial) fail(error.message);
+    } finally {
+      if (serial === auditSerial) $("db-audit").disabled = false;
+    }
+  };
+  refresh().catch((error) => {
+    fail(error.message);
+    $("db-status").textContent = "State archive unavailable. Refresh to retry.";
+  });
+})();
+
+for (const link of document.querySelectorAll("nav a"))
+  link.addEventListener("click", () => {
+    document
+      .querySelector("nav [aria-current]")
+      ?.removeAttribute("aria-current");
+    link.setAttribute("aria-current", "location");
+  });
