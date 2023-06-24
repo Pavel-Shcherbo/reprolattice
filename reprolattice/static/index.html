@@ -17,6 +17,7 @@
           <a href="#archive" aria-current="location">Saved runs</a
           ><a href="#scenario">Scenario</a
           ><a href="#verification">Verification</a><a href="#suite">Suite</a
+          ><a href="#database-state">Database state</a
           ><a href="#boundaries">Replay boundaries</a>
         </nav>
         <footer>Local workbench<br />Development build</footer>
@@ -343,6 +344,116 @@ Run the suite, then select a case to inspect its checks</pre>
               </p>
               <p id="suite-hash" class="mono notice"></p>
             </div>
+          </div>
+        </section>
+        <section
+          class="section state-workbench"
+          id="database-state"
+          aria-labelledby="database-title"
+        >
+          <header class="pagehead">
+            <div>
+              <h2 id="database-title">Database state</h2>
+              <p>Follow the write from its check to its row.</p>
+            </div>
+            <button id="db-refresh">Refresh state runs</button>
+          </header>
+          <div class="error" id="db-error" role="alert" hidden></div>
+          <form id="db-run-form" class="state-toolbar">
+            <label
+              >Inventory control<select id="db-control">
+                <option value="healthy">Write inventory and receipt</option>
+                <option value="omit">Skip database writes</option>
+              </select></label
+            >
+            <label
+              >Run label<input
+                id="db-label"
+                maxlength="128"
+                placeholder="Optional review label"
+                autocomplete="off"
+            /></label>
+            <button id="db-run" class="primary" type="submit">
+              Run and retain state
+            </button>
+          </form>
+          <p class="notice">
+            Bundled synthetic inventory suite. Keeps actual before/after tables
+            locally; each case starts with a fresh database.
+          </p>
+          <p id="db-status" class="secondary" role="status">
+            Reading retained state runs…
+          </p>
+          <div class="state-toolbar">
+            <label class="state-run-picker"
+              >Retained run<select id="db-runs">
+                <option value="">
+                  Run a control to retain its database state
+                </option>
+              </select></label
+            ><button id="db-older" hidden>Load older state runs</button
+            ><button id="db-export" disabled>Export state evidence</button
+            ><button id="db-audit">Check archive integrity</button>
+          </div>
+          <p id="db-audit-status" class="notice" role="status"></p>
+          <div id="db-record" hidden>
+            <div class="state-toolbar">
+              <label class="state-case-picker"
+                >Case and database<select id="db-pairs"></select
+              ></label>
+              <p id="db-outcome" role="status"></p>
+            </div>
+            <p id="db-case-id" class="mono notice"></p>
+            <div class="state-checks" id="db-checks"></div>
+            <section class="panel">
+              <div class="panelhead state-table-head">
+                <div
+                  id="db-tables"
+                  class="state-table-tabs"
+                  role="group"
+                  aria-label="Database tables"
+                ></div>
+              </div>
+              <div class="panelbody state-toolbar">
+                <label
+                  >View<select id="db-view">
+                    <option value="diff">Row changes</option>
+                    <option value="before">Before execution</option>
+                    <option value="after">After execution</option>
+                  </select></label
+                ><label id="db-filter-field"
+                  >Row filter<select id="db-filter">
+                    <option value="changed">Changed rows</option>
+                    <option value="all">All rows</option>
+                    <option value="modified">Modified</option>
+                    <option value="added">Added</option>
+                    <option value="removed">Removed</option>
+                    <option value="unchanged">Unchanged</option>
+                  </select></label
+                ><button id="db-page-export" disabled>
+                  Export displayed page
+                </button>
+              </div>
+              <div class="panelbody">
+                <p id="db-page-status" role="status">Select a retained table</p>
+                <p id="db-diff-summary" class="secondary"></p>
+              </div>
+              <div class="tablewrap state-row-scroll">
+                <table id="db-data">
+                  <thead id="db-columns"></thead>
+                  <tbody id="db-rows"></tbody>
+                </table>
+              </div>
+              <div class="panelbody state-page-actions">
+                <button id="db-previous" disabled>Previous page</button
+                ><button id="db-next" disabled>Next page</button
+                ><span id="db-page-range" class="notice"></span>
+              </div>
+            </section>
+            <details class="state-schema">
+              <summary>Retained schema and identities</summary>
+              <pre id="db-schema"></pre>
+            </details>
           </div>
         </section>
         <section class="section" id="boundaries">
