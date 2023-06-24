@@ -701,3 +701,152 @@ textarea {
     white-space: nowrap;
   }
 }
+
+.state-workbench {
+  --accent: #e0ac88;
+  scroll-margin-top: 24px;
+}
+.state-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  margin: 16px 0;
+}
+.state-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.state-toolbar input,
+.state-toolbar select {
+  min-height: 40px;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.state-run-picker {
+  flex: 1 1 360px;
+}
+.state-case-picker {
+  flex: 1 1 360px;
+}
+.state-checks {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 24px;
+}
+.state-checks details {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+.state-checks summary {
+  cursor: pointer;
+}
+.state-table-head {
+  padding: 16px 24px;
+}
+.state-table-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.state-table-tabs button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+.state-toolbar.panelbody {
+  margin: 0;
+}
+.state-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.state-cell code {
+  white-space: pre-wrap;
+}
+.state-type {
+  color: var(--secondary);
+  font-size: 12px;
+  min-width: 48px;
+}
+.state-field {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) 1fr;
+  gap: 8px;
+  margin: 4px 0;
+}
+.state-field-name {
+  color: var(--secondary);
+  overflow-wrap: anywhere;
+}
+.state-row-scroll th {
+  white-space: nowrap;
+}
+.state-row-scroll td {
+  vertical-align: top;
+  min-width: 120px;
+}
+.state-row-scroll .state-key {
+  min-width: 160px;
+}
+.state-page-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.state-schema {
+  margin-top: 24px;
+}
+.state-schema summary {
+  cursor: pointer;
+}
+#db-case-id {
+  overflow-wrap: anywhere;
+}
+#db-outcome {
+  margin: 0 0 8px;
+}
+@media (max-width: 700px) {
+  .state-toolbar {
+    align-items: stretch;
+    gap: 12px;
+  }
+  .state-toolbar label {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .state-toolbar button {
+    flex: 1 1 auto;
+  }
+  .state-table-head {
+    padding: 16px;
+  }
+  .state-cell {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .state-field {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .state-row-scroll td {
+    min-width: 112px;
+  }
+}
+@media (min-width: 1001px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    align-self: start;
+    overflow: auto;
+  }
+}
