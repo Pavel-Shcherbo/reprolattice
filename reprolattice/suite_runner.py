@@ -108,7 +108,7 @@ def case_metadata(case):
     }
 
 
-def run_case(case, workspace, should_cancel):
+def run_case(case, workspace, should_cancel, on_state=None):
     started = time.monotonic()
     result = {**case_metadata(case), "started_at": utc_now()}
     if should_cancel():
@@ -153,7 +153,16 @@ def run_case(case, workspace, should_cancel):
             else []
         )
         states = (
-            inspect_states(workspace, prepared, should_cancel=case_cancelled)
+            inspect_states(
+                workspace,
+                prepared,
+                should_cancel=case_cancelled,
+                on_snapshot=(
+                    (lambda state, before, after: on_state(case, state, before, after))
+                    if on_state is not None
+                    else None
+                ),
+            )
             if not detail.get("cancelled")
             else []
         )
@@ -204,6 +213,7 @@ def run_suite(
     exclude_tags=(),
     should_cancel=None,
     on_event=None,
+    on_state=None,
 ):
     if not isinstance(plan, SuitePlan):
         raise ValueError("run_suite requires a compiled SuitePlan")
@@ -211,7 +221,7 @@ def run_suite(
         raise ValueError("jobs must be between one and eight")
     if type(fail_fast) is not bool:
         raise ValueError("fail_fast must be boolean")
-    for callback in (should_cancel, on_event):
+    for callback in (should_cancel, on_event, on_state):
         if callback is not None and not callable(callback):
             raise ValueError("suite callbacks must be callable")
     for selection in (include_tags, exclude_tags):
@@ -277,7 +287,7 @@ def run_suite(
                     next_case += 1
                     emit("case_started", case.id)
                     future = executor.submit(
-                        run_case, case, Path(temporary) / case.id, cancelled
+                        run_case, case, Path(temporary) / case.id, cancelled, on_state
                     )
                     pending[future] = case
                 if not pending:
