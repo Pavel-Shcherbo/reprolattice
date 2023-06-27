@@ -7,6 +7,7 @@ from .protocol import verify_protocol
 from .resources import examples_directory
 from .suite_web import evaluate_suite
 from .archive_web import evaluate_archive
+from .state_web import evaluate_state
 
 
 def example():
@@ -14,6 +15,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "state":
+        return evaluate_state(params)
     if params.get("mode") == "archive":
         return evaluate_archive(params)
     if params.get("mode") == "suite":
