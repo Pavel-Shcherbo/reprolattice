@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "362d9bc1ae879acd1aa93ae99eba9dcda085a15fc758593504f7f437747316dc",
+  "wheel_sha256": "212fcd3dfd75b913e45f845d639ddd67a346aa37aefe987a95e39fb3f416911a",
   "examples_exported": [
     "dynamic-order.json",
     "inventory-seed.json",
@@ -19,5 +19,6 @@
   "suite_http_healthy_and_faulty_passed": true,
   "sqlite_state_suites_and_standalone_snapshots_passed": true,
   "run_registry_baseline_and_regression_control_passed": true,
-  "saved_run_workbench_and_fenced_baseline_http_passed": true
+  "saved_run_workbench_and_fenced_baseline_http_passed": true,
+  "retained_sqlite_state_cli_http_and_portable_verification_passed": true
 }
