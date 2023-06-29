@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "scope": "Real browser synthetic controls, persisted evidence, keyboard, races and independently decoded downloads; not full portfolio acceptance",
+  "workflow": {
+    "healthyRun": "4e9b980291b126abeafdef80882eaf0f1782eae2e4bd374bf2dd99c7839b1d10",
+    "healthyOutcome": "passed \u00b7 SQL checks passed",
+    "afterInventory": "text\n\"part-42\"\n\t\ninteger\n0",
+    "receipt": "integer\n1\n\t\ntext\n\"part-42\"\n\t\ninteger\n0",
+    "faultyRun": "bf96acbd6806ee28035bea29101f94fcfc4ddabecc0a442c4a9f772f3208f44b",
+    "faultyOutcome": "failed \u00b7 SQL checks failed or unavailable",
+    "audit": "2 records checked in this page; content consistent; end of archive",
+    "persistedAfterReload": true,
+    "desktop": {
+      "width": 1440,
+      "scroll": 1440
+    },
+    "mobile": {
+      "width": 390,
+      "scroll": 390,
+      "tableScroll": 496,
+      "tableWidth": 356
+    }
+  },
+  "response_races": {
+    "staleInspectIgnored": true,
+    "staleRowsIgnored": true,
+    "failedReadClearsRowsAndExport": true,
+    "lostResponseRetryRecovered": true,
+    "recordsBeforeRetry": 4,
+    "recordsAfterRetry": 4,
+    "pageErrors": []
+  },
+  "final_layout": {
+    "passed": true,
+    "desktop": {
+      "width": 1440,
+      "scroll": 1440,
+      "sidebarTop": 0,
+      "accent": "#e0ac88"
+    },
+    "mobile": {
+      "width": 390,
+      "scroll": 390,
+      "tableWidth": 356,
+      "tableScroll": 496
+    }
+  },
+  "independent_export_hashes_and_all_three_stock_receipt_controls": true,
+  "downloaded_page_matches_receipt_addition": true,
+  "download_hashes": {
+    "state-evidence.json": "6413f3a46b3575c2c29e9df9750c0600de21bfc20abb12cf3c963ef5a15a927c",
+    "state-page.json": "6a36ac0040d7db6668a590ed6dc365acce1e8e4edd98498c43f9bd673c60de8d"
+  },
+  "screenshots": {
+    "state-desktop-final.png": "81953818f4543eabfa46edcbbcb0ad589311ca90c10e8cdb97f8f1471edd3ae7",
+    "state-mobile-final.png": "d1c765b06f20bdf6c6bb7e41a24a69134a5fbee0117e4dc8397a3357b4f22bf6"
+  },
+  "full_portfolio_acceptance": false
+}
