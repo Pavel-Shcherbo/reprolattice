@@ -1,0 +1,77 @@
+{
+  "passed": true,
+  "scope": "Clean installed CLI and loopback synthetic state controls; raw content identities are not authenticated provenance",
+  "healthy_counts": {
+    "passed": 3,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "faulty_counts": {
+    "passed": 0,
+    "failed": 3,
+    "error": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "retained_pairs": 3,
+  "idempotent_cli_and_http_retry": true,
+  "independent_typed_row_controls": [
+    {
+      "case": "persist-inventory-001-921d091c12f0",
+      "quantity": 0,
+      "stock_before": 99,
+      "stock_after": 0,
+      "new_receipts": 1,
+      "removed_stock_row_occurrences": 1,
+      "added_stock_row_occurrences": 1
+    },
+    {
+      "case": "persist-inventory-002-41f61209126c",
+      "quantity": 7,
+      "stock_before": 99,
+      "stock_after": 7,
+      "new_receipts": 1,
+      "removed_stock_row_occurrences": 1,
+      "added_stock_row_occurrences": 1
+    },
+    {
+      "case": "persist-inventory-003-c15fdb36c7a5",
+      "quantity": 12,
+      "stock_before": 99,
+      "stock_after": 12,
+      "new_receipts": 1,
+      "removed_stock_row_occurrences": 1,
+      "added_stock_row_occurrences": 1
+    }
+  ],
+  "portable_verification": {
+    "passed": true,
+    "scope": "Portable content and recorded-check consistency; not program reexecution or source authentication",
+    "id": "e5e0dab1ea0ca71eb8fac05b1980da429f47c702e6ff4f75f4362d3162c53f6c",
+    "run_id": "02c17af6-a7a4-4453-b129-426c3502aecf",
+    "suite": "inventory-state-regression",
+    "counts": {
+      "cancelled": 0,
+      "error": 0,
+      "failed": 0,
+      "passed": 3,
+      "skipped": 0
+    },
+    "finished_at": "2026-11-04T08:51:25.402494+00:00",
+    "retained_pairs": 3,
+    "expected_pairs": 3,
+    "capture_complete": true,
+    "missing_pairs": [],
+    "source_authenticated": false,
+    "run_passed": true
+  },
+  "export_sha256": "ea57bfa0cf3ab5fa291985ec9259d2bd0baf75903824c24c20296bb2a02875a2",
+  "existing_export_preserved": true,
+  "http_healthy_id": "654304864e4683f242f3505f506b3ec1de7c6df0848fd24a13e8c31a22261715",
+  "http_faulty_id": "a946a36afbfab21f9c0203cb9649b59360269b69bbc424e0544bc5465daaff54",
+  "unknown_command_rejected": true,
+  "archive_audit_passed": true,
+  "full_portfolio_acceptance": false
+}
