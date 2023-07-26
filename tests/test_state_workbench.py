@@ -26,3 +26,11 @@ from reprolattice.suite_config import compile_suite
 from reprolattice.web import evaluate
 
 
+def plan(faulty=False):
+    root = examples_directory()
+    definition = json.loads((root / "inventory-state-suite.json").read_text())
+    if faulty:
+        definition["command"].append("--omit-write")
+    return compile_suite(definition, root)
+
+
