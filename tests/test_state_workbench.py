@@ -34,3 +34,11 @@ def plan(faulty=False):
     return compile_suite(definition, root)
 
 
+def rehash(snapshot):
+    snapshot["sha256"] = identity(
+        {key: value for key, value in snapshot.items() if key != "sha256"}
+    )
+
+
+class StateWorkbenchTests(unittest.TestCase):
+    pass
