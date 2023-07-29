@@ -41,4 +41,14 @@ def rehash(snapshot):
 
 
 class StateWorkbenchTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        with tempfile.TemporaryDirectory() as root:
+            archive = StateArchive(Path(root) / "archive.sqlite", create=True)
+            healthy = execute_retained(plan(), archive, PROJECT, request_key="healthy")
+            faulty = execute_retained(
+                plan(True), archive, PROJECT, request_key="faulty"
+            )
+            cls.healthy = archive.get(PROJECT, healthy["record"]["id"])["document"]
+            cls.faulty = archive.get(PROJECT, faulty["record"]["id"])["document"]
+
