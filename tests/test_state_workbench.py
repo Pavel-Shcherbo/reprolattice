@@ -63,3 +63,6 @@ class StateWorkbenchTests(unittest.TestCase):
         self.addCleanup(self.patch.stop)
         self.path = self.root / "state-workbench/states.sqlite"
 
+    def archive(self):
+        return StateArchive(self.path, create=True)
+
