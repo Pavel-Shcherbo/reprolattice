@@ -52,3 +52,14 @@ class StateWorkbenchTests(unittest.TestCase):
             cls.healthy = archive.get(PROJECT, healthy["record"]["id"])["document"]
             cls.faulty = archive.get(PROJECT, faulty["record"]["id"])["document"]
 
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.patch = patch(
+            "reprolattice.state_web.state_directory", return_value=self.root
+        )
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+        self.path = self.root / "state-workbench/states.sqlite"
+
