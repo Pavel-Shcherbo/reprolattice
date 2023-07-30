@@ -66,3 +66,6 @@ class StateWorkbenchTests(unittest.TestCase):
     def archive(self):
         return StateArchive(self.path, create=True)
 
+    def api(self, action, **values):
+        return evaluate({"mode": "state", "action": action, **values})
+
