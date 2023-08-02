@@ -69,3 +69,11 @@ class StateWorkbenchTests(unittest.TestCase):
     def api(self, action, **values):
         return evaluate({"mode": "state", "action": action, **values})
 
+    def save(self, document=None, key="healthy", label=""):
+        return self.archive().record(
+            PROJECT,
+            copy.deepcopy(document or self.healthy),
+            request_key=key,
+            label=label,
+        )
+
