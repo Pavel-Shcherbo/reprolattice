@@ -77,3 +77,20 @@ class StateWorkbenchTests(unittest.TestCase):
             label=label,
         )
 
+    def test_real_capture_records_all_three_successful_state_pairs(self):
+        self.assertTrue(self.healthy["report"]["passed"])
+        self.assertEqual(len(self.healthy["pairs"]), 3)
+        for pair in self.healthy["pairs"]:
+            self.assertEqual(
+                pair["before"]["tables"]["inventory"]["rows"][0]["available"],
+                {"type": "integer", "value": 99},
+            )
+            quantity = pair["after"]["tables"]["inventory"]["rows"][0]["available"][
+                "value"
+            ]
+            self.assertIn(quantity, (0, 7, 12))
+            self.assertEqual(
+                pair["after"]["tables"]["receipts"]["rows"][0]["quantity"]["value"],
+                quantity,
+            )
+
