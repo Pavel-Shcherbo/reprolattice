@@ -94,3 +94,11 @@ class StateWorkbenchTests(unittest.TestCase):
                 quantity,
             )
 
+    def test_omitted_write_fails_database_checks_even_when_http_passes(self):
+        self.assertEqual(self.faulty["report"]["counts"]["failed"], 3)
+        for case in self.faulty["report"]["cases"]:
+            self.assertTrue(case["detail"]["passed"])
+            self.assertFalse(case["sqlite"][0]["passed"])
+        for pair in self.faulty["pairs"]:
+            self.assertEqual(pair["before"], pair["after"])
+
