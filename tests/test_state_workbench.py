@@ -102,3 +102,29 @@ class StateWorkbenchTests(unittest.TestCase):
         for pair in self.faulty["pairs"]:
             self.assertEqual(pair["before"], pair["after"])
 
+    def test_inspection_exposes_checks_schema_and_typed_row_changes(self):
+        record = self.save()
+        view = self.api("inspect", record=record["id"])
+        self.assertTrue(view["record"]["capture_complete"])
+        pair = view["pairs"][1]
+        self.assertTrue(pair["checks"]["passed"])
+        self.assertEqual(
+            {row["name"] for row in pair["tables"]}, {"inventory", "receipts"}
+        )
+        args = {
+            "record": record["id"],
+            "case": pair["case"],
+            "path": pair["path"],
+            "table": "inventory",
+        }
+        diff = self.api("diff", **args)
+        self.assertEqual(diff["identity_mode"], "declared_primary_key")
+        self.assertEqual(
+            diff["counts"], {"added": 0, "removed": 0, "modified": 1, "unchanged": 0}
+        )
+        self.assertEqual(diff["items"][0]["before"]["available"]["value"], 99)
+        self.assertEqual(
+            self.api("table", **args, side="before")["items"][0]["available"]["value"],
+            99,
+        )
+
