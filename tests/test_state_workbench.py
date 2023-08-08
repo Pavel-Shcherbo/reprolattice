@@ -156,3 +156,21 @@ class StateWorkbenchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "label"):
             archive.record(PROJECT, self.healthy, request_key="same", label="changed")
 
+    def test_control_retry_returns_old_report_without_execution(self):
+        archive = self.archive()
+        original = execute_retained(
+            plan(), archive, PROJECT, request_key="retry", label="control"
+        )
+        with patch(
+            "reprolattice.state_service.run_suite",
+            side_effect=AssertionError("reexecuted"),
+        ):
+            again = execute_retained(
+                plan(), archive, PROJECT, request_key="retry", label="control"
+            )
+        self.assertEqual(original, again)
+        with self.assertRaisesRegex(ValueError, "different controls"):
+            execute_retained(
+                plan(True), archive, PROJECT, request_key="retry", label="control"
+            )
+
