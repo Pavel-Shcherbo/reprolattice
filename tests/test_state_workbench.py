@@ -142,3 +142,17 @@ class StateWorkbenchTests(unittest.TestCase):
             reopened.get("other", first["id"])
         self.assertEqual(reopened.list("other")["items"], [])
 
+    def test_record_idempotency_conflicts_and_concurrent_writers(self):
+        archive = self.archive()
+
+        def save(_):
+            return archive.record(PROJECT, self.healthy, request_key="same")["id"]
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            self.assertEqual(len(set(pool.map(save, range(8)))), 1)
+        self.assertEqual(len(archive.list(PROJECT)["items"]), 1)
+        with self.assertRaisesRegex(ValueError, "conflict"):
+            archive.record(PROJECT, self.faulty, request_key="same")
+        with self.assertRaisesRegex(ValueError, "label"):
+            archive.record(PROJECT, self.healthy, request_key="same", label="changed")
+
