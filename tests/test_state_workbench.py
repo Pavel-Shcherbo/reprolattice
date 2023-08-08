@@ -128,3 +128,17 @@ class StateWorkbenchTests(unittest.TestCase):
             99,
         )
 
+    def test_archive_reopen_pagination_and_project_isolation(self):
+        first = self.save()
+        second = self.save(self.faulty, key="faulty")
+        reopened = StateArchive(self.path)
+        page = reopened.list(PROJECT, limit=1)
+        self.assertEqual(page["items"][0]["id"], second["id"])
+        self.assertEqual(
+            reopened.list(PROJECT, after=page["next_cursor"])["items"][0]["id"],
+            first["id"],
+        )
+        with self.assertRaisesRegex(ValueError, "unknown"):
+            reopened.get("other", first["id"])
+        self.assertEqual(reopened.list("other")["items"], [])
+
