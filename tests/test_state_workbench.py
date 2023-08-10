@@ -174,3 +174,18 @@ class StateWorkbenchTests(unittest.TestCase):
                 plan(True), archive, PROJECT, request_key="retry", label="control"
             )
 
+    def test_rehashed_snapshot_or_definition_changes_cannot_match_report(self):
+        for mutate in (
+            lambda d: d["pairs"][0]["after"]["tables"]["inventory"]["rows"][0][
+                "available"
+            ].update(value=100),
+            lambda d: d["pairs"][0].update(definition_sha256="0" * 64),
+            lambda d: d["pairs"].append(d["pairs"][0]),
+            lambda d: d["pairs"][0].update(case="missing"),
+        ):
+            value = copy.deepcopy(self.healthy)
+            mutate(value)
+            rehash(value)
+            with self.assertRaises(ValueError):
+                validate_evidence(value)
+
