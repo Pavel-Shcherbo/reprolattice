@@ -189,3 +189,13 @@ class StateWorkbenchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_evidence(value)
 
+    def test_forged_index_or_blob_is_detected_by_read_and_audit(self):
+        record = self.save()
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("UPDATE state_runs SET summary=?", (b"{}",))
+        with self.assertRaises(ValueError):
+            self.api("inspect", record=record["id"])
+        result = self.api("audit")
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["items"][0]["passed"])
+
