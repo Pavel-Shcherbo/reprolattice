@@ -199,3 +199,16 @@ class StateWorkbenchTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertFalse(result["items"][0]["passed"])
 
+    def test_audit_pages_do_not_claim_whole_archive_pass(self):
+        self.save()
+        self.save(self.faulty, key="faulty")
+        first = self.archive().audit(PROJECT, limit=1)
+        self.assertTrue(first["page_passed"])
+        self.assertFalse(first["complete"])
+        self.assertFalse(first["passed"])
+        final = self.archive().audit(PROJECT, after=first["next_cursor"], limit=1)
+        self.assertTrue(final["complete"])
+        self.assertTrue(final["page_passed"])
+        self.assertFalse(final["passed"])
+        self.assertTrue(self.archive().audit(PROJECT)["passed"])
+
