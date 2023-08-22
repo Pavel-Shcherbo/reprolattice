@@ -212,3 +212,39 @@ class StateWorkbenchTests(unittest.TestCase):
         self.assertFalse(final["passed"])
         self.assertTrue(self.archive().audit(PROJECT)["passed"])
 
+    def test_invalid_browser_requests_do_not_create_archive(self):
+        self.assertFalse(self.api("overview")["initialized"])
+        for fields in (
+            {"action": "run", "request_key": "valid", "omit_write": 1},
+            {"action": "run", "request_key": "valid", "command": ["anything"]},
+            {"action": "inspect", "record": "../outside"},
+            {"action": "overview", "after": True},
+            {
+                "action": "table",
+                "record": "a" * 64,
+                "case": "x",
+                "path": "../outside",
+                "table": "inventory",
+            },
+            {
+                "action": "table",
+                "record": "a" * 64,
+                "case": "x",
+                "path": "state.sqlite",
+                "table": "inventory",
+                "side": [],
+            },
+            {
+                "action": "diff",
+                "record": "a" * 64,
+                "case": "x",
+                "path": "state.sqlite",
+                "table": "inventory",
+                "status": [],
+            },
+            {"action": "run", "request_key": "valid", "label": "\n"},
+        ):
+            with self.assertRaises(ValueError):
+                evaluate({"mode": "state", **fields})
+        self.assertFalse(self.path.exists())
+
