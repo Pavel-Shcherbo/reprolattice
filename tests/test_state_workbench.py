@@ -248,3 +248,29 @@ class StateWorkbenchTests(unittest.TestCase):
                 evaluate({"mode": "state", **fields})
         self.assertFalse(self.path.exists())
 
+    def test_unknown_record_pair_and_table_are_rejected(self):
+        record = self.save()
+        pair = self.healthy["pairs"][0]
+        for kwargs in (
+            {
+                "record": "0" * 64,
+                "case": pair["case"],
+                "path": pair["path"],
+                "table": "inventory",
+            },
+            {
+                "record": record["id"],
+                "case": "other",
+                "path": pair["path"],
+                "table": "inventory",
+            },
+            {
+                "record": record["id"],
+                "case": pair["case"],
+                "path": pair["path"],
+                "table": "missing",
+            },
+        ):
+            with self.assertRaises(ValueError):
+                self.api("diff", **kwargs)
+
