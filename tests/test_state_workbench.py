@@ -274,3 +274,12 @@ class StateWorkbenchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.api("diff", **kwargs)
 
+    def test_concurrent_browser_run_refused_before_execution(self):
+        RUN_LOCK.acquire()
+        try:
+            with self.assertRaisesRegex(ValueError, "already running"):
+                self.api("run", request_key="locked")
+        finally:
+            RUN_LOCK.release()
+        self.assertEqual(self.archive().list(PROJECT)["items"], [])
+
