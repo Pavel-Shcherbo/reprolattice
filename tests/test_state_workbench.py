@@ -283,3 +283,15 @@ class StateWorkbenchTests(unittest.TestCase):
             RUN_LOCK.release()
         self.assertEqual(self.archive().list(PROJECT)["items"], [])
 
+    def test_secret_parameters_and_sensitive_columns_refuse_retention(self):
+        compiled = plan()
+        case = replace(compiled.cases[0], secrets=("canary-secret",))
+        with self.assertRaisesRegex(ValueError, "secret-parameter"):
+            StateCollector(replace(compiled, cases=(case,)))
+        seed = copy.deepcopy(compiled.cases[0].states[0].seed)
+        seed["tables"][0]["columns"][0]["name"] = "password"
+        state = replace(compiled.cases[0].states[0], seed=seed)
+        case = replace(compiled.cases[0], states=(state,))
+        with self.assertRaisesRegex(ValueError, "sensitive"):
+            StateCollector(replace(compiled, cases=(case,)))
+
