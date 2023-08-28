@@ -295,3 +295,15 @@ class StateWorkbenchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sensitive"):
             StateCollector(replace(compiled, cases=(case,)))
 
+    def test_capture_budget_failure_is_explicit_incomplete_evidence(self):
+        with patch("reprolattice.state_evidence.MAX_PAIR", 1):
+            result = execute_retained(
+                plan(), self.archive(), PROJECT, request_key="limited"
+            )
+        self.assertFalse(result["record"]["capture_complete"])
+        self.assertEqual(result["record"]["retained_pairs"], 0)
+        self.assertEqual(result["report"]["counts"]["failed"], 3)
+        self.assertIn(
+            "retention limit", result["report"]["cases"][0]["sqlite"][0]["error"]
+        )
+
