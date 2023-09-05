@@ -318,3 +318,31 @@ class StateWorkbenchTests(unittest.TestCase):
         self.assertFalse(record["capture_complete"])
         self.assertEqual(record["expected_pairs"], 3)
 
+    def test_typed_blob_null_real_and_multiset_duplicates_preserved(self):
+        # A real untyped table retains integer/real distinctions and duplicates.
+        path = self.root / "mixed.sqlite"
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("CREATE TABLE mixed(value)")
+            db.executemany(
+                "INSERT INTO mixed VALUES(?)", [(1,), (1,), (None,), (b"\0",)]
+            )
+        before = database_snapshot(path)
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("DELETE FROM mixed WHERE rowid=1")
+            db.execute("INSERT INTO mixed VALUES(1.0)")
+        after = database_snapshot(path)
+        result = compare_rows(before, after, "mixed", status="all")
+        self.assertEqual(result["identity_mode"], "row_multiset")
+        self.assertEqual(
+            result["counts"], {"added": 1, "removed": 1, "modified": 0, "unchanged": 3}
+        )
+        self.assertEqual(
+            next(
+                row["after"]["value"]["type"]
+                for row in result["items"]
+                if row["change"] == "added"
+            ),
+            "real",
+        )
+        self.assertEqual(sum(row["count"] for row in result["items"]), 5)
+
