@@ -307,3 +307,14 @@ class StateWorkbenchTests(unittest.TestCase):
             "retention limit", result["report"]["cases"][0]["sqlite"][0]["error"]
         )
 
+    def test_cancelled_cases_do_not_become_complete_capture(self):
+        from reprolattice.suite_runner import run_suite
+
+        collector = StateCollector(plan())
+        report = run_suite(plan(), should_cancel=lambda: True, on_state=collector)
+        record = self.archive().record(
+            PROJECT, collector.finish(report), request_key="cancel"
+        )
+        self.assertFalse(record["capture_complete"])
+        self.assertEqual(record["expected_pairs"], 3)
+
