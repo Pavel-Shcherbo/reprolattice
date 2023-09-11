@@ -346,3 +346,26 @@ class StateWorkbenchTests(unittest.TestCase):
         )
         self.assertEqual(sum(row["count"] for row in result["items"]), 5)
 
+    def test_composite_keys_and_null_duplicate_keys_use_safe_fallback(self):
+        path = self.root / "key.sqlite"
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute(
+                "CREATE TABLE keyed(a TEXT,b INTEGER,v INTEGER,PRIMARY KEY(a,b))"
+            )
+            db.executemany(
+                "INSERT INTO keyed VALUES(?,?,?)", [("x", 1, 2), ("x", 2, 3)]
+            )
+        before = database_snapshot(path)
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("UPDATE keyed SET v=9 WHERE b=2")
+        after = database_snapshot(path)
+        result = compare_rows(before, after, "keyed")
+        self.assertEqual(result["primary_key"], ["a", "b"])
+        self.assertEqual(result["counts"]["modified"], 1)
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("INSERT INTO keyed VALUES(NULL,1,2)")
+        nullable = database_snapshot(path)
+        self.assertEqual(
+            compare_rows(before, nullable, "keyed")["identity_mode"], "row_multiset"
+        )
+
