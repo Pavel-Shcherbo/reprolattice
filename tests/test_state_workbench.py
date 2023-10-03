@@ -369,3 +369,15 @@ class StateWorkbenchTests(unittest.TestCase):
             compare_rows(before, nullable, "keyed")["identity_mode"], "row_multiset"
         )
 
+    def test_schema_only_added_removed_tables_and_empty_diffs(self):
+        pair = self.healthy["pairs"][0]
+        before = pair["before"]
+        self.assertEqual(compare_rows(before, before, "receipts")["items"], [])
+        path = self.root / "schema.sqlite"
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("CREATE TABLE fresh(id INTEGER)")
+        fresh = database_snapshot(path)
+        self.assertTrue(compare_rows(before, fresh, "fresh")["schema_changed"])
+        removed = compare_rows(before, fresh, "inventory")
+        self.assertEqual(removed["counts"]["removed"], 1)
+
