@@ -381,3 +381,31 @@ class StateWorkbenchTests(unittest.TestCase):
         removed = compare_rows(before, fresh, "inventory")
         self.assertEqual(removed["counts"]["removed"], 1)
 
+    def test_table_and_diff_pagination_complete_without_repeating_rows(self):
+        path = self.root / "many.sqlite"
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("CREATE TABLE many(id INTEGER PRIMARY KEY,v TEXT)")
+            db.executemany(
+                "INSERT INTO many VALUES(?,?)", [(i, str(i)) for i in range(57)]
+            )
+        before = database_snapshot(path)
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("UPDATE many SET v='new'")
+        after = database_snapshot(path)
+        for function in (
+            lambda offset: table_page(after, "many", offset=offset, limit=7),
+            lambda offset: compare_rows(before, after, "many", offset=offset, limit=7),
+        ):
+            items = []
+            offset = 0
+            while True:
+                page = function(offset)
+                items.extend(page["items"])
+                if page["next_offset"] is None:
+                    break
+                offset = page["next_offset"]
+            self.assertEqual(len(items), 57)
+        for offset in (True, -1, 40001, 58):
+            with self.assertRaises(ValueError):
+                table_page(after, "many", offset=offset)
+
