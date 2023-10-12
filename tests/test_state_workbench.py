@@ -409,3 +409,19 @@ class StateWorkbenchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 table_page(after, "many", offset=offset)
 
+    def test_store_quota_and_unknown_schema_do_not_accept_partial_records(self):
+        archive = self.archive()
+        with patch("reprolattice.state_archive.MAX_STORE", 1):
+            with self.assertRaisesRegex(ValueError, "256 MiB"):
+                archive.record(PROJECT, self.healthy, request_key="quota")
+        self.assertEqual(archive.list(PROJECT)["items"], [])
+        other = self.root / "other.sqlite"
+        with closing(sqlite3.connect(other)) as db, db:
+            db.execute("CREATE TABLE unrelated(x)")
+        with self.assertRaisesRegex(ValueError, "unrelated"):
+            StateArchive(other, create=True)
+        link = self.root / "link.sqlite"
+        link.symlink_to(self.path)
+        with self.assertRaises(ValueError):
+            StateArchive(link)
+
