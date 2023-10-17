@@ -425,3 +425,17 @@ class StateWorkbenchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             StateArchive(link)
 
+    def test_rehashed_invalid_column_metadata_and_duplicate_schema_rejected(self):
+        from reprolattice.sqlite_inspect import verify_database_snapshot
+
+        for mutate in (
+            lambda d: d["tables"]["inventory"]["columns"][0].update(primary_key=True),
+            lambda d: d["tables"]["inventory"]["columns"][0].update(cid=4),
+            lambda d: d["schema"].append(d["schema"][0]),
+        ):
+            value = copy.deepcopy(self.healthy["pairs"][0]["before"])
+            mutate(value)
+            rehash(value)
+            with self.assertRaises(ValueError):
+                verify_database_snapshot(value)
+
