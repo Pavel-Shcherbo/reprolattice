@@ -439,3 +439,9 @@ class StateWorkbenchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_database_snapshot(value)
 
+    def test_read_rejects_oversized_stored_document_before_parsing(self):
+        record = self.save()
+        with patch("reprolattice.state_archive.MAX_EVIDENCE", 1):
+            with self.assertRaisesRegex(ValueError, "byte budget"):
+                self.archive().get(PROJECT, record["id"])
+
