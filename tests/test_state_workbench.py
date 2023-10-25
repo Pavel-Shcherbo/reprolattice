@@ -445,3 +445,44 @@ class StateWorkbenchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "byte budget"):
                 self.archive().get(PROJECT, record["id"])
 
+    def test_cli_retention_failure_exit_export_and_preserved_destination(self):
+        database = self.root / "cli.sqlite"
+        prefix = [
+            sys.executable,
+            "-m",
+            "reprolattice.state_runs",
+            "--database",
+            str(database),
+            "--project",
+            "cli",
+        ]
+
+        def cli(*args):
+            return subprocess.run(
+                [*prefix, *map(str, args)], capture_output=True, text=True, timeout=20
+            )
+
+        result = cli(
+            "run",
+            examples_directory() / "inventory-state-suite.json",
+            "--request-key",
+            "cli",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        record = json.loads(result.stdout)["record"]["id"]
+        target = self.root / "export.json"
+        self.assertEqual(cli("export", record, "--output", target).returncode, 0)
+        value = strict_json(target.read_bytes(), max_bytes=32 * 1024 * 1024)
+        validate_evidence(value["document"])
+        verified = subprocess.run(
+            [sys.executable, "-m", "reprolattice.state_runs", "verify", str(target)],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        self.assertEqual(verified.returncode, 0, verified.stderr)
+        self.assertTrue(json.loads(verified.stdout)["capture_complete"])
+        original = target.read_bytes()
+        self.assertEqual(cli("export", record, "--output", target).returncode, 2)
+        self.assertEqual(original, target.read_bytes())
+        self.assertTrue(json.loads(cli("audit").stdout)["passed"])
