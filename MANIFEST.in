@@ -8,3 +8,5 @@ include examples/inventory-seed.json
 include examples/inventory-state-suite.json
 include examples/inventory_state_client.py
 include examples/run-gate-policy.json
+
+include examples/inventory-migrations.json
