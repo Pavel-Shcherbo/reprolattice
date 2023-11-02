@@ -43,7 +43,7 @@ The **Saved runs** workbench retains executed suite reports and explains regress
 
 ## Boundaries
 
-The application harness accepts a trusted local command and checks its final JSON result; it is not an operating-system sandbox and does not prevent that process from making independent network calls. Explicit HTTP/JSON capture is available through `python3 -m reprolattice.capture`. Database snapshots, tracing, concurrent replay, SDKs and test export remain planned. Named-field redaction cannot detect every secret or personal datum. JSON bodies are bounded; streaming and arbitrary protocol replay are unsupported.
+The application harness accepts a trusted local command and checks its final JSON result; it is not an operating-system sandbox and does not prevent that process from making independent network calls. Explicit HTTP/JSON capture is available through `python3 -m reprolattice.capture`. Additional database engines, tracing, concurrent protocol replay, SDKs and remote test export remain planned. Named-field redaction cannot detect every secret or personal datum. JSON bodies are bounded; streaming and arbitrary protocol replay are unsupported.
 
 
 ## Capture dependencies
@@ -84,3 +84,7 @@ Suites can create a fresh structured SQLite fixture for each case, run the appli
 The local registry archives immutable suite reports with source/build revision metadata, indexed case history and generation-fenced named baselines. Comparison distinguishes changed test conditions from changed subject code, regressions/fixes, missing coverage and optional timing thresholds. See [run registry guide](docs/RUNS.md); use `python3 -m reprolattice.runs --help` for operator commands.
 
 [Retained SQLite state workbench](docs/STATE_WORKBENCH.md): actual before/after evidence, typed row differences, bounded local archive and portable verification.
+
+## Migration rehearsal
+
+Qualify ordered SQLite forward/reverse SQL on an isolated seed or read-only source copy. Retain failure candidates, verify exact restoration and replay the complete evidence directory offline. See the [migration guide](docs/MIGRATIONS.md) and `python3 -m reprolattice.migrations --help`.
