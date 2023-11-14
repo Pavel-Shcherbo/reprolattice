@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "name": "inventory_migrations",
+  "baseline_checks": [
+    {
+      "id": "inventory",
+      "sql": "SELECT part, available FROM inventory ORDER BY part",
+      "expected": [
+        {
+          "part": "part-42",
+          "available": 99
+        }
+      ]
+    }
+  ],
+  "migrations": [
+    {
+      "id": "add_totals",
+      "before_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 99
+            }
+          ]
+        }
+      ],
+      "up": [
+        {
+          "id": "create_totals",
+          "sql": "CREATE TABLE stock_totals(total INTEGER NOT NULL)",
+          "parameters": []
+        },
+        {
+          "id": "copy_total",
+          "sql": "INSERT INTO stock_totals SELECT sum(available) FROM inventory",
+          "parameters": []
+        }
+      ],
+      "after_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 99
+            }
+          ]
+        },
+        {
+          "id": "total",
+          "sql": "SELECT total FROM stock_totals",
+          "expected": [
+            {
+              "total": 99
+            }
+          ]
+        }
+      ],
+      "down": [
+        {
+          "id": "drop_totals",
+          "sql": "DROP TABLE stock_totals",
+          "parameters": []
+        }
+      ],
+      "rollback_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adjust_stock",
+      "before_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 99
+            }
+          ]
+        },
+        {
+          "id": "total",
+          "sql": "SELECT total FROM stock_totals",
+          "expected": [
+            {
+              "total": 99
+            }
+          ]
+        }
+      ],
+      "up": [
+        {
+          "id": "adjust",
+          "sql": "UPDATE inventory SET available=available+?",
+          "parameters": [
+            1
+          ]
+        }
+      ],
+      "after_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 100
+            }
+          ]
+        },
+        {
+          "id": "total",
+          "sql": "SELECT total FROM stock_totals",
+          "expected": [
+            {
+              "total": 99
+            }
+          ]
+        }
+      ],
+      "down": [
+        {
+          "id": "restore",
+          "sql": "UPDATE inventory SET available=available-?",
+          "parameters": [
+            1
+          ]
+        }
+      ],
+      "rollback_checks": [
+        {
+          "id": "inventory",
+          "sql": "SELECT part, available FROM inventory ORDER BY part",
+          "expected": [
+            {
+              "part": "part-42",
+              "available": 99
+            }
+          ]
+        },
+        {
+          "id": "total",
+          "sql": "SELECT total FROM stock_totals",
+          "expected": [
+            {
+              "total": 99
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
