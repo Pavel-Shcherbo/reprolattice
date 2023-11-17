@@ -19,3 +19,44 @@ FILES = {
 }
 
 
+def inventory(root):
+    root = Path(root)
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("migration bundle requires an ordinary directory")
+    result = {}
+    for item in root.iterdir():
+        if item.name == "manifest.json":
+            continue
+        if item.is_symlink():
+            raise ValueError("migration bundle symlinks are unsupported")
+        if item.name == "snapshots" and item.is_dir():
+            files = list(item.iterdir())
+            if len(files) > 64:
+                raise ValueError("too many retained migration snapshots")
+            for file in files:
+                if (
+                    not re.fullmatch("[0-9a-f]{64}\\.json", file.name)
+                    or file.is_symlink()
+                    or not file.is_file()
+                ):
+                    raise ValueError("invalid retained snapshot inventory")
+                result["snapshots/" + file.name] = file
+        elif item.name in FILES and item.is_file():
+            result[item.name] = item
+        else:
+            raise ValueError("unexpected migration bundle file or directory")
+    if not set(FILES) <= set(result) or "snapshots" not in {
+        item.name for item in root.iterdir()
+    }:
+        raise ValueError("migration bundle is missing required evidence")
+    total = 0
+    for name, path in result.items():
+        size = path.stat().st_size
+        total += size
+        if size > (16 * 1024 * 1024 if name.startswith("snapshots/") else FILES[name]):
+            raise ValueError("migration evidence file exceeds its byte limit")
+    if total > MAX_BUNDLE:
+        raise ValueError("migration evidence exceeds 80 MiB")
+    return result
+
+
