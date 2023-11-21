@@ -60,3 +60,22 @@ def inventory(root):
     return result
 
 
+def write_manifest(root):
+    root = Path(root)
+    files = inventory(root)
+    manifest = {
+        "format": "reprolattice.migration-bundle.v1",
+        "files": {
+            name: {
+                "bytes": path.stat().st_size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+            for name, path in sorted(files.items())
+        },
+    }
+    manifest["sha256"] = identity(manifest)
+    with (root / "manifest.json").open("xb") as stream:
+        stream.write(canonical(manifest) + b"\n")
+    return manifest
+
+
