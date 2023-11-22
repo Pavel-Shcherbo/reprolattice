@@ -79,3 +79,12 @@ def write_manifest(root):
     return manifest
 
 
+def semantic_report(report):
+    # Wall time and invocation IDs are observations; plan, SQL outcomes and logical states must match.
+    return {
+        key: value
+        for key, value in report.items()
+        if key not in ("run_id", "duration_seconds", "environment")
+    }
+
+
