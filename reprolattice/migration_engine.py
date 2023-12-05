@@ -12,4 +12,18 @@ from .sqlite_seed import identity
 
 
 class MigrationDatabase:
-    pass
+    def __init__(self, path, plan, snapshots, *, initialize=False):
+        if (
+            not isinstance(plan, MigrationPlan)
+            or identity(plan.definition) != plan.sha256
+        ):
+            raise ValueError("migration plan was mutated after compilation")
+        self.path = path
+        self.plan = MigrationPlan(copy.deepcopy(plan.definition), plan.sha256)
+        self.snapshots = snapshots
+        if initialize:
+            with writer(path, Budget(2)) as db:
+                db.execute("BEGIN IMMEDIATE")
+                initialize_history(db)
+                db.commit()
+
