@@ -27,3 +27,8 @@ class MigrationDatabase:
                 initialize_history(db)
                 db.commit()
 
+    def _snapshot(self, db, budget, diagnostic=False):
+        value = app_snapshot(db, budget, diagnostic=diagnostic)
+        self.snapshots.put(value)
+        return value
+
