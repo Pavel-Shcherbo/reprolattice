@@ -200,3 +200,13 @@ class MigrationDatabase:
                     result["diagnostic_error"] = str(problem)[:2048]
         return result
 
+    def inspect(self):
+        with reader(self.path, timeout=2) as (db, budget):
+            snapshot = self._snapshot(db, budget)
+            stack, events, chain = history(db, self.plan)
+            return {
+                "snapshot": snapshot["sha256"],
+                "stack": stack,
+                "events": events,
+                "chain_sha256": chain,
+            }
