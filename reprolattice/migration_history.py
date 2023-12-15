@@ -116,3 +116,19 @@ def history(db, plan):
     return stack, events, previous
 
 
+def append_history(db, plan, kind, item):
+    _, events, previous = history(db, plan)
+    seq = len(events) + 1
+    digest = identity(
+        {
+            "seq": seq,
+            "kind": kind,
+            "migration": item["migration"],
+            "payload": item,
+            "previous_sha256": previous,
+        }
+    )
+    db.execute(
+        "INSERT INTO " + EVENTS + " VALUES(?,?,?,?,?,?)",
+        (seq, kind, item["migration"], canonical(item), previous, digest),
+    )
