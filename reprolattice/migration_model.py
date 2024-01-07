@@ -100,3 +100,15 @@ def compile_migrations(value):
     return MigrationPlan(definition, identity(definition))
 
 
+def compact_checks(report):
+    result = copy.deepcopy(report)
+    for query in result["queries"]:
+        if "error" in query:
+            query["error"] = query["error"][:512]
+    if len(canonical(result)) > 32768:
+        for query in result["queries"]:
+            query.pop("actual", None)
+            query.pop("expected", None)
+            query["diagnostics_complete"] = False
+        result["value_diagnostics_omitted"] = True
+    return result
