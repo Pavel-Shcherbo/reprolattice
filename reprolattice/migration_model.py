@@ -48,3 +48,55 @@ def statements(value):
     return output
 
 
+def compile_migrations(value):
+    validate_json(value, max_bytes=MAX_PLAN, max_depth=25, max_nodes=250000)
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"version", "name", "baseline_checks", "migrations"}
+        or type(value["version"]) is not int
+        or value["version"] != 1
+    ):
+        raise ValueError(
+            "migration plan requires version 1, name, baseline_checks and migrations"
+        )
+    label = name(value["name"])
+    steps = value["migrations"]
+    if not isinstance(steps, list) or not 1 <= len(steps) <= 16:
+        raise ValueError("migration plan requires 1–16 ordered migrations")
+    result = []
+    ids = set()
+    sql_bytes = 0
+    for step in steps:
+        if not isinstance(step, dict) or set(step) != {
+            "id",
+            "before_checks",
+            "up",
+            "after_checks",
+            "down",
+            "rollback_checks",
+        }:
+            raise ValueError(
+                "migration requires id, before/after/rollback checks and up/down SQL"
+            )
+        identifier = name(step["id"])
+        if identifier in ids:
+            raise ValueError("migration IDs must be unique")
+        ids.add(identifier)
+        item = {"id": identifier}
+        for key in ("before_checks", "after_checks", "rollback_checks"):
+            item[key] = list(compile_queries(step[key]))
+        for key in ("up", "down"):
+            item[key] = statements(step[key])
+            sql_bytes += sum(len(row["sql"].encode()) for row in item[key])
+        result.append(item)
+    if sql_bytes > 1024 * 1024:
+        raise ValueError("combined migration SQL exceeds 1 MiB")
+    definition = {
+        "version": 1,
+        "name": label,
+        "baseline_checks": list(compile_queries(value["baseline_checks"])),
+        "migrations": result,
+    }
+    return MigrationPlan(definition, identity(definition))
+
+
