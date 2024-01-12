@@ -34,4 +34,7 @@ ALTER_FUNCTIONS = frozenset(
 
 
 class WriteAuthorizer:
-    pass
+    def __init__(self):
+        self.alter = False
+        self.denial = None
+
