@@ -38,3 +38,46 @@ class WriteAuthorizer:
         self.alter = False
         self.denial = None
 
+    def __call__(self, action, left, right, database, origin):
+        decision = sqlite3.SQLITE_DENY
+        protected = lambda value: isinstance(
+            value, str
+        ) and value.casefold().startswith(PREFIX)
+        if action == sqlite3.SQLITE_ALTER_TABLE:
+            if left == "main" and not protected(right):
+                self.alter = True
+                decision = sqlite3.SQLITE_OK
+        elif action in DDL:
+            if database == "main" and not protected(left) and not protected(right):
+                decision = sqlite3.SQLITE_OK
+        elif action in DML:
+            if database == "main" and not protected(left):
+                decision = sqlite3.SQLITE_OK
+            elif (
+                self.alter
+                and database == "temp"
+                and left in ("sqlite_temp_master", "sqlite_temp_schema")
+            ):
+                decision = sqlite3.SQLITE_OK
+        elif action in (
+            sqlite3.SQLITE_SELECT,
+            getattr(sqlite3, "SQLITE_RECURSIVE", -1),
+        ):
+            decision = sqlite3.SQLITE_OK
+        elif action == sqlite3.SQLITE_FUNCTION and isinstance(right, str):
+            if (
+                right.lower() in FUNCTIONS | {"like", "glob"}
+                or self.alter
+                and right.lower() in ALTER_FUNCTIONS
+            ):
+                decision = sqlite3.SQLITE_OK
+        if decision == sqlite3.SQLITE_DENY:
+            self.denial = {
+                "action": action,
+                "object": left,
+                "detail": right,
+                "database": database,
+            }
+        return decision
+
+
