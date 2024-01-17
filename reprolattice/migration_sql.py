@@ -81,3 +81,39 @@ class WriteAuthorizer:
         return decision
 
 
+@contextmanager
+def writer(path, budget):
+    file_budget(path)
+    with closing(
+        sqlite3.connect(path, timeout=0.1, isolation_level=None, cached_statements=0)
+    ) as db:
+        db.execute("PRAGMA foreign_keys=ON")
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("PRAGMA journal_mode=DELETE")
+        db.execute("PRAGMA synchronous=FULL")
+        db.execute("PRAGMA temp_store=MEMORY")
+        page_size = db.execute("PRAGMA page_size").fetchone()[0]
+        db.execute("PRAGMA max_page_count=" + str(MAX_DATABASE // page_size))
+        if hasattr(db, "enable_load_extension"):
+            db.enable_load_extension(False)
+        if hasattr(db, "setlimit"):
+            for category, limit in [
+                ("SQLITE_LIMIT_LENGTH", 262144),
+                ("SQLITE_LIMIT_SQL_LENGTH", 65536),
+                ("SQLITE_LIMIT_COLUMN", 128),
+                ("SQLITE_LIMIT_EXPR_DEPTH", 100),
+                ("SQLITE_LIMIT_VARIABLE_NUMBER", 1000),
+                ("SQLITE_LIMIT_COMPOUND_SELECT", 20),
+                ("SQLITE_LIMIT_TRIGGER_DEPTH", 20),
+            ]:
+                db.setlimit(getattr(sqlite3, category), limit)
+        db.set_progress_handler(budget.progress, 1000)
+        try:
+            yield db
+        finally:
+            db.set_authorizer(None)
+            db.set_progress_handler(None, 0)
+            if db.in_transaction:
+                db.rollback()
+
+
