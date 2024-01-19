@@ -117,3 +117,41 @@ def writer(path, budget):
                 db.rollback()
 
 
+def execute_statement(db, budget, statement):
+    budget.check()
+    policy = WriteAuthorizer()
+    db.set_authorizer(policy)
+    try:
+        cursor = db.execute(
+            statement["sql"],
+            tuple(sqlite_value(value) for value in statement["parameters"]),
+        )
+        # SELECT and DML RETURNING must be consumed, but cannot create unbounded diagnostics.
+        rows = 0
+        size = 0
+        if cursor.description is not None:
+            for row in cursor:
+                rows += 1
+                size += sum(
+                    len(value) if isinstance(value, (bytes, str)) else 16
+                    for value in row
+                )
+                if rows > 1000 or size > 1024 * 1024:
+                    raise ValueError(
+                        "migration statement result exceeds 1,000 rows or 1 MiB"
+                    )
+                budget.check()
+        budget.check()
+        return {
+            "id": statement["id"],
+            "completed": True,
+            "rowcount": cursor.rowcount,
+            "returned_rows": rows,
+        }
+    except sqlite3.Error as error:
+        message = "migration " + budget.reason if budget.reason else str(error)
+        if policy.denial:
+            message += "; operation denied by migration SQL policy"
+        raise ValueError(message) from error
+    finally:
+        db.set_authorizer(None)
