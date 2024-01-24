@@ -172,3 +172,33 @@ def read_app_snapshot(path):
         return app_snapshot(db, budget)
 
 
+def clone_database(source, destination, *, should_cancel=None):
+    destination = Path(destination)
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("migration copy destination already exists")
+    with reader(source, timeout=10, should_cancel=should_cancel) as (db, budget):
+        pages = db.execute("PRAGMA page_count").fetchone()[0]
+        size = db.execute("PRAGMA page_size").fetchone()[0]
+        if pages * size > MAX_DATABASE:
+            raise ValueError("logical source database exceeds 16 MiB")
+        original = app_snapshot(db, budget)
+        if any(
+            item["name"].casefold().startswith(PREFIX) for item in original["schema"]
+        ):
+            raise ValueError("source uses reserved migration metadata names")
+        with closing(sqlite3.connect(destination, isolation_level=None)) as target:
+
+            def progress(*_):
+                budget.check()
+
+            db.backup(target, pages=256, progress=progress, sleep=0.01)
+            target.execute("PRAGMA journal_mode=DELETE")
+        destination.chmod(0o600)
+    copied = read_app_snapshot(destination)
+    if copied["sha256"] != original["sha256"]:
+        raise ValueError("SQLite backup differs from the captured source read snapshot")
+    return copied
+
+
+class SnapshotFiles:
+    pass
