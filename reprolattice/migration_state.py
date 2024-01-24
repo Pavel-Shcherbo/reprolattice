@@ -201,4 +201,9 @@ def clone_database(source, destination, *, should_cancel=None):
 
 
 class SnapshotFiles:
-    pass
+    def __init__(self, root):
+        self.root = Path(root)
+        self.root.mkdir(mode=0o700, exist_ok=False)
+        self.identities = set()
+        self.bytes = 0
+
