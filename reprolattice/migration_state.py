@@ -207,3 +207,19 @@ class SnapshotFiles:
         self.identities = set()
         self.bytes = 0
 
+    def put(self, value):
+        verify_migration_snapshot(value)
+        key = value["sha256"]
+        if key not in self.identities:
+            raw = canonical(value) + b"\n"
+            if len(self.identities) >= 64 or self.bytes + len(raw) > 32 * 1024 * 1024:
+                raise ValueError(
+                    "migration snapshot retention exceeds 64 states or 32 MiB"
+                )
+            path = self.root / (key + ".json")
+            with path.open("xb") as stream:
+                stream.write(raw)
+            path.chmod(0o600)
+            self.identities.add(key)
+            self.bytes += len(raw)
+        return key
