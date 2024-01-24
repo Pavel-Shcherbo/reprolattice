@@ -167,3 +167,8 @@ def app_snapshot(db, budget, *, diagnostic=False):
     return value
 
 
+def read_app_snapshot(path):
+    with reader(path, timeout=2) as (db, budget):
+        return app_snapshot(db, budget)
+
+
