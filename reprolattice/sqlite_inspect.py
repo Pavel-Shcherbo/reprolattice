@@ -12,7 +12,7 @@ from .jsonutil import validate_json
 from .sqlite_seed import MAX_DATABASE, canonical, identity, quoted, sqlite_value, typed
 
 FUNCTIONS = frozenset(
-    "abs avg char coalesce count cume_dist dense_rank first_value format hex ifnull iif instr json_array json_array_length json_extract json_group_array json_group_object json_object json_type json_valid lag last_value lead length likelihood likely lower ltrim max min nth_value ntile nullif percent_rank printf quote rank replace round row_number rtrim sign substr substring sum total trim typeof unicode unlikely upper zeroblob".split()
+    "glob like abs avg char coalesce count cume_dist dense_rank first_value format hex ifnull iif instr json_array json_array_length json_extract json_group_array json_group_object json_object json_type json_valid lag last_value lead length likelihood likely lower ltrim max min nth_value ntile nullif percent_rank printf quote rank replace round row_number rtrim sign substr substring sum total trim typeof unicode unlikely upper zeroblob".split()
 )
 
 
@@ -276,7 +276,11 @@ def check_queries(path, definitions, *, timeout=2, should_cancel=None, _view=Non
     return {"passed": all(item["passed"] for item in reports), "queries": reports}
 
 
-def database_snapshot(path, *, timeout=2, should_cancel=None, _view=None):
+def database_snapshot(
+    path, *, timeout=2, should_cancel=None, _view=None, allow_foreign_key_errors=False
+):
+    if type(allow_foreign_key_errors) is not bool:
+        raise ValueError("foreign-key diagnostic flag must be boolean")
     with (
         nullcontext(_view)
         if _view is not None
@@ -353,7 +357,7 @@ def database_snapshot(path, *, timeout=2, should_cancel=None, _view=None):
         foreign = [
             list(row) for row in db.execute("PRAGMA foreign_key_check").fetchmany(21)
         ]
-        if integrity != ["ok"] or foreign:
+        if integrity != ["ok"] or foreign and not allow_foreign_key_errors:
             raise ValueError("SQLite integrity or foreign-key check failed")
         result = {
             "format": "reprolattice.sqlite-snapshot.v1",
