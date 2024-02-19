@@ -1,7 +1,8 @@
 {
-  "wheel_sha256": "212fcd3dfd75b913e45f845d639ddd67a346aa37aefe987a95e39fb3f416911a",
+  "wheel_sha256": "cd3915fe32af3987b77a7245e528c411f139a73cd04bc0a5a9ea99802a89c451",
   "examples_exported": [
     "dynamic-order.json",
+    "inventory-migrations.json",
     "inventory-seed.json",
     "inventory-state-suite.json",
     "inventory-suite.json",
@@ -15,6 +16,7 @@
   "cli_passed": true,
   "workbench_http_passed": true,
   "state_outside_package": true,
+  "isolated_migrations_and_offline_sql_replay_passed": true,
   "suite_cli_and_report_hashes_passed": true,
   "suite_http_healthy_and_faulty_passed": true,
   "sqlite_state_suites_and_standalone_snapshots_passed": true,
