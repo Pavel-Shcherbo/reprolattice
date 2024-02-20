@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "scope": "One local 5,000-row SQLite workload, not a production SLA",
+  "rows": 5000,
+  "updated_rows": 5000,
+  "up_total": 500000,
+  "restored_total": 495000,
+  "retained_snapshot_bytes": 1342042,
+  "retained_bundle": "/var/folders/8_/kbqb5qpx3lbbg3zxc48xbhcr0000gn/T/migration-workload-cnubavjs/bundle",
+  "qualification_seconds": 1.7718807500205003,
+  "fresh_replay_seconds": 2.338020749972202,
+  "source_bytes_unchanged": true,
+  "verification": {
+    "passed": true,
+    "replay_complete": true,
+    "qualification_passed": true,
+    "status": "passed",
+    "plan_sha256": "f552998638ec56b98a0ccc6fb50eb75111a00e567984e7ce84569cd53eb8ba20",
+    "snapshot_count": 2,
+    "source_authenticated": false,
+    "scope": "Fresh local SQL/content replay; no production deployment or authenticated provenance"
+  }
+}
