@@ -1,0 +1,115 @@
+{
+  "passed": true,
+  "scope": "Installed local SQLite migration CLI; not deployment, other engines or authenticated provenance",
+  "healthy_status": "passed",
+  "phase_statuses": [
+    "applied",
+    "already_applied",
+    "applied",
+    "already_applied",
+    "reverted",
+    "already_absent",
+    "reverted",
+    "already_absent"
+  ],
+  "atomic_history_events": 4,
+  "independent_final_inventory": [
+    "part-42",
+    99,
+    1
+  ],
+  "source_bytes_unchanged": true,
+  "offline_replay_after_source_removal": {
+    "passed": true,
+    "replay_complete": true,
+    "qualification_passed": true,
+    "status": "passed",
+    "plan_sha256": "3719d9a18e0f1ec275191bc7865e720a6c00371974df75053ec30e9e2f930c19",
+    "snapshot_count": 3,
+    "source_authenticated": false,
+    "scope": "Fresh local SQL/content replay; no production deployment or authenticated provenance"
+  },
+  "failed_phase": {
+    "migration": "add_totals",
+    "direction": "up",
+    "status": "failed",
+    "before": "a5313c563e391af7c33402db270ee240bb83b5fb73e705a9b7cc577f422540c9",
+    "candidate": "e565785f41e42bb70a9a630c41ddbe013d9b00b569ab243120ac826de3389cbf",
+    "after": "a5313c563e391af7c33402db270ee240bb83b5fb73e705a9b7cc577f422540c9",
+    "statements": [
+      {
+        "id": "create_totals",
+        "completed": true,
+        "rowcount": -1,
+        "returned_rows": 0
+      },
+      {
+        "id": "copy_total",
+        "completed": true,
+        "rowcount": 1,
+        "returned_rows": 0
+      }
+    ],
+    "preconditions": {
+      "passed": true,
+      "queries": [
+        {
+          "id": "inventory",
+          "passed": true,
+          "query_sha256": "52db577ed546c745a93d0ef00c242255c2b3a0a095f5506862ed9424181e85c8",
+          "order": "ordered",
+          "columns": [
+            "part",
+            "available"
+          ],
+          "row_count": 1,
+          "actual_sha256": "23f02f79e121362c368f93b0e75bd7dd277d3500e0c6f88f2f49390a6ba189fc",
+          "expected_sha256": "23f02f79e121362c368f93b0e75bd7dd277d3500e0c6f88f2f49390a6ba189fc",
+          "actual": [
+            {
+              "part": {
+                "type": "text",
+                "value": "part-42"
+              },
+              "available": {
+                "type": "integer",
+                "value": 99
+              }
+            }
+          ],
+          "expected": [
+            {
+              "part": {
+                "type": "text",
+                "value": "part-42"
+              },
+              "available": {
+                "type": "integer",
+                "value": 99
+              }
+            }
+          ],
+          "diagnostics_complete": true
+        }
+      ]
+    },
+    "postconditions": null,
+    "rollback_verified": true,
+    "error": "no such table: absent",
+    "diagnostic_error": null,
+    "failure_stage": "statements",
+    "failed_statement": "fault",
+    "candidate_in_transaction": true
+  },
+  "failed_replay": {
+    "passed": true,
+    "replay_complete": true,
+    "qualification_passed": false,
+    "status": "failed",
+    "plan_sha256": "3b938b3fbfd6d11f346d66410f31b50282b678250382a28a4d405ff887b2477f",
+    "snapshot_count": 2,
+    "source_authenticated": false,
+    "scope": "Fresh local SQL/content replay; no production deployment or authenticated provenance"
+  },
+  "create_only_output_verified": true
+}
