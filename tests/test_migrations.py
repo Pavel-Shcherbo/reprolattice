@@ -21,3 +21,7 @@ from reprolattice.sqlite_seed import canonical, create_database
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
+def statement(sql, label="change", parameters=None):
+    return {"id": label, "sql": sql, "parameters": parameters or []}
+
+
