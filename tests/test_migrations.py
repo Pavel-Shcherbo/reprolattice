@@ -45,4 +45,11 @@ def simple_plan(up, down="SELECT 1"):
 
 
 class MigrationTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.plan = json.loads((EXAMPLES / "inventory-migrations.json").read_text())
+        self.seed = json.loads((EXAMPLES / "inventory-seed.json").read_text())
+        self.out = self.root / "run"
+
