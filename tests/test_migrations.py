@@ -25,3 +25,24 @@ def statement(sql, label="change", parameters=None):
     return {"id": label, "sql": sql, "parameters": parameters or []}
 
 
+def simple_plan(up, down="SELECT 1"):
+    checks = [{"id": "readable", "sql": "SELECT 1 AS ok", "expected": [{"ok": 1}]}]
+    return {
+        "version": 1,
+        "name": "rehearsal",
+        "baseline_checks": copy.deepcopy(checks),
+        "migrations": [
+            {
+                "id": "first",
+                "before_checks": copy.deepcopy(checks),
+                "up": [statement(up)],
+                "after_checks": copy.deepcopy(checks),
+                "down": [statement(down)],
+                "rollback_checks": copy.deepcopy(checks),
+            }
+        ],
+    }
+
+
+class MigrationTests(unittest.TestCase):
+    pass
