@@ -53,3 +53,6 @@ class MigrationTests(unittest.TestCase):
         self.seed = json.loads((EXAMPLES / "inventory-seed.json").read_text())
         self.out = self.root / "run"
 
+    def run_plan(self, plan=None):
+        return qualify_migrations(plan or self.plan, self.out, seed=self.seed)
+
