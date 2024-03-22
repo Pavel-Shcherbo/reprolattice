@@ -56,3 +56,9 @@ class MigrationTests(unittest.TestCase):
     def run_plan(self, plan=None):
         return qualify_migrations(plan or self.plan, self.out, seed=self.seed)
 
+    def source(self, sql):
+        path = self.root / "source.sqlite"
+        with closing(sqlite3.connect(path)) as db:
+            db.executescript(sql)
+        return path
+
