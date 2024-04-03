@@ -62,3 +62,11 @@ class MigrationTests(unittest.TestCase):
             db.executescript(sql)
         return path
 
+    def assert_failed_clean(self, report, phase=0):
+        result = report["phases"][phase]
+        self.assertEqual(result["status"], "failed")
+        self.assertTrue(result["rollback_verified"], result)
+        self.assertEqual(result["before"], result["after"])
+        self.assertFalse(report["qualification_passed"])
+        return result
+
