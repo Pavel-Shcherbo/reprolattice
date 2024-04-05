@@ -70,3 +70,24 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(report["qualification_passed"])
         return result
 
+    def test_complete_cycle_repeat_history_and_readonly_replay(self):
+        report = self.run_plan()
+        self.assertTrue(report["qualification_passed"])
+        self.assertEqual(
+            [p["status"] for p in report["phases"]],
+            ["applied", "already_applied"] * 2 + ["reverted", "already_absent"] * 2,
+        )
+        self.assertEqual(len(report["final_state"]["events"]), 4)
+        before = {
+            p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in self.out.iterdir()
+            if p.is_file()
+        }
+        self.assertTrue(verify_migration_bundle(self.out)["qualification_passed"])
+        after = {
+            p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in self.out.iterdir()
+            if p.is_file()
+        }
+        self.assertEqual(before, after)
+
