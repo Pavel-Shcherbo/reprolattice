@@ -91,3 +91,16 @@ class MigrationTests(unittest.TestCase):
         }
         self.assertEqual(before, after)
 
+    def test_sql_failure_retains_uncommitted_candidate_and_rolls_back(self):
+        self.plan["migrations"][0]["up"].append(
+            statement("INSERT INTO absent VALUES (1)", "bad")
+        )
+        result = self.assert_failed_clean(self.run_plan())
+        self.assertNotEqual(result["candidate"], result["before"])
+        self.assertEqual(result["failed_statement"], "bad")
+        self.assertEqual(result["failure_stage"], "statements")
+        self.assertTrue(result["candidate_in_transaction"])
+        proof = verify_migration_bundle(self.out)
+        self.assertTrue(proof["passed"])
+        self.assertFalse(proof["qualification_passed"])
+
