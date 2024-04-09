@@ -111,3 +111,11 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(result["postconditions"]["passed"])
         self.assertNotEqual(result["candidate"], result["before"])
 
+    def test_inexact_reverse_preserves_applied_state(self):
+        plan = simple_plan("UPDATE inventory SET available=100", "SELECT 1")
+        report = self.run_plan(plan)
+        result = self.assert_failed_clean(report, 2)
+        self.assertEqual(result["failure_stage"], "restoration")
+        self.assertEqual(len(report["final_state"]["stack"]), 1)
+        self.assertTrue(verify_migration_bundle(self.out)["passed"])
+
