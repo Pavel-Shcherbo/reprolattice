@@ -104,3 +104,10 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(proof["passed"])
         self.assertFalse(proof["qualification_passed"])
 
+    def test_postcondition_failure_is_not_successful_migration(self):
+        self.plan["migrations"][0]["after_checks"][1]["expected"][0]["total"] = 100
+        result = self.assert_failed_clean(self.run_plan())
+        self.assertEqual(result["failure_stage"], "postconditions")
+        self.assertFalse(result["postconditions"]["passed"])
+        self.assertNotEqual(result["candidate"], result["before"])
+
