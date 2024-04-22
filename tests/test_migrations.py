@@ -119,3 +119,9 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(len(report["final_state"]["stack"]), 1)
         self.assertTrue(verify_migration_bundle(self.out)["passed"])
 
+    def test_precondition_failure_performs_no_statement(self):
+        self.plan["migrations"][0]["before_checks"][0]["expected"][0]["available"] = 0
+        result = self.assert_failed_clean(self.run_plan())
+        self.assertEqual(result["statements"], [])
+        self.assertEqual(result["failure_stage"], "preconditions")
+
