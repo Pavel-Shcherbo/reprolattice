@@ -125,3 +125,10 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(result["statements"], [])
         self.assertEqual(result["failure_stage"], "preconditions")
 
+    def test_baseline_failure_is_retained_without_applying(self):
+        self.plan["baseline_checks"][0]["expected"][0]["available"] = 0
+        report = self.run_plan()
+        self.assertEqual(report["phases"], [])
+        self.assertFalse(report["qualification_passed"])
+        self.assertTrue(verify_migration_bundle(self.out)["passed"])
+
