@@ -132,3 +132,26 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(report["qualification_passed"])
         self.assertTrue(verify_migration_bundle(self.out)["passed"])
 
+    def test_denied_operations_are_rolled_back(self):
+        for i, sql in enumerate(
+            [
+                "ATTACH DATABASE ':memory:' AS extra",
+                "DETACH DATABASE main",
+                "PRAGMA user_version=5",
+                "BEGIN",
+                "COMMIT",
+                "SAVEPOINT x",
+                "VACUUM",
+                "SELECT load_extension('missing')",
+                "CREATE TEMP TABLE scratch(n)",
+                "CREATE VIRTUAL TABLE virtual USING fts5(text)",
+                "DELETE FROM _reprolattice_migration_events",
+                "DROP TABLE _reprolattice_migration_stack",
+                "CREATE TABLE _reprolattice_intruder(n)",
+            ]
+        ):
+            with self.subTest(sql=sql):
+                self.out = self.root / str(i)
+                result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
+                self.assertEqual(result["failure_stage"], "statements")
+
