@@ -155,3 +155,10 @@ class MigrationTests(unittest.TestCase):
                 result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
                 self.assertEqual(result["failure_stage"], "statements")
 
+    def test_multiple_statements_rejected(self):
+        self.assert_failed_clean(
+            self.run_plan(
+                simple_plan("UPDATE inventory SET available=0; DELETE FROM receipts")
+            )
+        )
+
