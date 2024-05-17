@@ -162,3 +162,11 @@ class MigrationTests(unittest.TestCase):
             )
         )
 
+    def test_reserved_rename_cannot_escape_history_guard(self):
+        result = self.assert_failed_clean(
+            self.run_plan(
+                simple_plan("ALTER TABLE inventory RENAME TO _reprolattice_intruder")
+            )
+        )
+        self.assertIn("reserved", result["error"])
+
