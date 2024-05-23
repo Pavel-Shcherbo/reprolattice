@@ -170,3 +170,12 @@ class MigrationTests(unittest.TestCase):
         )
         self.assertIn("reserved", result["error"])
 
+    def test_bound_text_is_literal_not_sql(self):
+        plan = simple_plan(
+            "INSERT INTO inventory VALUES (?,?)", "DELETE FROM inventory WHERE part=?"
+        )
+        payload = "x'); DROP TABLE inventory; --"
+        plan["migrations"][0]["up"][0]["parameters"] = [payload, 4]
+        plan["migrations"][0]["down"][0]["parameters"] = [payload]
+        self.assertTrue(self.run_plan(plan)["qualification_passed"])
+
