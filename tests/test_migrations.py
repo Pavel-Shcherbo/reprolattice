@@ -189,3 +189,22 @@ class MigrationTests(unittest.TestCase):
         result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
         self.assertIn("migration", result["error"])
 
+    def test_mid_step_cancellation_retains_rollback_but_not_full_replay(self):
+        calls = 0
+
+        def cancel():
+            nonlocal calls
+            calls += 1
+            return calls > 20
+
+        plan = simple_plan(
+            "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100000) SELECT sum(x) FROM n"
+        )
+        report = qualify_migrations(
+            plan, self.out, seed=self.seed, should_cancel=cancel
+        )
+        phase = report["phases"][0]
+        self.assertEqual(phase["status"], "cancelled")
+        self.assertTrue(phase["rollback_verified"])
+        self.assertFalse(verify_migration_bundle(self.out)["replay_complete"])
+
