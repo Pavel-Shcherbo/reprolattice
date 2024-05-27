@@ -179,3 +179,8 @@ class MigrationTests(unittest.TestCase):
         plan["migrations"][0]["down"][0]["parameters"] = [payload]
         self.assertTrue(self.run_plan(plan)["qualification_passed"])
 
+    def test_returning_overflow_rolls_back(self):
+        sql = "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<1001) SELECT x FROM n"
+        result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
+        self.assertIn("1,000", result["error"])
+
