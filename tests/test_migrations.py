@@ -184,3 +184,8 @@ class MigrationTests(unittest.TestCase):
         result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
         self.assertIn("1,000", result["error"])
 
+    def test_recursive_vm_work_budget(self):
+        sql = "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n) SELECT sum(x) FROM n"
+        result = self.assert_failed_clean(self.run_plan(simple_plan(sql)))
+        self.assertIn("migration", result["error"])
+
