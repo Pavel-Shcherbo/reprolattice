@@ -208,3 +208,11 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(phase["rollback_verified"])
         self.assertFalse(verify_migration_bundle(self.out)["replay_complete"])
 
+    def test_hidden_rowid_changes_are_not_exact_restoration(self):
+        report = self.run_plan(simple_plan("UPDATE inventory SET rowid=7", "SELECT 1"))
+        self.assert_failed_clean(report, 2)
+        snapshot = json.loads(
+            (self.out / "snapshots" / (report["source_snapshot"] + ".json")).read_text()
+        )
+        self.assertEqual(snapshot["tables"]["inventory"]["rows"][0][ROWID]["value"], 1)
+
