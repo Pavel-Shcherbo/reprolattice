@@ -228,3 +228,15 @@ class MigrationTests(unittest.TestCase):
         baseline = read_app_snapshot(source)
         self.assertIn("sqlite_sequence", baseline["tables"])
 
+    def test_without_rowid_table_and_alter_column(self):
+        source = self.source(
+            'CREATE TABLE items("id" TEXT PRIMARY KEY,"n" INTEGER) WITHOUT ROWID; INSERT INTO items VALUES(\'one\',2);'
+        )
+        plan = simple_plan(
+            "ALTER TABLE items RENAME COLUMN n TO value",
+            "ALTER TABLE items RENAME COLUMN value TO n",
+        )
+        report = qualify_migrations(plan, self.out, source=source)
+        self.assertTrue(report["qualification_passed"], report["phases"])
+        self.assertNotIn(ROWID, read_app_snapshot(source)["tables"]["items"]["rows"][0])
+
