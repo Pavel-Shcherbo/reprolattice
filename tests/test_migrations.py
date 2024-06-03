@@ -216,3 +216,15 @@ class MigrationTests(unittest.TestCase):
         )
         self.assertEqual(snapshot["tables"]["inventory"]["rows"][0][ROWID]["value"], 1)
 
+    def test_autoincrement_sequence_is_part_of_restoration(self):
+        source = self.source(
+            "CREATE TABLE items(id INTEGER PRIMARY KEY AUTOINCREMENT); INSERT INTO items DEFAULT VALUES;"
+        )
+        plan = simple_plan(
+            "INSERT INTO items DEFAULT VALUES", "DELETE FROM items WHERE id=2"
+        )
+        report = qualify_migrations(plan, self.out, source=source)
+        self.assert_failed_clean(report, 2)
+        baseline = read_app_snapshot(source)
+        self.assertIn("sqlite_sequence", baseline["tables"])
+
