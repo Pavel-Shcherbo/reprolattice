@@ -240,3 +240,10 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(report["qualification_passed"], report["phases"])
         self.assertNotIn(ROWID, read_app_snapshot(source)["tables"]["items"]["rows"][0])
 
+    def test_all_rowid_aliases_shadowed_refused(self):
+        source = self.source(
+            "CREATE TABLE items(rowid INTEGER,_rowid_ INTEGER,oid INTEGER)"
+        )
+        with self.assertRaisesRegex(ValueError, "shadowed"):
+            qualify_migrations(simple_plan("SELECT 1"), self.out, source=source)
+
