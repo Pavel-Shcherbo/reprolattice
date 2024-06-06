@@ -247,3 +247,19 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "shadowed"):
             qualify_migrations(simple_plan("SELECT 1"), self.out, source=source)
 
+    def test_wal_source_captured_without_changing_committed_content(self):
+        source = self.root / "wal.sqlite"
+        with closing(sqlite3.connect(source, isolation_level=None)) as db:
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("CREATE TABLE items(id INTEGER PRIMARY KEY, n INTEGER)")
+            db.execute("INSERT INTO items VALUES(1,9)")
+            before = read_app_snapshot(source)
+            report = qualify_migrations(
+                simple_plan("UPDATE items SET n=10", "UPDATE items SET n=9"),
+                self.out,
+                source=source,
+            )
+            self.assertTrue(report["qualification_passed"])
+            self.assertEqual(before, read_app_snapshot(source))
+            self.assertEqual(report["source_snapshot"], before["sha256"])
+
