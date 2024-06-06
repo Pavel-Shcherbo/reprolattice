@@ -263,3 +263,17 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(before, read_app_snapshot(source))
             self.assertEqual(report["source_snapshot"], before["sha256"])
 
+    def test_source_symlink_and_create_only_destination(self):
+        source = self.root / "original.sqlite"
+        create_database(self.seed, source)
+        link = self.root / "link.sqlite"
+        link.symlink_to(source)
+        with self.assertRaises(ValueError):
+            qualify_migrations(self.plan, self.out, source=link)
+        self.out = self.root / "valid"
+        self.run_plan()
+        before = (self.out / "report.json").read_bytes()
+        with self.assertRaises(FileExistsError):
+            self.run_plan()
+        self.assertEqual(before, (self.out / "report.json").read_bytes())
+
