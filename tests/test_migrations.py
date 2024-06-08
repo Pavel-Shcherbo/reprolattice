@@ -277,3 +277,16 @@ class MigrationTests(unittest.TestCase):
             self.run_plan()
         self.assertEqual(before, (self.out / "report.json").read_bytes())
 
+    def test_bad_plan_refused_before_output_directory(self):
+        for change in [
+            lambda p: p.update(version=True),
+            lambda p: p.update(extra=1),
+            lambda p: p["migrations"].append(copy.deepcopy(p["migrations"][0])),
+            lambda p: p["migrations"][0]["up"][0].update(parameters=[True]),
+        ]:
+            plan = copy.deepcopy(self.plan)
+            change(plan)
+            with self.assertRaises(ValueError):
+                self.run_plan(plan)
+            self.assertFalse(self.out.exists())
+
