@@ -290,3 +290,14 @@ class MigrationTests(unittest.TestCase):
                 self.run_plan(plan)
             self.assertFalse(self.out.exists())
 
+    def test_rehashed_fabricated_outcome_fails_fresh_replay(self):
+        self.run_plan()
+        path = self.out / "report.json"
+        report = json.loads(path.read_text())
+        report["phases"][0]["statements"][1]["rowcount"] = 500
+        path.write_bytes(canonical(report) + b"\n")
+        (self.out / "manifest.json").unlink()
+        write_manifest(self.out)
+        with self.assertRaisesRegex(ValueError, "fresh migration SQL replay"):
+            verify_migration_bundle(self.out)
+
