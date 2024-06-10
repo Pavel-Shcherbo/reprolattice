@@ -301,3 +301,15 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "fresh migration SQL replay"):
             verify_migration_bundle(self.out)
 
+    def test_bundle_unknown_files_and_byte_tamper_refused(self):
+        self.run_plan()
+        extra = self.out / "extra"
+        extra.write_text("ignored?")
+        with self.assertRaises(ValueError):
+            verify_migration_bundle(self.out)
+        extra.unlink()
+        with (self.out / "plan.json").open("ab") as stream:
+            stream.write(b" ")
+        with self.assertRaisesRegex(ValueError, "hash"):
+            verify_migration_bundle(self.out)
+
