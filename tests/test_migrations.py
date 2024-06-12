@@ -313,3 +313,20 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash"):
             verify_migration_bundle(self.out)
 
+    def test_order_and_reverted_checksum_drift_rejected(self):
+        source = self.root / "working.sqlite"
+        create_database(self.seed, source)
+        plan = compile_migrations(self.plan)
+        states = SnapshotFiles(self.root / "states")
+        engine = MigrationDatabase(source, plan, states, initialize=True)
+        self.assertEqual(engine.step(1, "up")["status"], "failed")
+        self.assertEqual(engine.step(0, "up")["status"], "applied")
+        self.assertEqual(engine.step(1, "up")["status"], "applied")
+        self.assertEqual(engine.step(0, "down")["status"], "failed")
+        self.assertEqual(engine.step(1, "down")["status"], "reverted")
+        self.assertEqual(engine.step(0, "down")["status"], "reverted")
+        changed = copy.deepcopy(self.plan)
+        changed["migrations"][0]["up"][0]["sql"] += " "
+        with self.assertRaisesRegex(ValueError, "immutable plan"):
+            MigrationDatabase(source, compile_migrations(changed), states).inspect()
+
