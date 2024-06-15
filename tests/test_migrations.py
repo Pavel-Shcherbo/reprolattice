@@ -330,3 +330,18 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "immutable plan"):
             MigrationDatabase(source, compile_migrations(changed), states).inspect()
 
+    def test_deferred_foreign_key_failure_retains_invalid_candidate(self):
+        source = self.source(
+            "CREATE TABLE parent(id INTEGER PRIMARY KEY); CREATE TABLE child(id INTEGER PRIMARY KEY,parent INTEGER REFERENCES parent(id) DEFERRABLE INITIALLY DEFERRED);"
+        )
+        report = qualify_migrations(
+            simple_plan("INSERT INTO child VALUES(1,99)"), self.out, source=source
+        )
+        phase = self.assert_failed_clean(report)
+        self.assertNotEqual(phase["candidate"], phase["before"])
+        candidate = json.loads(
+            (self.out / "snapshots" / (phase["candidate"] + ".json")).read_text()
+        )
+        self.assertTrue(candidate["foreign_key_errors"])
+        self.assertTrue(verify_migration_bundle(self.out)["passed"])
+
