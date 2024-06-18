@@ -345,3 +345,19 @@ class MigrationTests(unittest.TestCase):
         self.assertTrue(candidate["foreign_key_errors"])
         self.assertTrue(verify_migration_bundle(self.out)["passed"])
 
+    def test_trigger_side_effects_are_checked_and_reversible(self):
+        plan = simple_plan(
+            "CREATE TRIGGER log_stock AFTER UPDATE ON inventory BEGIN INSERT INTO receipts VALUES(1,new.part,1); END",
+            "DROP TRIGGER log_stock",
+        )
+        plan["migrations"][0]["up"].append(
+            statement("UPDATE inventory SET available=100", "update_stock")
+        )
+        plan["migrations"][0]["down"].extend(
+            [
+                statement("UPDATE inventory SET available=99", "restore"),
+                statement("DELETE FROM receipts", "clear_log"),
+            ]
+        )
+        self.assertTrue(self.run_plan(plan)["qualification_passed"])
+
