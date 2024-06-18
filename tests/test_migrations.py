@@ -361,3 +361,9 @@ class MigrationTests(unittest.TestCase):
         )
         self.assertTrue(self.run_plan(plan)["qualification_passed"])
 
+    def test_sensitive_named_source_refuses_evidence_capture(self):
+        source = self.source("CREATE TABLE password(value TEXT)")
+        with self.assertRaisesRegex(ValueError, "sensitive"):
+            qualify_migrations(simple_plan("SELECT 1"), self.out, source=source)
+        self.assertFalse((self.out / "manifest.json").exists())
+
