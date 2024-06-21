@@ -384,3 +384,14 @@ class MigrationTests(unittest.TestCase):
         self.assertIsNotNone(phase["diagnostic_error"])
         self.assertFalse(report["qualification_passed"])
 
+    def test_engine_retains_plan_independent_of_callers_mutable_copy(self):
+        source = self.root / "working.sqlite"
+        create_database(self.seed, source)
+        plan = compile_migrations(self.plan)
+        engine = MigrationDatabase(
+            source, plan, SnapshotFiles(self.root / "states"), initialize=True
+        )
+        plan.definition["migrations"][0]["up"][0]["sql"] = "DROP TABLE inventory"
+        self.assertEqual(engine.step(0, "up")["status"], "applied")
+        self.assertEqual(engine.step(0, "down")["status"], "reverted")
+
