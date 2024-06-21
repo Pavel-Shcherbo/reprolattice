@@ -367,3 +367,20 @@ class MigrationTests(unittest.TestCase):
             qualify_migrations(simple_plan("SELECT 1"), self.out, source=source)
         self.assertFalse((self.out / "manifest.json").exists())
 
+    def test_retention_failure_cannot_be_marked_qualified(self):
+        from unittest.mock import patch
+
+        original = SnapshotFiles.put
+
+        def fail_changed(store, value):
+            if store.identities and value["sha256"] not in store.identities:
+                raise ValueError("retention unavailable")
+            return original(store, value)
+
+        with patch.object(SnapshotFiles, "put", fail_changed):
+            report = self.run_plan()
+        phase = self.assert_failed_clean(report)
+        self.assertIn("retention", phase["error"])
+        self.assertIsNotNone(phase["diagnostic_error"])
+        self.assertFalse(report["qualification_passed"])
+
