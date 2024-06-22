@@ -395,3 +395,36 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(engine.step(0, "up")["status"], "applied")
         self.assertEqual(engine.step(0, "down")["status"], "reverted")
 
+    def test_cli_pass_failure_and_verify_exit_codes(self):
+        args = [sys.executable, "-m", "reprolattice.migrations"]
+        result = subprocess.run(
+            args
+            + [
+                "run",
+                str(EXAMPLES / "inventory-migrations.json"),
+                "--seed",
+                str(EXAMPLES / "inventory-seed.json"),
+                "--output",
+                str(self.out),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(json.loads(result.stdout)["qualification_passed"])
+        self.assertEqual(
+            subprocess.run(
+                args + ["verify", str(self.out)], capture_output=True
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            subprocess.run(
+                args + ["verify", str(self.root / "absent")], capture_output=True
+            ).returncode,
+            2,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
