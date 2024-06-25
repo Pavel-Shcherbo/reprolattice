@@ -88,3 +88,7 @@ The local registry archives immutable suite reports with source/build revision m
 ## Migration rehearsal
 
 Qualify ordered SQLite forward/reverse SQL on an isolated seed or read-only source copy. Retain failure candidates, verify exact restoration and replay the complete evidence directory offline. See the [migration guide](docs/MIGRATIONS.md) and `python3 -m reprolattice.migrations --help`.
+
+## Retained migration review
+
+The **Migrations** workbench runs reviewed isolated round-trip and failure controls, keeps phase SQL and candidate rows, protects lost-response retries and exports portable replay evidence. The [migration workbench guide](docs/MIGRATION_WORKBENCH.md) covers review, recovery and the scoped CLI archive.
