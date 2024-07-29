@@ -4,13 +4,13 @@ Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed
 
 | Task | Status | Evidence | Remaining work |
 |---|---|---|---|
-| Core domain path | Implemented; 167 current tests passed | `reprolattice/`, `tests/` | Expand adversarial coverage as the model grows |
+| Core domain path | Implemented; 213 current tests passed | `reprolattice/`, `tests/` | Expand adversarial coverage as the model grows |
 | Local CLI | Implemented; CLI end-to-end checks passed | `reprolattice/__main__.py`, `examples/` | Retained in the local verification evidence |
 | Local workbench | Implemented; local HTTP and reviewed browser flows passed | `reprolattice/web.py`, `reprolattice/static/` | Retain checks as new screens and flows are added |
 | Broad product scope | Planned | `docs/PRODUCT_SCOPE.md` | Most platform subsystems require implementation |
 | Weekly reconstruction plan | Written | `docs/proposed-weekly-roadmap.csv` | Proposed commit counts are not actual commits |
 | Publication | Waiting on Pavel | Current request: do not upload without Pavel | No push or hosted deployment |
-| Production implementation ≥20,000 useful SLOC | Not achieved | 10099 project-specific SLOC measured; not achieved | Implement and verify the broad subsystem scope without padding |
+| Production implementation ≥20,000 useful SLOC | Not achieved | 11278 project-specific SLOC measured; not achieved | Implement and verify the broad subsystem scope without padding |
 | Explicit HTTP capture | Implemented; capture and CLI checks passed | `reprolattice/capture.py`, `tests/test_capture.py` | Request matchers and assertions implemented and verified; expand capture protocol coverage |
 | Installable local package | Verified from a clean environment outside the source tree | `docs/installed-verification.json`, `_build.py`, `MANIFEST.in` | Cross-version/platform qualification remains open |
 | Scenario suites and CI reports | Verified local increment; 89 total tests passed | `docs/SUITES.md`, suite/parameter/artifact/CLI/report tests and installed/browser evidence | Additional state providers, remote registry/CI qualification and broad scope remain open |
@@ -21,11 +21,11 @@ Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed
 
 | Retained SQLite states and workbench | Verified local increment; 23 new checks, 167 current tests | `docs/STATE_WORKBENCH.md`, installed/browser/export/5,000-row workload evidence | Migration/provider workflows, retention/deletion, signed provenance and full scope/size remain open |
 
-Next executable increment: migration browser management and provider extension boundaries over isolated databases. Additional providers, migration workflows, signed provenance, paged full audit and retention remain open.
+Next executable increment: provider extension boundaries and retention controls over isolated database evidence. Additional providers, migration workflows, signed provenance, paged full audit and retention remain open.
 
 Local reconstruction: five initial substantive stage commits created, plus verification, capture, matcher/assertion, suite/report, SQLite-state, run-registry and archive-workbench increments. No remote is configured; no upload was performed. The full dated roadmap remains proposed.
 
-Current implementation verification: 196 tests passed, CLI checked, clean wheel installation and installed workbench HTTP checked. Broad scope and the 20,000-SLOC requirement remain open.
+Current implementation verification: 213 tests passed, CLI checked, clean wheel installation and installed workbench HTTP checked. Broad scope and the 20,000-SLOC requirement remain open.
 
 Verified increment: typed JSON-pointer application assertions, dynamic request matchers, shared CLI/workbench protocol verification and bounded process-output collection. 89 unit/integration tests passed; clean installed CLI and HTTP dynamic-scenario success/failure checks passed. Evidence: `docs/verification.json`, `docs/installed-verification.json`. The 20,000-SLOC and broad product requirements remain open.
 
@@ -46,3 +46,9 @@ Verified SQLite migration increment: 29 new checks; ordered isolated up/repeat/d
 | Isolated SQLite migration rehearsal | Verified local increment; 29 new checks and clean installed offline replay passed | `docs/MIGRATIONS.md`, `docs/migration-verification.json`, `docs/migration-benchmark.json` | Migration browser, other providers, remote provenance, production rollout and full scope/size remain open |
 
 Current verification checkpoint: 196 Reprolattice tests and 572 portfolio tests passed; clean installed checks passed. Historical increment counts above are retained as evidence of their original scope. Full acceptance remains open.
+
+Migration workbench implemented and verified below; full product/20,000 useful-SLOC acceptance remains open.
+
+Verified migration-workbench increment: 17 new checks, 213 Reprolattice tests and 666 portfolio tests passed. Scoped retained rehearsals have input-bound idempotent receipts, lease/generation fencing, exact seed/plan checks and explicit adoption/interruption recovery. The browser exposes only three reviewed synthetic profiles, phase SQL/assertions, candidate/rolled-back tables, typed row changes and portable replay exports. Clean installed HTTP/CLI, independent downloaded SQLite/typed-state controls and real desktop/mobile browser checks passed, including persistence, delayed responses and lost-response retries. A retained 50-rehearsal workload produced 17 qualified results/33 reproducible failures with complete paged history. Evidence: docs/MIGRATION_WORKBENCH.md, docs/migration-workbench-verification.json, docs/migration-browser-verification.json and docs/migration-archive-benchmark.json. Current project-specific production source: 11278 SLOC. Additional providers, retention/deletion, signed remote provenance, general source-database archive capture and full product/20,000 useful-SLOC acceptance remain open. No publication.
+
+| Retained migration workbench and portable archive | Verified local increment; 17 new checks, 213 current tests | `docs/MIGRATION_WORKBENCH.md`, installed/browser/download/recovery and 50-rehearsal evidence | Other providers, retention/deletion, remote provenance and full scope/size remain open |
