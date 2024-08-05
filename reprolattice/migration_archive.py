@@ -49,3 +49,24 @@ def run_id(value):
     return value
 
 
+def public(row):
+    return {
+        key: row[key]
+        for key in (
+            "sequence",
+            "id",
+            "project",
+            "request_key",
+            "input_sha256",
+            "label",
+            "status",
+            "generation",
+            "lease_until",
+            "manifest_sha256",
+            "created",
+        )
+    }
+
+
+class MigrationArchive:
+    pass
