@@ -39,3 +39,13 @@ def label_text(value):
     return value
 
 
+def run_id(value):
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(c not in "0123456789abcdef" for c in value)
+    ):
+        raise ValueError("invalid migration record ID")
+    return value
+
+
