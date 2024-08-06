@@ -69,4 +69,16 @@ def public(row):
 
 
 class MigrationArchive:
-    pass
+    def __init__(self, root, *, clock=None):
+        self.root = Path(root)
+        if self.root.is_symlink():
+            raise ValueError("migration archive cannot be a symlink")
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self.path = self.root / "index.sqlite"
+        self.clock = clock or time.time
+        with self.transaction() as db:
+            for sql in SCHEMA.split(";"):
+                if sql.strip():
+                    db.execute(sql)
+        self.path.chmod(0o600)
+
