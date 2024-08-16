@@ -82,3 +82,9 @@ class MigrationArchive:
                     db.execute(sql)
         self.path.chmod(0o600)
 
+    def now(self):
+        value = self.clock()
+        if type(value) not in (float, int) or not math.isfinite(value) or value < 0:
+            raise ValueError("invalid migration archive clock")
+        return value
+
