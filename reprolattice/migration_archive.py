@@ -102,3 +102,13 @@ class MigrationArchive:
         finally:
             db.close()
 
+    def row(self, db, project, record):
+        named(project, "migration project")
+        run_id(record)
+        row = db.execute(
+            "SELECT * FROM rehearsals WHERE project=? AND id=?", (project, record)
+        ).fetchone()
+        if row is None:
+            raise ValueError("migration record not found in this project")
+        return row
+
