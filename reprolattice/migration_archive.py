@@ -112,3 +112,22 @@ class MigrationArchive:
             raise ValueError("migration record not found in this project")
         return row
 
+    def list(self, project, *, after=0, limit=20):
+        named(project, "migration project")
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 100
+        ):
+            raise ValueError("invalid migration list cursor/limit")
+        with self.transaction(False) as db:
+            rows = db.execute(
+                "SELECT * FROM rehearsals WHERE project=? AND sequence>? ORDER BY sequence LIMIT ?",
+                (project, after, limit + 1),
+            ).fetchall()
+        return {
+            "items": [public(r) for r in rows[:limit]],
+            "next_cursor": rows[limit - 1]["sequence"] if len(rows) > limit else None,
+        }
+
