@@ -131,3 +131,43 @@ class MigrationArchive:
             "next_cursor": rows[limit - 1]["sequence"] if len(rows) > limit else None,
         }
 
+    def reserve(self, project, definition, seed, request_key, label=""):
+        named(project, "migration project")
+        named(request_key, "migration request key")
+        label_text(label)
+        plan = compile_migrations(definition)
+        compiled = compile_seed(seed)
+        inputs = {"plan": plan.definition, "seed": compiled, "label": label}
+        digest = identity(inputs)
+        now = self.now()
+        with self.transaction() as db:
+            prior = db.execute(
+                "SELECT * FROM rehearsals WHERE project=? AND request_key=?",
+                (project, request_key),
+            ).fetchone()
+            if prior is not None:
+                if prior["input_sha256"] != digest:
+                    raise ValueError(
+                        "migration request key identifies different inputs"
+                    )
+                return public(prior), None
+            if db.execute("SELECT count(*) FROM rehearsals").fetchone()[0] >= 1000:
+                raise ValueError("migration archive has reached its 1,000-run capacity")
+            record = identity({"nonce": str(uuid.uuid4())})
+            token = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO rehearsals(id,project,request_key,input_sha256,inputs,label,status,generation,token,lease_until,created) VALUES(?,?,?,?,?,?,'running',1,?,?,?)",
+                (
+                    record,
+                    project,
+                    request_key,
+                    digest,
+                    canonical(inputs).decode(),
+                    label,
+                    token,
+                    now + 600,
+                    now,
+                ),
+            )
+            return public(self.row(db, project, record)), token
+
