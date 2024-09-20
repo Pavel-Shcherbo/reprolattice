@@ -171,3 +171,10 @@ class MigrationArchive:
             )
             return public(self.row(db, project, record)), token
 
+    def bundle(self, record):
+        run_id(record)
+        path = self.root / record
+        if path.is_symlink():
+            raise ValueError("migration evidence directory cannot be a symlink")
+        return path
+
