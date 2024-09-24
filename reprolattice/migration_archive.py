@@ -178,3 +178,55 @@ class MigrationArchive:
             raise ValueError("migration evidence directory cannot be a symlink")
         return path
 
+    def complete(self, project, record, token):
+        root = self.bundle(record)
+        proof = verify_migration_bundle(root)
+        if not proof["passed"]:
+            raise ValueError("migration evidence has no complete replay")
+        manifest = hashlib.sha256((root / "manifest.json").read_bytes()).hexdigest()
+        report = strict_json(
+            (root / "report.json").read_bytes(),
+            max_bytes=8 * 1024 * 1024,
+            max_nodes=1000000,
+        )
+        with self.transaction() as db:
+            row = self.row(db, project, record)
+            if (
+                row["status"] not in ("running", "recovering")
+                or row["token"] != token
+                or row["lease_until"] <= self.now()
+            ):
+                raise ValueError("migration completion lost its ownership lease")
+            inputs = json.loads(row["inputs"])
+            actual = strict_json(
+                (root / "plan.json").read_bytes(),
+                max_bytes=4 * 1024 * 1024,
+                max_nodes=250000,
+            )
+            if actual != inputs["plan"]:
+                raise ValueError("migration bundle differs from reserved plan")
+            # Validate the seed through a separate rehearsal; the retained baseline
+            # must have the same exact logical source state, not merely the same SQL.
+            from .migration_state import read_app_snapshot
+            from .sqlite_seed import create_database
+            import tempfile
+
+            with tempfile.TemporaryDirectory(
+                prefix="migration-seed-check-"
+            ) as directory:
+                seed_path = Path(directory) / "seed.sqlite"
+                create_database(inputs["seed"], seed_path)
+                if read_app_snapshot(seed_path)["sha256"] != report["source_snapshot"]:
+                    raise ValueError("migration bundle differs from reserved seed")
+            if row["lease_until"] <= self.now():
+                raise ValueError("migration completion lease expired before commit")
+            db.execute(
+                "UPDATE rehearsals SET status='completed',generation=generation+1,token=NULL,lease_until=NULL,manifest_sha256=?,report=? WHERE id=?",
+                (manifest, canonical(report).decode(), record),
+            )
+            return {
+                "record": public(self.row(db, project, record)),
+                "report": report,
+                "plan": inputs["plan"],
+            }
+
