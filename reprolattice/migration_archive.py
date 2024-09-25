@@ -230,3 +230,51 @@ class MigrationArchive:
                 "plan": inputs["plan"],
             }
 
+    def get(self, project, record):
+        with self.transaction(False) as db:
+            row = dict(self.row(db, project, record))
+        result = {"record": public(row), "report": None}
+        if row["status"] == "completed":
+            root = self.bundle(record)
+            files = inventory(root)
+            manifest_path = root / "manifest.json"
+            if (
+                manifest_path.is_symlink()
+                or not manifest_path.is_file()
+                or manifest_path.stat().st_size > 65536
+            ):
+                raise ValueError("retained migration manifest is unsafe")
+            raw = manifest_path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != row["manifest_sha256"]:
+                raise ValueError(
+                    "retained migration manifest differs from committed receipt"
+                )
+            manifest = strict_json(raw, max_bytes=65536)
+            if set(manifest["files"]) != set(files):
+                raise ValueError("retained migration inventory changed")
+            for name, path in files.items():
+                if manifest["files"][name] != {
+                    "bytes": path.stat().st_size,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }:
+                    raise ValueError("retained migration file changed")
+            report = json.loads(row["report"])
+            if (
+                strict_json(
+                    files["report.json"].read_bytes(),
+                    max_bytes=8 * 1024 * 1024,
+                    max_nodes=1000000,
+                )
+                != report
+            ):
+                raise ValueError("retained migration report changed")
+            result.update(
+                report=report,
+                plan=strict_json(
+                    files["plan.json"].read_bytes(),
+                    max_bytes=4 * 1024 * 1024,
+                    max_nodes=250000,
+                ),
+            )
+        return result
+
