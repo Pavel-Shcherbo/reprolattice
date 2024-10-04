@@ -278,3 +278,10 @@ class MigrationArchive:
             )
         return result
 
+    def run(self, project, definition, seed, request_key, label=""):
+        row, token = self.reserve(project, definition, seed, request_key, label)
+        if token is None:
+            return self.get(project, row["id"])
+        qualify_migrations(definition, self.bundle(row["id"]), seed=seed)
+        return self.complete(project, row["id"], token)
+
