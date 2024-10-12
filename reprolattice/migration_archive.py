@@ -285,3 +285,31 @@ class MigrationArchive:
         qualify_migrations(definition, self.bundle(row["id"]), seed=seed)
         return self.complete(project, row["id"], token)
 
+    def recover(self, project, record, generation):
+        if type(generation) is not int or generation < 1:
+            raise ValueError("recovery requires a positive expected generation")
+        with self.transaction() as db:
+            row = self.row(db, project, record)
+            if row["generation"] != generation:
+                raise ValueError("migration record generation changed")
+            if row["status"] == "completed":
+                return self.get(project, record)
+            if row["lease_until"] is not None and row["lease_until"] > self.now():
+                raise ValueError("migration rehearsal still has an active lease")
+            token = str(uuid.uuid4())
+            db.execute(
+                "UPDATE rehearsals SET status='recovering',generation=generation+1,token=?,lease_until=? WHERE id=?",
+                (token, self.now() + 600, record),
+            )
+        try:
+            return self.complete(project, record, token)
+        except (ValueError, sqlite3.Error, OSError):
+            with self.transaction() as db:
+                row = self.row(db, project, record)
+                if row["token"] != token:
+                    raise ValueError("migration recovery lost ownership")
+                db.execute(
+                    "UPDATE rehearsals SET status='interrupted',generation=generation+1,token=NULL,lease_until=NULL WHERE id=?",
+                    (record,),
+                )
+            return self.get(project, record)
