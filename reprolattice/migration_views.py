@@ -43,3 +43,10 @@ def inspect_rehearsal(archive, project, record):
     return value
 
 
+def read_snapshot(archive, record, sha):
+    path = archive.bundle(record) / "snapshots" / (sha + ".json")
+    return verify_migration_snapshot(
+        strict_json(path.read_bytes(), max_bytes=16 * 1024 * 1024, max_nodes=1000000)
+    )
+
+
