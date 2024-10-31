@@ -50,3 +50,11 @@ def read_snapshot(archive, record, sha):
     )
 
 
+def portable(snapshot):
+    value = copy.deepcopy(snapshot)
+    value.pop("foreign_key_errors")
+    value["format"] = "reprolattice.sqlite-snapshot.v1"
+    value["sha256"] = identity({k: v for k, v in value.items() if k != "sha256"})
+    return value
+
+
