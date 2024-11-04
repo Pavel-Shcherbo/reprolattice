@@ -58,3 +58,45 @@ def portable(snapshot):
     return value
 
 
+def phase_table(
+    archive, project, record, phase, table, *, side="candidate", view="rows", offset=0
+):
+    value = archive.get(project, record)
+    if value["report"] is None:
+        raise ValueError("migration rehearsal has no completed evidence")
+    if (
+        type(phase) is not int
+        or not 0 <= phase < len(value["report"]["phases"])
+        or side not in ("before", "candidate", "after")
+        or view not in ("rows", "diff")
+    ):
+        raise ValueError("unknown migration phase/side/view")
+    item = value["report"]["phases"][phase]
+    sha = item[side]
+    if sha is None:
+        raise ValueError("this phase has no retained " + side + " snapshot")
+    selected = read_snapshot(archive, record, sha)
+    before = read_snapshot(archive, record, item["before"])
+    page = (
+        table_page(portable(selected), table, offset=offset)
+        if view == "rows"
+        else compare_rows(
+            portable(before),
+            portable(selected),
+            table,
+            offset=offset,
+            limit=25,
+            status="changed",
+        )
+    )
+    return {
+        "record": record,
+        "phase": phase,
+        "side": side,
+        "view": view,
+        "source_snapshot_sha256": sha,
+        "before_snapshot_sha256": item["before"],
+        "page": page,
+    }
+
+
