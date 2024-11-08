@@ -125,3 +125,49 @@ def export_rehearsal(archive, project, record):
     return document
 
 
+def verify_retained_migration(document):
+    if (
+        not isinstance(document, dict)
+        or set(document) != {"format", "record", "files", "sha256"}
+        or document["format"] != "reprolattice.retained-migration.v1"
+        or len(canonical(document)) > MAX_EXPORT
+        or document["sha256"]
+        != identity({k: v for k, v in document.items() if k != "sha256"})
+    ):
+        raise ValueError("retained migration envelope identity/format mismatch")
+    files = document["files"]
+    if (
+        not isinstance(files, dict)
+        or not 5 <= len(files) <= 69
+        or not set(FILES) | {"manifest.json"} <= set(files)
+    ):
+        raise ValueError("retained migration envelope is missing bundle files")
+    total = 0
+    with tempfile.TemporaryDirectory(prefix="retained-migration-verify-") as temporary:
+        root = Path(temporary)
+        (root / "snapshots").mkdir()
+        for name, encoded in files.items():
+            if name not in set(FILES) | {"manifest.json"} and not re.fullmatch(
+                r"snapshots/[0-9a-f]{64}\.json", name
+            ):
+                raise ValueError("invalid retained migration file path")
+            if not isinstance(encoded, str) or len(encoded) > 12 * 1024 * 1024:
+                raise ValueError("invalid retained migration file encoding")
+            try:
+                raw = base64.b64decode(encoded, validate=True)
+            except (ValueError, TypeError) as error:
+                raise ValueError("invalid retained migration file encoding") from error
+            total += len(raw)
+            if total > 8 * 1024 * 1024:
+                raise ValueError("retained migration envelope raw data exceeds 8 MiB")
+            (root / name).write_bytes(raw)
+        manifest_sha = hashlib.sha256((root / "manifest.json").read_bytes()).hexdigest()
+        record = document["record"]
+        if (
+            not isinstance(record, dict)
+            or record.get("status") != "completed"
+            or record.get("manifest_sha256") != manifest_sha
+        ):
+            raise ValueError("retained migration receipt is not bound to its bundle")
+        proof = verify_migration_bundle(root)
+    return {**proof, "record": record["id"], "receipt_binding_verified": True}
