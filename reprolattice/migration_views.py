@@ -100,3 +100,28 @@ def phase_table(
     }
 
 
+def export_rehearsal(archive, project, record):
+    value = archive.get(project, record)
+    if value["report"] is None:
+        raise ValueError("migration rehearsal has no completed evidence")
+    root = archive.bundle(record)
+    paths = inventory(root)
+    paths["manifest.json"] = root / "manifest.json"
+    if sum(path.stat().st_size for path in paths.values()) > 8 * 1024 * 1024:
+        raise ValueError(
+            "portable migration export exceeds 8 MiB raw data; use the local bundle directory"
+        )
+    document = {
+        "format": "reprolattice.retained-migration.v1",
+        "record": value["record"],
+        "files": {
+            name: base64.b64encode(path.read_bytes()).decode()
+            for name, path in sorted(paths.items())
+        },
+    }
+    document["sha256"] = identity(document)
+    if len(canonical(document)) > MAX_EXPORT:
+        raise ValueError("portable migration envelope exceeds 12 MiB")
+    return document
+
+
