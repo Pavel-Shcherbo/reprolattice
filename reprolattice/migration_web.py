@@ -25,3 +25,27 @@ FIELDS = {
 }
 
 
+def control_inputs(profile):
+    if profile not in PROFILES:
+        raise ValueError("unknown reviewed migration profile")
+    root = examples_directory()
+    plan = json.loads((root / "inventory-migrations.json").read_text())
+    seed = json.loads((root / "inventory-seed.json").read_text())
+    if profile == "statement_failure":
+        plan["migrations"][0]["up"].append(
+            {
+                "id": "missing_table",
+                "sql": "INSERT INTO deliberately_missing VALUES(1)",
+                "parameters": [],
+            }
+        )
+    elif profile == "broken_rollback":
+        plan["migrations"][1]["down"] = [
+            {"id": "incomplete_reverse", "sql": "SELECT 1", "parameters": []}
+        ]
+        plan["migrations"][1]["rollback_checks"] = copy.deepcopy(
+            plan["migrations"][1]["after_checks"]
+        )
+    return plan, seed
+
+
