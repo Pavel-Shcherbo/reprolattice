@@ -1318,3 +1318,386 @@ for (const link of document.querySelectorAll("nav a"))
       ?.removeAttribute("aria-current");
     link.setAttribute("aria-current", "location");
   });
+
+(() => {
+  const api = (action, fields = {}) =>
+    evaluate({ mode: "migration", action, ...fields });
+  let records = [],
+    selected = "",
+    detail = null,
+    phase = 0,
+    offset = 0,
+    next = null,
+    back = [];
+  let epoch = 0,
+    pageSerial = 0,
+    listSerial = 0,
+    actionSerial = 0,
+    cursor = null,
+    busy = false,
+    key = null,
+    settings = "";
+  const fail = (value) => {
+    $("mg-error").hidden = !value;
+    $("mg-error").textContent = value || "";
+  };
+  function invalidate() {
+    pageSerial++;
+    clear($("mg-columns"));
+    clear($("mg-rows"));
+    $("mg-page-status").textContent = "";
+    $("mg-schema").textContent = "";
+    $("mg-next").disabled = true;
+    $("mg-previous").disabled = true;
+  }
+  function options() {
+    clear($("mg-runs"));
+    if (!records.length)
+      $("mg-runs").append(new Option("Run a control to begin", ""));
+    for (const r of records)
+      $("mg-runs").append(
+        new Option("Run " + r.sequence + " — " + (r.label || r.status), r.id),
+      );
+    $("mg-runs").value = selected;
+    $("mg-older").hidden = cursor === null;
+  }
+  function controls() {
+    const complete = detail?.record.status === "completed";
+    $("mg-export").disabled = !complete;
+    $("mg-replay").disabled = !complete;
+    $("mg-recover").hidden = !detail || complete;
+    $("mg-run").disabled = busy;
+    $("mg-profile").disabled = busy;
+    $("mg-label").disabled = busy;
+  }
+  async function refresh(older = false) {
+    const serial = ++listSerial;
+    const value = await api(
+      "overview",
+      older && cursor !== null ? { after: cursor } : {},
+    );
+    if (serial !== listSerial) return;
+    const merged = older ? [...records, ...value.items] : value.items;
+    records = [...new Map(merged.map((r) => [r.id, r])).values()];
+    cursor = value.next_cursor;
+    if (selected && !records.some((r) => r.id === selected) && detail)
+      records.push(detail.record);
+    options();
+    $("mg-status").textContent = records.length + " retained rehearsals loaded";
+  }
+  async function select(record) {
+    fail("");
+    const ticket = ++epoch;
+    actionSerial++;
+    selected = record;
+    detail = null;
+    invalidate();
+    $("mg-detail").hidden = true;
+    $("mg-proof").textContent = "";
+    controls();
+    if (!record) return;
+    try {
+      const value = await api("inspect", { record });
+      if (ticket !== epoch) return;
+      detail = value;
+      phase = 0;
+      options();
+      controls();
+      if (!value.report) {
+        $("mg-status").textContent =
+          value.record.status === "interrupted"
+            ? "Interrupted rehearsal: no complete bundle was verified. Files are retained; run a new control to retry."
+            : "This rehearsal is " +
+              value.record.status +
+              ". Refresh after completion, or reconcile after its ownership lease expires.";
+        return;
+      }
+      $("mg-detail").hidden = false;
+      const report = value.report;
+      $("mg-outcome").textContent = report.qualification_passed
+        ? "Round trip passed. Original application state restored."
+        : "Qualification failed. " +
+          (report.restored_exactly
+            ? "Original application state restored."
+            : "Applied or diagnostic state is retained; inspect the failed step.");
+      $("mg-outcome").className = report.qualification_passed
+        ? "passed"
+        : "failed";
+      clear($("mg-phases"));
+      report.phases.forEach((item, index) => {
+        const button = element("button");
+        button.type = "button";
+        button.append(
+          element("span", item.migration + " / " + item.direction),
+          element(
+            "small",
+            item.status.replaceAll("_", " "),
+            item.status === "failed" ? "failed" : "secondary",
+          ),
+        );
+        button.addEventListener("click", () => {
+          phase = index;
+          renderPhase();
+        });
+        $("mg-phases").append(button);
+      });
+      const failed = report.phases.findIndex((p) => p.status === "failed");
+      phase = failed < 0 ? 0 : failed;
+      renderPhase();
+    } catch (error) {
+      if (ticket === epoch) fail(error.message);
+    }
+  }
+  function renderPhase() {
+    invalidate();
+    offset = 0;
+    back = [];
+    const item = detail.report.phases[phase];
+    if (!item) return;
+    for (const [index, button] of [...$("mg-phases").children].entries())
+      button.setAttribute("aria-pressed", String(index === phase));
+    $("mg-phase-title").textContent = item.migration + " / " + item.direction;
+    $("mg-phase-status").textContent =
+      item.status.replaceAll("_", " ") +
+      (item.rollback_verified ? " — failed transaction rollback verified" : "");
+    $("mg-phase-error").textContent = item.error || "";
+    const definition = detail.plan.migrations.find(
+      (m) => m.id === item.migration,
+    );
+    $("mg-sql").textContent = definition[item.direction]
+      .map(
+        (s) =>
+          s.id +
+          "\n" +
+          s.sql +
+          "\nBound values: " +
+          JSON.stringify(s.parameters),
+      )
+      .join("\n\n");
+    $("mg-checks").textContent = JSON.stringify(
+      {
+        before: item.before,
+        candidate: item.candidate,
+        after: item.after,
+        failure_stage: item.failure_stage,
+        preconditions: item.preconditions,
+        postconditions: item.postconditions,
+        diagnostic_error: item.diagnostic_error,
+      },
+      null,
+      2,
+    );
+    for (const option of $("mg-side").options)
+      option.disabled = !item[option.value];
+    $("mg-side").value = item.candidate ? "candidate" : "after";
+    tableOptions();
+  }
+  function tableOptions() {
+    invalidate();
+    offset = 0;
+    back = [];
+    const item = detail.report.phases[phase],
+      sha = item[$("mg-side").value],
+      snapshot = detail.snapshots[sha];
+    const names =
+      $("mg-view").value === "diff"
+        ? [
+            ...new Set([
+              ...Object.keys(detail.snapshots[item.before].tables),
+              ...Object.keys(snapshot.tables),
+            ]),
+          ]
+        : Object.keys(snapshot.tables);
+    const old = $("mg-table").value;
+    clear($("mg-table"));
+    for (const name of names) $("mg-table").append(new Option(name, name));
+    if (names.includes(old)) $("mg-table").value = old;
+    loadPage();
+  }
+  async function loadPage() {
+    const serial = ++pageSerial,
+      ticket = epoch,
+      record = selected,
+      index = phase,
+      table = $("mg-table").value,
+      side = $("mg-side").value,
+      view = $("mg-view").value;
+    invalidate();
+    const current = pageSerial;
+    if (!table) {
+      $("mg-page-status").textContent = "No retained tables in this snapshot.";
+      return;
+    }
+    $("mg-page-status").textContent = "Reading retained rows…";
+    try {
+      const value = await api("table", {
+        record,
+        phase: index,
+        table,
+        side,
+        view,
+        offset,
+      });
+      if (
+        ticket !== epoch ||
+        current !== pageSerial ||
+        record !== selected ||
+        index !== phase
+      )
+        return;
+      const page = value.page;
+      next = page.next_offset;
+      $("mg-page-status").textContent =
+        page.total +
+        " " +
+        (view === "diff" ? "changed entries" : "rows") +
+        "; displayed " +
+        page.items.length +
+        " from offset " +
+        offset;
+      clear($("mg-columns"));
+      clear($("mg-rows"));
+      const columns =
+        view === "diff"
+          ? ["Change", "Before", "Selected snapshot"]
+          : page.columns.map((c) => c.name);
+      const head = element("tr");
+      columns.forEach((c) => head.append(element("th", c)));
+      $("mg-columns").append(head);
+      for (const item of page.items) {
+        const row = element("tr");
+        if (view === "diff")
+          for (const cell of [
+            item.change,
+            JSON.stringify(item.before),
+            JSON.stringify(item.after),
+          ])
+            row.append(element("td", cell));
+        else
+          for (const column of page.columns) {
+            const value = item[column.name];
+            row.append(
+              element("td", value.type + ": " + JSON.stringify(value.value)),
+            );
+          }
+        $("mg-rows").append(row);
+      }
+      const snapshot = detail.snapshots[value.source_snapshot_sha256];
+      $("mg-schema").textContent = JSON.stringify(
+        snapshot.tables[table] || { removed: true },
+        null,
+        2,
+      );
+      $("mg-next").disabled = next === null;
+      $("mg-previous").disabled = !back.length;
+    } catch (error) {
+      if (ticket === epoch && current === pageSerial) fail(error.message);
+    }
+  }
+  $("mg-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    fail("");
+    const profile = $("mg-profile").value,
+      label = $("mg-label").value,
+      encoded = JSON.stringify({ profile, label });
+    if (!key || settings !== encoded) {
+      key = "migration-" + crypto.randomUUID();
+      settings = encoded;
+    }
+    const ticket = epoch;
+    busy = true;
+    controls();
+    $("mg-status").textContent = "Rehearsing isolated forward and reverse SQL…";
+    try {
+      const value = await api("run", { profile, label, request_key: key });
+      key = null;
+      await refresh();
+      if (ticket === epoch) {
+        $("mg-runs").value = value.record.id;
+        await select(value.record.id);
+      }
+    } catch (error) {
+      fail(error.message + " Retry the same control to recover its receipt.");
+    } finally {
+      busy = false;
+      controls();
+    }
+  });
+  $("mg-runs").addEventListener("change", () => select($("mg-runs").value));
+  $("mg-refresh").addEventListener("click", async () => {
+    try {
+      await refresh();
+      if (selected) await select(selected);
+    } catch (e) {
+      fail(e.message);
+    }
+  });
+  $("mg-older").addEventListener("click", () =>
+    refresh(true).catch((e) => fail(e.message)),
+  );
+  $("mg-side").addEventListener("change", tableOptions);
+  $("mg-view").addEventListener("change", tableOptions);
+  $("mg-table").addEventListener("change", () => {
+    offset = 0;
+    back = [];
+    loadPage();
+  });
+  $("mg-next").addEventListener("click", () => {
+    if (next !== null) {
+      back.push(offset);
+      offset = next;
+      loadPage();
+    }
+  });
+  $("mg-previous").addEventListener("click", () => {
+    offset = back.pop() ?? 0;
+    loadPage();
+  });
+  $("mg-export").addEventListener("click", async () => {
+    const record = selected,
+      ticket = epoch;
+    try {
+      const value = await api("export", { record });
+      if (ticket === epoch)
+        download(
+          "reprolattice-migration-" + record.slice(0, 12) + ".json",
+          value,
+        );
+    } catch (e) {
+      if (ticket === epoch) fail(e.message);
+    }
+  });
+  $("mg-replay").addEventListener("click", async () => {
+    const ticket = ++actionSerial,
+      version = epoch,
+      record = selected;
+    $("mg-proof").textContent = "Replaying retained SQL on a fresh copy…";
+    try {
+      const proof = await api("replay", { record });
+      if (ticket === actionSerial && version === epoch)
+        $("mg-proof").textContent = proof.passed
+          ? "Evidence replay passed. Migration qualification " +
+            (proof.qualification_passed
+              ? "passed."
+              : "failed; the recorded failure was reproduced.")
+          : "Evidence replay is incomplete.";
+    } catch (e) {
+      if (ticket === actionSerial && version === epoch) fail(e.message);
+    }
+  });
+  $("mg-recover").addEventListener("click", async () => {
+    const record = selected,
+      ticket = epoch;
+    try {
+      await api("recover", { record, generation: detail.record.generation });
+      if (ticket === epoch) {
+        await refresh();
+        await select(record);
+      }
+    } catch (e) {
+      if (ticket === epoch) fail(e.message);
+    }
+  });
+  refresh().catch((e) => fail(e.message));
+  controls();
+})();
