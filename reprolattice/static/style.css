@@ -214,7 +214,7 @@ pre {
   margin-top: 32px;
 }
 .error {
-  border-left: 4px solid var(--negative);
+  border-left: 1px solid var(--negative);
   padding: 12px 16px;
   background: var(--surface);
   margin-bottom: 24px;
@@ -848,5 +848,58 @@ textarea {
     height: 100vh;
     align-self: start;
     overflow: auto;
+  }
+}
+
+.migration-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.4fr);
+  gap: 24px;
+  margin: 24px 0;
+}
+.migration-layout > *,
+.migration-data {
+  min-width: 0;
+}
+.migration-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.migration-phases button {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.migration-phases button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+#migrations pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+}
+#migrations select {
+  max-width: 100%;
+}
+#migrations h3 {
+  margin-bottom: 0;
+}
+#migrations td {
+  vertical-align: top;
+}
+@media (max-width: 800px) {
+  .migration-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  #migrations .state-toolbar label {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 }
