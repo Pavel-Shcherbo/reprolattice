@@ -18,6 +18,7 @@
           ><a href="#scenario">Scenario</a
           ><a href="#verification">Verification</a><a href="#suite">Suite</a
           ><a href="#database-state">Database state</a
+          ><a href="#migrations">Migrations</a
           ><a href="#boundaries">Replay boundaries</a>
         </nav>
         <footer>Local workbench<br />Development build</footer>
@@ -454,6 +455,120 @@ Run the suite, then select a case to inspect its checks</pre>
               <summary>Retained schema and identities</summary>
               <pre id="db-schema"></pre>
             </details>
+          </div>
+        </section>
+        <section class="section" id="migrations">
+          <header class="pagehead">
+            <div>
+              <h2>Migration rehearsal</h2>
+              <p>Apply, reverse, and check what survived.</p>
+            </div>
+            <button id="mg-refresh">Refresh rehearsals</button>
+          </header>
+          <div id="mg-error" class="error" role="alert" hidden></div>
+          <form id="mg-form" class="state-toolbar">
+            <label
+              >Reviewed control<select id="mg-profile">
+                <option value="round_trip">Exact round trip</option>
+                <option value="statement_failure">
+                  Fail after partial writes
+                </option>
+                <option value="broken_rollback">Incomplete reverse SQL</option>
+              </select></label
+            >
+            <label
+              >Run label<input
+                id="mg-label"
+                maxlength="128"
+                placeholder="Optional review note"
+            /></label>
+            <button type="submit" id="mg-run" class="primary">
+              Rehearse migration
+            </button>
+          </form>
+          <p class="notice">
+            Synthetic inventory data, isolated on each run. These controls never
+            migrate your application database. Use the CLI for your own reviewed
+            SQL.
+          </p>
+          <p id="mg-status" role="status" class="secondary">
+            Reading local rehearsals…
+          </p>
+          <div class="state-toolbar">
+            <label
+              >Retained rehearsal<select id="mg-runs">
+                <option value="">Run a control to begin</option>
+              </select></label
+            ><button id="mg-older" hidden>Load older rehearsals</button
+            ><button id="mg-export" disabled>Export replay bundle</button
+            ><button id="mg-replay" disabled>Replay retained SQL</button
+            ><button id="mg-recover" hidden>Reconcile interrupted run</button>
+          </div>
+          <p id="mg-proof" class="notice" role="status"></p>
+          <div id="mg-detail" hidden>
+            <p id="mg-outcome" role="status"></p>
+            <div class="migration-layout">
+              <section class="panel">
+                <div class="panelhead"><h3>Execution steps</h3></div>
+                <div
+                  id="mg-phases"
+                  class="migration-phases"
+                  role="group"
+                  aria-label="Migration phases"
+                ></div>
+              </section>
+              <section class="panel">
+                <div class="panelhead">
+                  <h3 id="mg-phase-title">Step inspection</h3>
+                </div>
+                <div class="panelbody">
+                  <p id="mg-phase-status"></p>
+                  <pre id="mg-sql"></pre>
+                  <p id="mg-phase-error" class="failed"></p>
+                  <details>
+                    <summary>Assertions and snapshot identities</summary>
+                    <pre id="mg-checks"></pre>
+                  </details>
+                </div>
+              </section>
+            </div>
+            <section class="panel migration-data">
+              <div class="panelhead"><h3>Retained application state</h3></div>
+              <div class="panelbody state-toolbar">
+                <label
+                  >Snapshot<select id="mg-side">
+                    <option value="candidate">
+                      Candidate before commit or rollback
+                    </option>
+                    <option value="before">Before this step</option>
+                    <option value="after">After the step or rollback</option>
+                  </select></label
+                ><label>Table<select id="mg-table"></select></label
+                ><label
+                  >View<select id="mg-view">
+                    <option value="rows">Typed rows</option>
+                    <option value="diff">Changes from before</option>
+                  </select></label
+                >
+              </div>
+              <div class="panelbody">
+                <p id="mg-page-status" role="status"></p>
+              </div>
+              <div class="tablewrap state-row-scroll">
+                <table>
+                  <thead id="mg-columns"></thead>
+                  <tbody id="mg-rows"></tbody>
+                </table>
+              </div>
+              <div class="panelbody state-page-actions">
+                <button id="mg-previous" disabled>Previous rows</button
+                ><button id="mg-next" disabled>Next rows</button>
+              </div>
+              <details class="panelbody">
+                <summary>Table schema</summary>
+                <pre id="mg-schema"></pre>
+              </details>
+            </section>
           </div>
         </section>
         <section class="section" id="boundaries">
