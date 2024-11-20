@@ -8,6 +8,7 @@ from .resources import examples_directory
 from .suite_web import evaluate_suite
 from .archive_web import evaluate_archive
 from .state_web import evaluate_state
+from .migration_web import evaluate_migrations
 
 
 def example():
@@ -15,6 +16,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "migration":
+        return evaluate_migrations(params)
     if params.get("mode") == "state":
         return evaluate_state(params)
     if params.get("mode") == "archive":
