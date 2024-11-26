@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "scope": "One local mixed 50-rehearsal workload, not a production SLA",
+  "runs": 50,
+  "qualified": 17,
+  "reproduced_failures": 33,
+  "list_page_sizes": [
+    20,
+    20,
+    10
+  ],
+  "run_and_initial_replay_seconds": 1.460429375001695,
+  "all_completed_bundles_hash_checked": true,
+  "retained_archive": "/var/folders/8_/kbqb5qpx3lbbg3zxc48xbhcr0000gn/T/migration-archive-workload-944d3zx8/archive",
+  "bundle_bytes": 3986496,
+  "portable_failed_run": {
+    "passed": true,
+    "replay_complete": true,
+    "qualification_passed": false,
+    "status": "failed",
+    "plan_sha256": "abc26886da71ce16299b90ac9634a9aede87661315864f3375e89740212a099c",
+    "snapshot_count": 2,
+    "source_authenticated": false,
+    "scope": "Fresh local SQL/content replay; no production deployment or authenticated provenance",
+    "record": "73731d8471f5c9fa383059230c0a87c52e001962dcaa3e0ceddfc58dc9bb577c",
+    "receipt_binding_verified": true
+  }
+}
