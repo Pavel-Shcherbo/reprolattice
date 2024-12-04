@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "Installed local migration workbench and portable CLI, not production database deployment",
+  "healthy_record": "b56cf911adb6a542542ef2b5bea64fae4e6f9461dc3647e7439326f13a8da1d5",
+  "partial_record": "9b33be2b9f40995b433fad11960a427e314da254731e3138667fe1202f822988",
+  "reverse_record": "eb968156893d3e9bee691249f852f33df293f1a027e0541c18e264d5467dc8cb",
+  "lost_response_receipt_identical": true,
+  "independent_candidate_total": 99,
+  "independent_rolled_back_inventory": [
+    "part-42",
+    99,
+    1
+  ],
+  "committed_partial_table_absent": true,
+  "failed_reverse_retained_stack": 2,
+  "portable_cli_verification": {
+    "passed": true,
+    "replay_complete": true,
+    "qualification_passed": false,
+    "status": "failed",
+    "plan_sha256": "abc26886da71ce16299b90ac9634a9aede87661315864f3375e89740212a099c",
+    "snapshot_count": 2,
+    "source_authenticated": false,
+    "scope": "Fresh local SQL/content replay; no production deployment or authenticated provenance",
+    "record": "9b33be2b9f40995b433fad11960a427e314da254731e3138667fe1202f822988",
+    "receipt_binding_verified": true
+  },
+  "browser_sql_and_paths_rejected": true
+}
