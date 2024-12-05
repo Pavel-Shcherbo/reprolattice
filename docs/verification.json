@@ -1,5 +1,5 @@
 {
-  "unit_tests": 196,
+  "unit_tests": 213,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
@@ -13,13 +13,17 @@
     "reprolattice/httpapp.py": "aeae90d384d4ce2451d73504885e5d9da679f48768f34f50fda39f9ef24907a6",
     "reprolattice/jsonutil.py": "cb1a9ebaa4d604c9726e3853cb535042980758443d19b8b23e7de7c276dfa41f",
     "reprolattice/matching.py": "62078742bf39905e7b4dcfbc70aecf6e64d928e07293ebe4b1ed02b7499d1096",
+    "reprolattice/migration_archive.py": "60338ee2011346428ecc8255758c56fabdd7409f90a259df616193f7b93c4c81",
     "reprolattice/migration_bundle.py": "e4d24ea162c95b9402a132fe3b95d71d2d794cbcc4e0c0859abd0be138ff507d",
     "reprolattice/migration_engine.py": "52b193b070debc091a57110ec6e3b8159634341f41bbf1d3f6bbcf6bc0e4ce6a",
     "reprolattice/migration_history.py": "2e726c92847dbf39509c2d7f01ea458fb92d1d1a1b4be44c0158e478a28cd89d",
     "reprolattice/migration_model.py": "5cfa4ab4746404e94c9c3f71f7b55e599eedde4780a9787eedef372b84b7642c",
     "reprolattice/migration_runner.py": "623b337cb21fa45e6b62b1099f20e23aa9cec70c2f479662acc91db60984ec96",
+    "reprolattice/migration_runs.py": "76d4c9cced1d66d66b79919fc16faeda007dbe7e7fc8b201e9448179ddcdd976",
     "reprolattice/migration_sql.py": "aa0ee5b062baa031937c9ff779291f19c448a01b4fd2af3cc76f687fa918679a",
     "reprolattice/migration_state.py": "804cbc6776607b0c8efa196f94753e6af9483b1d315de776b26ac10bde69ba42",
+    "reprolattice/migration_views.py": "9c1439d6f23966c7707be2a2db55b15ed7f3b83c5b74dd5948e08b1b903faa04",
+    "reprolattice/migration_web.py": "e8f4a06b4be7e1b0d7e1e9622f29ef6deef3a3bc52bc6e96e9dd0e1d2a3d5689",
     "reprolattice/migrations.py": "adbd1c73bdf08d9ab5040f2fcebb2054166f9b066f602027a3d6035bd68389e7",
     "reprolattice/parameters.py": "1ee690d3db63f1187637688e886167e93e9d5dc4716da94df29e747384f0cc92",
     "reprolattice/process.py": "5c064f061b2a328d217ca619a69ea19f734d8f7966bf8e78a698015ec7e4aa12",
@@ -42,13 +46,13 @@
     "reprolattice/state_runs.py": "15b8e13ce62e650a117822fc05766725d22ceadc9b394996bfa502f47aa82a4d",
     "reprolattice/state_service.py": "cb0a4d514fe1e79e76434a7d1230ca39efbc7b8c5161e4d0a13efecec00c469f",
     "reprolattice/state_web.py": "ac712a31b80a72be1586f397b8c8ee60cc91e32207ac0cf6d1a1f808b3c4ae2f",
-    "reprolattice/static/app.js": "044a02e54c9f0a63e7d22ea92c92d8de0356f6807ea023e7204f2beb9c02cb99",
-    "reprolattice/static/index.html": "dbd20d37f8211810f98ca637948f5be5a57e59272e76af88f388a941765f35a8",
-    "reprolattice/static/style.css": "72cffad2d33b655737c635c6491f7d25f46c246704e33efb28888ece898908d2",
+    "reprolattice/static/app.js": "609680ad581a762465d7b928c0728ad7630f44b1c8da462506a2e7a759e52958",
+    "reprolattice/static/index.html": "63d7814e3a9615615b75444c88c5739d01ac1ff2fa99586ad07093e43d464037",
+    "reprolattice/static/style.css": "17b82cfec413f8c6eca03953869ac575bc40a31cc8f6b19264af1da8b1c498d3",
     "reprolattice/suite_config.py": "cddae0f73b10e54cad70fd159acceee476c88f634c34fed01e1c15672c51ba79",
     "reprolattice/suite_runner.py": "d0f08301351df9fb4dee2c606b89ffde32db69107a3c4fee4848bac9b58ff889",
     "reprolattice/suite_web.py": "9132253109f759c2b986d36ef1950d56c8c581bd6a05f33516d7b5df78eaf9d3",
     "reprolattice/suites.py": "f492c49dfb0425f135bed8782ccb8bc7addb18253d06c04c80a5228be4ed4832",
-    "reprolattice/web.py": "13c4c6ba7f36bf2564fd3e36a0498c0306c6ac8b4fb0393ca4b2b13c55e14155"
+    "reprolattice/web.py": "bdc12075da1224937f7ed644f71754647112cc92c0b57159e028c10d01f73c09"
   }
 }
