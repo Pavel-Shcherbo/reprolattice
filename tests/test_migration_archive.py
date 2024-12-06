@@ -24,4 +24,11 @@ from reprolattice.sqlite_seed import identity
 
 
 class MigrationArchiveTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.now = 100.0
+        self.archive = MigrationArchive(self.root / "archive", clock=lambda: self.now)
+        self.plan, self.seed = control_inputs("round_trip")
+
