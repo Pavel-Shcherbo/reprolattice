@@ -32,3 +32,7 @@ class MigrationArchiveTests(unittest.TestCase):
         self.archive = MigrationArchive(self.root / "archive", clock=lambda: self.now)
         self.plan, self.seed = control_inputs("round_trip")
 
+    def run_control(self, profile="round_trip", key="one"):
+        plan, seed = control_inputs(profile)
+        return self.archive.run("project", plan, seed, key, "Control")
+
