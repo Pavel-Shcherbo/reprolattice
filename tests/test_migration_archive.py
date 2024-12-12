@@ -36,3 +36,14 @@ class MigrationArchiveTests(unittest.TestCase):
         plan, seed = control_inputs(profile)
         return self.archive.run("project", plan, seed, key, "Control")
 
+    def test_retry_restart_and_scoped_history(self):
+        first = self.run_control()
+        self.archive = MigrationArchive(self.root / "archive")
+        self.assertEqual(first, self.run_control())
+        self.assertEqual(len(self.archive.list("project")["items"]), 1)
+        self.assertEqual(self.archive.list("other")["items"], [])
+        with self.assertRaises(ValueError):
+            self.archive.get("other", first["record"]["id"])
+        with self.assertRaises(ValueError):
+            self.run_control("statement_failure")
+
