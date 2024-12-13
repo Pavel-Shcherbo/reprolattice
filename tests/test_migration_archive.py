@@ -47,3 +47,19 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.run_control("statement_failure")
 
+    def test_failure_candidate_and_postrollback_rows_are_distinct(self):
+        record = self.run_control("statement_failure")["record"]["id"]
+        value = inspect_rehearsal(self.archive, "project", record)
+        self.assertFalse(value["report"]["qualification_passed"])
+        candidate = phase_table(self.archive, "project", record, 0, "stock_totals")
+        self.assertEqual(candidate["page"]["items"][0]["total"]["value"], 99)
+        self.assertTrue(value["report"]["phases"][0]["rollback_verified"])
+        with self.assertRaises(ValueError):
+            phase_table(
+                self.archive, "project", record, 0, "stock_totals", side="after"
+            )
+        diff = phase_table(
+            self.archive, "project", record, 0, "stock_totals", view="diff"
+        )
+        self.assertEqual(diff["page"]["counts"]["added"], 1)
+
