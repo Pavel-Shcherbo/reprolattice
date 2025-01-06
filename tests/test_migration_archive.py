@@ -63,3 +63,22 @@ class MigrationArchiveTests(unittest.TestCase):
         )
         self.assertEqual(diff["page"]["counts"]["added"], 1)
 
+    def test_broken_reverse_preserves_applied_state(self):
+        value = self.run_control("broken_rollback")
+        report = value["report"]
+        self.assertFalse(report["qualification_passed"])
+        self.assertEqual(len(report["final_state"]["stack"]), 2)
+        index = next(
+            i for i, p in enumerate(report["phases"]) if p["status"] == "failed"
+        )
+        self.assertEqual(report["phases"][index]["failure_stage"], "restoration")
+        page = phase_table(
+            self.archive,
+            "project",
+            value["record"]["id"],
+            index,
+            "inventory",
+            side="after",
+        )
+        self.assertEqual(page["page"]["items"][0]["available"]["value"], 100)
+
