@@ -82,3 +82,13 @@ class MigrationArchiveTests(unittest.TestCase):
         )
         self.assertEqual(page["page"]["items"][0]["available"]["value"], 100)
 
+    def test_portable_envelope_verifies_after_archive_removal(self):
+        value = self.run_control()
+        document = export_rehearsal(self.archive, "project", value["record"]["id"])
+        import shutil
+
+        shutil.rmtree(self.archive.root)
+        proof = verify_retained_migration(document)
+        self.assertTrue(proof["passed"])
+        self.assertTrue(proof["qualification_passed"])
+
