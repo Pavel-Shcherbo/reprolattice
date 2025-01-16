@@ -92,3 +92,11 @@ class MigrationArchiveTests(unittest.TestCase):
         self.assertTrue(proof["passed"])
         self.assertTrue(proof["qualification_passed"])
 
+    def test_failed_envelope_can_be_valid_evidence(self):
+        value = self.run_control("statement_failure")
+        proof = verify_retained_migration(
+            export_rehearsal(self.archive, "project", value["record"]["id"])
+        )
+        self.assertTrue(proof["passed"])
+        self.assertFalse(proof["qualification_passed"])
+
