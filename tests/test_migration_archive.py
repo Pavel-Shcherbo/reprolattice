@@ -100,3 +100,11 @@ class MigrationArchiveTests(unittest.TestCase):
         self.assertTrue(proof["passed"])
         self.assertFalse(proof["qualification_passed"])
 
+    def test_completed_manifest_and_file_tamper_cannot_be_hidden(self):
+        value = self.run_control()
+        record = value["record"]["id"]
+        root = self.archive.bundle(record)
+        (root / "report.json").write_text("{}")
+        with self.assertRaisesRegex(ValueError, "file changed"):
+            self.archive.get("project", record)
+
