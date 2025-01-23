@@ -108,3 +108,19 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "file changed"):
             self.archive.get("project", record)
 
+    def test_envelope_rejects_paths_encoding_and_receipt_tamper(self):
+        value = self.run_control()
+        document = export_rehearsal(self.archive, "project", value["record"]["id"])
+        for mutate in [
+            lambda d: d["files"].update({"../outside": "AA=="}),
+            lambda d: d["files"].update({"plan.json": "!!!!"}),
+            lambda d: d["record"].update(manifest_sha256="0" * 64),
+        ]:
+            forged = copy.deepcopy(document)
+            mutate(forged)
+            forged["sha256"] = identity(
+                {k: v for k, v in forged.items() if k != "sha256"}
+            )
+            with self.assertRaises(ValueError):
+                verify_retained_migration(forged)
+
