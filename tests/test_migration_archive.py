@@ -124,3 +124,15 @@ class MigrationArchiveTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_retained_migration(forged)
 
+    def test_expired_completion_can_be_adopted_without_rerun(self):
+        row, token = self.archive.reserve("project", self.plan, self.seed, "one")
+        qualify_migrations(self.plan, self.archive.bundle(row["id"]), seed=self.seed)
+        self.now = 701
+        with self.assertRaises(ValueError):
+            self.archive.complete("project", row["id"], token)
+        result = self.archive.recover("project", row["id"], 1)
+        self.assertEqual(result["record"]["status"], "completed")
+        self.assertEqual(len(result["report"]["final_state"]["events"]), 4)
+        with self.assertRaises(ValueError):
+            self.archive.complete("project", row["id"], token)
+
