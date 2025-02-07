@@ -136,3 +136,23 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.archive.complete("project", row["id"], token)
 
+    def test_partial_preparation_is_retained_as_interrupted(self):
+        row, token = self.archive.reserve("project", self.plan, self.seed, "one")
+        root = self.archive.bundle(row["id"])
+        root.mkdir()
+        (root / "partial").write_text("retained")
+        with self.assertRaises(ValueError):
+            self.archive.recover("project", row["id"], 1)
+        self.now = 701
+        result = self.archive.recover("project", row["id"], 1)
+        self.assertEqual(result["record"]["status"], "interrupted")
+        self.assertEqual((root / "partial").read_text(), "retained")
+        self.assertEqual(
+            self.archive.run("project", self.plan, self.seed, "one")["record"][
+                "status"
+            ],
+            "interrupted",
+        )
+        with self.assertRaises(ValueError):
+            self.archive.recover("project", row["id"], 1)
+
