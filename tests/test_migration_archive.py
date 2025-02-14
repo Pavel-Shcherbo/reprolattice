@@ -156,3 +156,14 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.archive.recover("project", row["id"], 1)
 
+    def test_commit_time_expiry_does_not_publish_completion(self):
+        row, token = self.archive.reserve("project", self.plan, self.seed, "one")
+        qualify_migrations(self.plan, self.archive.bundle(row["id"]), seed=self.seed)
+        clock = iter([100.0, 701.0])
+        self.archive.clock = lambda: next(clock)
+        with self.assertRaisesRegex(ValueError, "before commit"):
+            self.archive.complete("project", row["id"], token)
+        self.assertEqual(
+            self.archive.get("project", row["id"])["record"]["status"], "running"
+        )
+
