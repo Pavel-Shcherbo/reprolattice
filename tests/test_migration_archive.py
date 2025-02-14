@@ -167,3 +167,18 @@ class MigrationArchiveTests(unittest.TestCase):
             self.archive.get("project", row["id"])["record"]["status"], "running"
         )
 
+    def test_concurrent_identical_requests_share_one_record(self):
+        def run(_):
+            return MigrationArchive(self.archive.root).run(
+                "project", self.plan, self.seed, "one"
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            values = list(pool.map(run, range(4)))
+        self.assertEqual(len({v["record"]["id"] for v in values}), 1)
+        self.assertEqual(len(self.archive.list("project")["items"]), 1)
+        record = values[0]["record"]["id"]
+        self.assertTrue(
+            self.archive.get("project", record)["report"]["qualification_passed"]
+        )
+
