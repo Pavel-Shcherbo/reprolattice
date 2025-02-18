@@ -182,3 +182,11 @@ class MigrationArchiveTests(unittest.TestCase):
             self.archive.get("project", record)["report"]["qualification_passed"]
         )
 
+    def test_wrong_reserved_seed_cannot_be_completed(self):
+        row, token = self.archive.reserve("project", self.plan, self.seed, "one")
+        changed = copy.deepcopy(self.seed)
+        changed["tables"][0]["rows"][0]["available"] = 100
+        qualify_migrations(self.plan, self.archive.bundle(row["id"]), seed=changed)
+        with self.assertRaisesRegex(ValueError, "reserved seed"):
+            self.archive.complete("project", row["id"], token)
+
