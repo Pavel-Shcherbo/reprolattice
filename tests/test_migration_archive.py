@@ -190,3 +190,24 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "reserved seed"):
             self.archive.complete("project", row["id"], token)
 
+    def test_table_validation_and_paging(self):
+        value = self.run_control()
+        record = value["record"]["id"]
+        for kwargs in [
+            {"phase": True},
+            {"phase": 999},
+            {"side": "other"},
+            {"offset": -1},
+            {"view": "sql"},
+        ]:
+            params = {
+                "phase": 0,
+                "table": "inventory",
+                "side": "candidate",
+                "view": "rows",
+                "offset": 0,
+            }
+            params.update(kwargs)
+            with self.assertRaises(ValueError):
+                phase_table(self.archive, "project", record, **params)
+
