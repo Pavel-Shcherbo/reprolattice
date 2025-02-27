@@ -211,3 +211,33 @@ class MigrationArchiveTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 phase_table(self.archive, "project", record, **params)
 
+    def test_cli_run_export_verify_and_pending_recovery(self):
+        plan = self.root / "plan.json"
+        seed = self.root / "seed.json"
+        plan.write_text(json.dumps(self.plan))
+        seed.write_text(json.dumps(self.seed))
+        args = [
+            sys.executable,
+            "-m",
+            "reprolattice.migration_runs",
+            "--archive",
+            str(self.archive.root),
+            "--project",
+            "project",
+        ]
+
+        def cli(*tail, expected=0):
+            result = subprocess.run(
+                args + list(map(str, tail)), capture_output=True, text=True
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout)
+
+        value = cli("run", plan, "--seed", seed, "--request-key", "cli")
+        path = self.root / "export.json"
+        cli("export", value["record"]["id"], "--output", path)
+        self.assertTrue(cli("verify", path)["passed"])
+        pending, _ = self.archive.reserve("project", self.plan, self.seed, "abandoned")
+        result = cli("recover", pending["id"], "--generation", 1, expected=1)
+        self.assertEqual(result["record"]["status"], "interrupted")
+
