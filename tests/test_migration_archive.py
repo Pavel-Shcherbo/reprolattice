@@ -253,3 +253,11 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.archive.list("project", after=True)
 
+    def test_rehashed_manifest_cannot_replace_committed_receipt(self):
+        value = self.run_control()
+        root = self.archive.bundle(value["record"]["id"])
+        with (root / "manifest.json").open("ab") as stream:
+            stream.write(b" ")
+        with self.assertRaisesRegex(ValueError, "committed receipt"):
+            self.archive.get("project", value["record"]["id"])
+
