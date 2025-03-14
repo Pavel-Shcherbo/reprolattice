@@ -241,3 +241,15 @@ class MigrationArchiveTests(unittest.TestCase):
         result = cli("recover", pending["id"], "--generation", 1, expected=1)
         self.assertEqual(result["record"]["status"], "interrupted")
 
+    def test_list_paging_and_invalid_bounds(self):
+        first = self.run_control(key="first")
+        second = self.run_control(key="second")
+        page = self.archive.list("project", limit=1)
+        self.assertEqual(page["items"][0]["id"], first["record"]["id"])
+        self.assertEqual(
+            self.archive.list("project", after=page["next_cursor"])["items"][0]["id"],
+            second["record"]["id"],
+        )
+        with self.assertRaises(ValueError):
+            self.archive.list("project", after=True)
+
