@@ -261,3 +261,43 @@ class MigrationArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "committed receipt"):
             self.archive.get("project", value["record"]["id"])
 
+    def test_browser_api_rejects_arbitrary_sql_paths_and_unknown_profiles(self):
+        with patch.dict(os.environ, {"REPROLATTICE_STATE_DIR": str(self.root / "web")}):
+            self.assertEqual(
+                evaluate_migrations({"mode": "migration", "action": "overview"})[
+                    "items"
+                ],
+                [],
+            )
+            for extra in [
+                {"sql": "DROP TABLE x"},
+                {"source": "/tmp/private"},
+                {"profile": "unknown"},
+                {"profile": "round_trip", "request_key": "one", "label": "\n"},
+            ]:
+                with self.assertRaises(ValueError):
+                    evaluate_migrations({"mode": "migration", "action": "run", **extra})
+            result = evaluate_migrations(
+                {
+                    "mode": "migration",
+                    "action": "run",
+                    "request_key": "one",
+                    "profile": "round_trip",
+                }
+            )
+            self.assertTrue(result["report"]["qualification_passed"])
+            self.assertEqual(
+                evaluate_migrations(
+                    {
+                        "mode": "migration",
+                        "action": "run",
+                        "request_key": "one",
+                        "profile": "round_trip",
+                    }
+                ),
+                result,
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
