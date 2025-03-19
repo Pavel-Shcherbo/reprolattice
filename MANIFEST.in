@@ -10,3 +10,8 @@ include examples/inventory_state_client.py
 include examples/run-gate-policy.json
 
 include examples/inventory-migrations.json
+
+include examples/queue_worker.py
+include examples/queue-orders.json
+include examples/queue-effects-seed.json
+include examples/queue-effects-suite.json
