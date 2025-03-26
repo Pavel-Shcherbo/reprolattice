@@ -92,3 +92,7 @@ Qualify ordered SQLite forward/reverse SQL on an isolated seed or read-only sour
 ## Retained migration review
 
 The **Migrations** workbench runs reviewed isolated round-trip and failure controls, keeps phase SQL and candidate rows, protects lost-response retries and exports portable replay evidence. The [migration workbench guide](docs/MIGRATION_WORKBENCH.md) covers review, recovery and the scoped CLI archive.
+
+## Queue workers and redelivery
+
+Run real workers against an isolated virtual-clock queue, retain delivery/acknowledgement histories and qualify their side effects with the same suite SQLite/artifact checks. The included regression control crashes after a committed effect and proves why a correct queue acknowledgement can still hide a duplicate database write. See [queue scenarios](docs/QUEUES.md) for commands, replay, CI/archive integration and limits.
