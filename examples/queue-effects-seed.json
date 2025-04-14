@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "inventory",
+      "columns": [
+        {
+          "name": "part",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "available",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "part"
+      ],
+      "rows": [
+        {
+          "part": "part-42",
+          "available": 10
+        }
+      ]
+    },
+    {
+      "name": "processed",
+      "columns": [
+        {
+          "name": "job",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "units",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "primary_key": [
+        "job"
+      ],
+      "rows": []
+    }
+  ]
+}
