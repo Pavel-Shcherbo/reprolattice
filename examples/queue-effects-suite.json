@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "name": "queue-effects-regression",
+  "mode": "queue",
+  "command": [
+    "${python}",
+    "queue_worker.py",
+    "--behavior",
+    "${behavior}"
+  ],
+  "cases": [
+    {
+      "id": "redelivered-order",
+      "fixture": "queue-orders.json",
+      "fixture_sha256": "c7ae375f67bf6c1308df2419aa811aa91c02b4d0bd4e4c7064b8c7d01dd18957",
+      "matrix": {
+        "behavior": [
+          "idempotent",
+          "duplicate"
+        ]
+      },
+      "files": [
+        {
+          "path": "queue_worker.py",
+          "sha256": "f659c0222f01c77ac2b73daccdebabe712d3c84517e042704b300d9be84df9c5",
+          "role": "subject"
+        }
+      ],
+      "sqlite": [
+        {
+          "path": "queue-effects.sqlite",
+          "seed": "queue-effects-seed.json",
+          "seed_sha256": "78012d387cf872c2e78d0324faa17f9710e8f931890023f46a22ec733ce698f9",
+          "checks": [
+            {
+              "id": "inventory_effect_once",
+              "sql": "SELECT part,available FROM inventory ORDER BY part",
+              "expected": [
+                {
+                  "part": "part-42",
+                  "available": 6
+                }
+              ]
+            },
+            {
+              "id": "one_receipt",
+              "sql": "SELECT job,units FROM processed ORDER BY job",
+              "expected": [
+                {
+                  "job": "order-42",
+                  "units": 4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
