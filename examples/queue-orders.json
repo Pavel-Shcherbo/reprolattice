@@ -1,0 +1,51 @@
+{
+  "queue": {
+    "version": 1,
+    "name": "order-events",
+    "visibility_seconds": 5,
+    "max_deliveries": 2,
+    "messages": [
+      {
+        "id": "order-42",
+        "body": {
+          "part": "part-42",
+          "units": 4
+        }
+      }
+    ]
+  },
+  "application": {
+    "expected_json": {
+      "processed": 1,
+      "stale_ack_rejected": true,
+      "dead_letters": 1,
+      "duplicate_publish_reused": true
+    }
+  },
+  "expected_rejections": 1,
+  "queue_assertions": [
+    {
+      "id": "empty-live",
+      "path": "/counts",
+      "op": "equals",
+      "value": {
+        "queued": 0,
+        "leased": 0,
+        "acknowledged": 2,
+        "dead": 1
+      }
+    },
+    {
+      "id": "deliveries",
+      "path": "/deliveries",
+      "op": "equals",
+      "value": 5
+    },
+    {
+      "id": "retained-clock",
+      "path": "/clock",
+      "op": "equals",
+      "value": 5
+    }
+  ]
+}
