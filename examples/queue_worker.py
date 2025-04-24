@@ -32,3 +32,10 @@ def command(operation, **fields):
             error.close()
 
 
+def request(operation, **fields):
+    code, value = command(operation, **fields)
+    if code != 200:
+        raise RuntimeError(value)
+    return value
+
+
