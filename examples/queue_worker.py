@@ -39,3 +39,14 @@ def request(operation, **fields):
     return value
 
 
+def initialize():
+    with closing(sqlite3.connect("queue-effects.sqlite")) as db, db:
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS inventory(part TEXT PRIMARY KEY,available INTEGER NOT NULL)"
+        )
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS processed(job TEXT PRIMARY KEY,units INTEGER NOT NULL)"
+        )
+        db.execute("INSERT OR IGNORE INTO inventory VALUES('part-42',10)")
+
+
