@@ -50,3 +50,19 @@ def initialize():
         db.execute("INSERT OR IGNORE INTO inventory VALUES('part-42',10)")
 
 
+def apply_effect(message, duplicate):
+    with closing(sqlite3.connect("queue-effects.sqlite")) as db, db:
+        known = db.execute(
+            "SELECT units FROM processed WHERE job=?", (message["id"],)
+        ).fetchone()
+        if known is None or duplicate:
+            db.execute(
+                "UPDATE inventory SET available=available-? WHERE part='part-42'",
+                (message["body"]["units"],),
+            )
+            db.execute(
+                "INSERT OR IGNORE INTO processed VALUES(?,?)",
+                (message["id"], message["body"]["units"]),
+            )
+
+
