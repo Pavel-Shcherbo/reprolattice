@@ -66,3 +66,62 @@ def apply_effect(message, duplicate):
             )
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--behavior", choices=("idempotent", "duplicate"), default="idempotent"
+    )
+    parser.add_argument("--first-delivery", action="store_true")
+    args = parser.parse_args()
+    initialize()
+    if args.first_delivery:
+        message = request("receive", owner="crashed-worker")["message"]
+        apply_effect(message, False)
+        Path("unacknowledged-delivery.json").write_text(json.dumps(message))
+        os._exit(17)
+    crashed = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--first-delivery"], timeout=5
+    )
+    if crashed.returncode != 17:
+        raise RuntimeError(
+            "first delivery did not stop after its committed side effect"
+        )
+    stale = json.loads(Path("unacknowledged-delivery.json").read_text())
+    request("advance", seconds=5)
+    retry = request("receive", owner="retry-worker")["message"]
+    if retry["id"] != stale["id"] or retry["attempt"] != 2:
+        raise RuntimeError("the unacknowledged message was not redelivered")
+    stale_status, _ = command("ack", owner="crashed-worker", delivery=stale["delivery"])
+    apply_effect(retry, args.behavior == "duplicate")
+    request("ack", owner="retry-worker", delivery=retry["delivery"])
+    repeated_ack = request("ack", owner="retry-worker", delivery=retry["delivery"])
+    if not repeated_ack["reused"]:
+        raise RuntimeError("acknowledgement response was not recoverable")
+    request("publish", id="poison-1", body={"kind": "poison"}, request_key="poison")
+    for _ in range(2):
+        poison = request("receive", owner="poison-worker")["message"]
+        request("nack", owner="poison-worker", delivery=poison["delivery"])
+    publication = {"id": "audit-1", "body": {"kind": "audit"}, "request_key": "audit"}
+    request("publish", **publication)
+    repeated = request("publish", **publication)
+    audit = request("receive", owner="audit-worker")["message"]
+    request("ack", owner="audit-worker", delivery=audit["delivery"])
+    if request("receive", owner="audit-worker")["message"] is not None:
+        raise RuntimeError("unexpected ready queue message")
+    status = request("status")
+    with closing(sqlite3.connect("queue-effects.sqlite")) as db:
+        processed = db.execute("SELECT count(*) FROM processed").fetchone()[0]
+    print(
+        json.dumps(
+            {
+                "processed": processed,
+                "stale_ack_rejected": stale_status == 400,
+                "dead_letters": status["counts"]["dead"],
+                "duplicate_publish_reused": repeated["reused"],
+            }
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()
