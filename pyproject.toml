@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "reprolattice"
 version = "0.2.0"
-description = "Turn an HTTP failure case into a portable, verifiable scenario."
+description = "Reproduce HTTP, queue and database regressions with retained evidence."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
