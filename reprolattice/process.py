@@ -29,6 +29,11 @@ def stop_process(process):
             process.kill()
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # macOS may report EPERM for the departed group of an exited leader.
+        # Reap/check that exact child; never suppress failure for a live leader.
+        if process.poll() is None:
+            raise
 
 
 def run_process(
