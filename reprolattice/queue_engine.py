@@ -54,3 +54,61 @@ class QueueEngine:
             "owner": None,
         }
 
+    def execute(self, command):
+        try:
+            validate_json(command, max_bytes=131072, max_depth=35, max_nodes=11000)
+        except ValueError:
+            with self.lock:
+                self.dropped_commands += 1
+            raise
+        with self.lock:
+            if len(self.journal) >= self.configuration["max_commands"]:
+                self.dropped_commands += 1
+                raise QueueCapacity("queue command quota exceeded")
+            # Reserve the maximum possible entry before applying any command.
+            # Quota rejection cannot leave an unjournaled mutation behind.
+            if (
+                self.journal_bytes
+                + len(canonical(command))
+                + self.configuration["max_body_bytes"]
+                + 8192
+                > 6 * 1024 * 1024
+            ):
+                self.dropped_commands += 1
+                raise QueueCapacity("queue retained journal byte quota exceeded")
+            state_bytes = len(canonical(self.snapshot()))
+            response_budget = (
+                state_bytes + 128
+                if isinstance(command, dict) and command.get("operation") == "status"
+                else self.configuration["max_body_bytes"] + 8192
+            )
+            if (
+                len(canonical(self.configuration))
+                + state_bytes
+                + self.journal_bytes
+                + len(canonical(command))
+                + response_budget
+                + self.configuration["max_body_bytes"]
+                + 16384
+                > MAX_EVIDENCE // 2
+            ):
+                self.dropped_commands += 1
+                raise QueueCapacity("queue combined state/evidence byte quota exceeded")
+            try:
+                response = {"status": 200, "body": self.operate(command)}
+            except ValueError as error:
+                self.rejections += 1
+                response = {"status": 400, "body": {"error": str(error)}}
+            content = {
+                "sequence": len(self.journal) + 1,
+                "at": self.clock,
+                "command": copy.deepcopy(command),
+                "response": copy.deepcopy(response),
+                "previous_sha256": self.head,
+            }
+            content["sha256"] = fingerprint(content)
+            self.journal.append(content)
+            self.head = content["sha256"]
+            self.journal_bytes += len(canonical(content))
+            return copy.deepcopy(response)
+
