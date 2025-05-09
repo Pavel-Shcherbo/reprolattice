@@ -40,3 +40,17 @@ class QueueEngine:
             )
         self.sequence = len(self.messages)
 
+    @staticmethod
+    def message(identity, body, order, available_at):
+        return {
+            "id": identity,
+            "body": copy.deepcopy(body),
+            "order": order,
+            "status": "queued",
+            "available_at": available_at,
+            "attempts": 0,
+            "active_delivery": None,
+            "lease_until": None,
+            "owner": None,
+        }
+
