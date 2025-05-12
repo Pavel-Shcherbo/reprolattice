@@ -112,3 +112,37 @@ class QueueEngine:
             self.journal_bytes += len(canonical(content))
             return copy.deepcopy(response)
 
+    def operate(self, command):
+        if not isinstance(command, dict):
+            raise ValueError("queue command requires an object")
+        operation = command.get("operation")
+        if operation == "publish":
+            return self.publish(command)
+        if operation == "receive":
+            return self.receive(command)
+        if operation in ("ack", "nack"):
+            return self.finish(command)
+        if operation == "advance":
+            fields(command, ("operation", "seconds"))
+            seconds = integer(command["seconds"], "clock advance", 0, 86400)
+            if self.clock + seconds > 1000000000:
+                raise ValueError("virtual queue clock exceeds its range")
+            self.clock += seconds
+            expired = []
+            for message in sorted(
+                self.messages.values(), key=lambda item: item["order"]
+            ):
+                if (
+                    message["status"] == "leased"
+                    and message["lease_until"] <= self.clock
+                ):
+                    delivery = message["active_delivery"]
+                    self.tokens[delivery]["status"] = "expired"
+                    self.release(message, 0)
+                    expired.append(message["id"])
+            return {"clock": self.clock, "expired": expired}
+        if operation == "status":
+            fields(command, ("operation",))
+            return self.snapshot()
+        raise ValueError("unsupported queue operation")
+
