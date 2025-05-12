@@ -146,3 +146,35 @@ class QueueEngine:
             return self.snapshot()
         raise ValueError("unsupported queue operation")
 
+    def publish(self, command):
+        fields(command, ("operation", "id", "body", "request_key"), ("delay_seconds",))
+        identity = name(command["id"], "message ID")
+        request = name(command["request_key"], "publish request key")
+        delay = integer(command.get("delay_seconds", 0), "publish delay", 0, 86400)
+        validate_json(
+            command["body"],
+            max_bytes=self.configuration["max_body_bytes"],
+            max_depth=30,
+            max_nodes=10000,
+        )
+        binding = fingerprint(
+            {"id": identity, "body": command["body"], "delay_seconds": delay}
+        )
+        prior = self.publish_requests.get(request)
+        if prior:
+            if prior["binding"] != binding:
+                raise ValueError("publish request key identifies another message")
+            return {"id": identity, "reused": True}
+        if self.clock + delay > 1000000000:
+            raise ValueError("publish delay exceeds the virtual clock range")
+        if identity in self.messages:
+            raise ValueError("message ID already exists under another request")
+        if len(self.messages) >= self.configuration["max_messages"]:
+            raise ValueError("queue message capacity exceeded")
+        self.sequence += 1
+        self.messages[identity] = self.message(
+            identity, command["body"], self.sequence, self.clock + delay
+        )
+        self.publish_requests[request] = {"binding": binding, "id": identity}
+        return {"id": identity, "reused": False}
+
