@@ -178,3 +178,56 @@ class QueueEngine:
         self.publish_requests[request] = {"binding": binding, "id": identity}
         return {"id": identity, "reused": False}
 
+    def receive(self, command):
+        fields(command, ("operation", "owner"))
+        owner = name(command["owner"], "delivery owner")
+        candidates = sorted(
+            (
+                item
+                for item in self.messages.values()
+                if item["status"] == "queued" and item["available_at"] <= self.clock
+            ),
+            key=lambda item: (item["available_at"], item["order"]),
+        )
+        if not candidates:
+            return {"message": None, "clock": self.clock}
+        message = candidates[0]
+        if self.clock + self.configuration["visibility_seconds"] > 1000000000:
+            raise ValueError("delivery lease exceeds the virtual clock range")
+        attempt = message["attempts"] + 1
+        token = fingerprint(
+            [
+                self.configuration["name"],
+                message["id"],
+                attempt,
+                len(self.journal) + 1,
+                owner,
+            ]
+        )
+        self.deliveries += 1
+        message.update(
+            status="leased",
+            attempts=attempt,
+            active_delivery=token,
+            owner=owner,
+            lease_until=self.clock + self.configuration["visibility_seconds"],
+        )
+        self.tokens[token] = {
+            "message": message["id"],
+            "owner": owner,
+            "attempt": attempt,
+            "status": "leased",
+            "receipt": None,
+            "finish_binding": None,
+        }
+        return {
+            "message": {
+                "id": message["id"],
+                "body": copy.deepcopy(message["body"]),
+                "attempt": attempt,
+                "delivery": token,
+                "lease_until": message["lease_until"],
+            },
+            "clock": self.clock,
+        }
+
