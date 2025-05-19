@@ -283,3 +283,16 @@ class QueueEngine:
         prior.update(receipt=receipt, finish_binding=binding)
         return {**receipt, "reused": False}
 
+    def release(self, message, delay):
+        message.update(
+            status=(
+                "dead"
+                if message["attempts"] >= self.configuration["max_deliveries"]
+                else "queued"
+            ),
+            available_at=self.clock + delay,
+            active_delivery=None,
+            lease_until=None,
+            owner=None,
+        )
+
