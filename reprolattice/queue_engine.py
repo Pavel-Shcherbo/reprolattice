@@ -296,3 +296,20 @@ class QueueEngine:
             owner=None,
         )
 
+    def snapshot(self):
+        messages = [
+            copy.deepcopy(item)
+            for item in sorted(self.messages.values(), key=lambda item: item["order"])
+        ]
+        return {
+            "clock": self.clock,
+            "message_count": len(messages),
+            "deliveries": self.deliveries,
+            "rejected_commands": self.rejections,
+            "counts": {
+                status: sum(item["status"] == status for item in messages)
+                for status in ("queued", "leased", "acknowledged", "dead")
+            },
+            "messages": messages,
+        }
+
