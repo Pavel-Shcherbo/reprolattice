@@ -231,3 +231,55 @@ class QueueEngine:
             "clock": self.clock,
         }
 
+    def finish(self, command):
+        operation = command["operation"]
+        fields(
+            command,
+            ("operation", "delivery", "owner"),
+            ("delay_seconds",) if operation == "nack" else (),
+        )
+        token = command["delivery"]
+        if not isinstance(token, str) or len(token) != 64:
+            raise ValueError("delivery requires its exact token")
+        owner = name(command["owner"], "delivery owner")
+        delay = integer(command.get("delay_seconds", 0), "retry delay", 0, 86400)
+        binding = fingerprint(
+            {"operation": operation, "owner": owner, "delay_seconds": delay}
+        )
+        prior = self.tokens.get(token)
+        if prior is None or prior["owner"] != owner:
+            raise ValueError("unknown delivery or mismatched owner")
+        if prior["receipt"] is not None:
+            if prior["finish_binding"] != binding:
+                raise ValueError("delivery already finished with another operation")
+            return {**prior["receipt"], "reused": True}
+        if operation == "nack" and self.clock + delay > 1000000000:
+            raise ValueError("retry delay exceeds the virtual clock range")
+        message = self.messages[prior["message"]]
+        if (
+            prior["status"] != "leased"
+            or message["status"] != "leased"
+            or message["active_delivery"] != token
+            or message["lease_until"] <= self.clock
+        ):
+            raise ValueError("delivery lease expired or no longer owns the message")
+        if operation == "ack":
+            message.update(
+                status="acknowledged",
+                active_delivery=None,
+                lease_until=None,
+                owner=None,
+            )
+            prior["status"] = "acknowledged"
+        else:
+            prior["status"] = "released"
+            self.release(message, delay)
+        receipt = {
+            "id": message["id"],
+            "status": message["status"],
+            "attempt": prior["attempt"],
+            "clock": self.clock,
+        }
+        prior.update(receipt=receipt, finish_binding=binding)
+        return {**receipt, "reused": False}
+
