@@ -313,3 +313,20 @@ class QueueEngine:
             "messages": messages,
         }
 
+    def evidence(self, *, wire_errors=0):
+        with self.lock:
+            document = {
+                "format": "reprolattice.queue-evidence.v1",
+                "configuration": copy.deepcopy(self.configuration),
+                "journal": copy.deepcopy(self.journal),
+                "state": self.snapshot(),
+                "event_head": self.head,
+                "wire_errors": integer(wire_errors, "wire errors"),
+                "dropped_commands": self.dropped_commands,
+                "complete": wire_errors == 0 and self.dropped_commands == 0,
+            }
+            document["sha256"] = fingerprint(document)
+            validate_json(document, max_bytes=MAX_EVIDENCE, max_nodes=4000000)
+            return document
+
+
