@@ -330,3 +330,64 @@ class QueueEngine:
             return document
 
 
+def verify_queue_evidence(document):
+    fields(
+        document,
+        (
+            "format",
+            "configuration",
+            "journal",
+            "state",
+            "event_head",
+            "wire_errors",
+            "dropped_commands",
+            "complete",
+            "sha256",
+        ),
+    )
+    validate_json(document, max_bytes=MAX_EVIDENCE, max_nodes=4000000)
+    if (
+        document["format"] != "reprolattice.queue-evidence.v1"
+        or fingerprint({k: v for k, v in document.items() if k != "sha256"})
+        != document["sha256"]
+    ):
+        raise ValueError("queue evidence format/content identity changed")
+    wire = integer(document["wire_errors"], "wire errors")
+    dropped = integer(document["dropped_commands"], "dropped commands")
+    if type(document["complete"]) is not bool or document["complete"] != (
+        wire == 0 and dropped == 0
+    ):
+        raise ValueError("queue evidence completeness differs from wire accounting")
+    engine = QueueEngine(document["configuration"])
+    journal = document["journal"]
+    if (
+        not isinstance(journal, list)
+        or len(journal) > engine.configuration["max_commands"]
+    ):
+        raise ValueError("queue evidence exceeds command bounds")
+    for entry in journal:
+        fields(
+            entry,
+            ("sequence", "at", "command", "response", "previous_sha256", "sha256"),
+        )
+        engine.execute(entry["command"])
+        if canonical(engine.journal[-1]) != canonical(entry):
+            raise ValueError(
+                "queue command, response or hash chain differs from fresh replay"
+            )
+    if (
+        canonical(engine.snapshot()) != canonical(document["state"])
+        or engine.head != document["event_head"]
+    ):
+        raise ValueError("queue final state differs from replayed commands")
+    return {
+        "passed": True,
+        "complete": document["complete"],
+        "commands_replayed": len(journal),
+        "message_count": len(engine.messages),
+        "deliveries": engine.deliveries,
+        "event_head": engine.head,
+        "source_authenticated": False,
+        "application_reexecuted": False,
+        "dropped_commands": dropped,
+    }
