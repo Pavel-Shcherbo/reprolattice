@@ -19,3 +19,7 @@ def canonical(value):
     ).encode()
 
 
+def fingerprint(value):
+    return hashlib.sha256(canonical(value)).hexdigest()
+
+
