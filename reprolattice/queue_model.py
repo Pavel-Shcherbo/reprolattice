@@ -29,3 +29,9 @@ def name(value, label):
     return value
 
 
+def integer(value, label, minimum=0, maximum=1000000000):
+    if type(value) is not int or not minimum <= value <= maximum:
+        raise ValueError(f"{label} must be an integer in {minimum}..{maximum}")
+    return value
+
+
