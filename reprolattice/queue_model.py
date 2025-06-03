@@ -23,3 +23,9 @@ def fingerprint(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def name(value, label):
+    if not isinstance(value, str) or not NAME.fullmatch(value):
+        raise ValueError(label + " requires a bounded ASCII identifier")
+    return value
+
+
