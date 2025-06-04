@@ -35,3 +35,12 @@ def integer(value, label, minimum=0, maximum=1000000000):
     return value
 
 
+def fields(value, required, optional=()):
+    if (
+        not isinstance(value, dict)
+        or set(value) - set(required) - set(optional)
+        or not set(required) <= set(value)
+    ):
+        raise ValueError("queue document has missing or unsupported fields")
+
+
