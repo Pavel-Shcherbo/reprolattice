@@ -83,3 +83,19 @@ def configuration(value):
     return result
 
 
+def fixture_contract(value):
+    fields(
+        value, ("queue", "application", "queue_assertions"), ("expected_rejections",)
+    )
+    config = configuration(value["queue"])
+    expected, rules, exit_code = application_contract(value)
+    queue_rules = compile_rules(value["queue_assertions"])
+    if not queue_rules:
+        raise ValueError("queue fixture requires nonempty final-state assertions")
+    integer(
+        value.get("expected_rejections", 0),
+        "expected rejections",
+        0,
+        config["max_commands"],
+    )
+    return config, expected, rules, exit_code, queue_rules
