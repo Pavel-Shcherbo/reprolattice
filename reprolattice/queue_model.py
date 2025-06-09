@@ -44,3 +44,42 @@ def fields(value, required, optional=()):
         raise ValueError("queue document has missing or unsupported fields")
 
 
+def configuration(value):
+    fields(
+        value,
+        ("version", "name", "visibility_seconds", "max_deliveries", "messages"),
+        ("max_messages", "max_commands", "max_body_bytes"),
+    )
+    validate_json(value, max_bytes=2 * 1024 * 1024)
+    if type(value["version"]) is not int or value["version"] != 1:
+        raise ValueError("queue fixture requires version 1")
+    name(value["name"], "queue name")
+    integer(value["visibility_seconds"], "visibility seconds", 1, 3600)
+    integer(value["max_deliveries"], "max deliveries", 1, 20)
+    result = copy.deepcopy(value)
+    for key, default, maximum in (
+        ("max_messages", 1000, 1000),
+        ("max_commands", 5000, 5000),
+        ("max_body_bytes", 65536, 65536),
+    ):
+        result[key] = integer(value.get(key, default), key, 1, maximum)
+    messages = value["messages"]
+    if not isinstance(messages, list) or len(messages) > result["max_messages"]:
+        raise ValueError("seed messages exceed the declared queue capacity")
+    ids = set()
+    for item in messages:
+        fields(item, ("id", "body"), ("delay_seconds",))
+        identity = name(item["id"], "seed message ID")
+        if identity in ids:
+            raise ValueError("seed message IDs must be unique")
+        ids.add(identity)
+        integer(item.get("delay_seconds", 0), "seed delay", 0, 86400)
+        validate_json(
+            item["body"],
+            max_bytes=result["max_body_bytes"],
+            max_depth=30,
+            max_nodes=10000,
+        )
+    return result
+
+
