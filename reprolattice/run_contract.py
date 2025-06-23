@@ -83,7 +83,7 @@ def validate_run(report):
         if not CASE_ID.fullmatch(case["id"]):
             raise ValueError("case ID exceeds archive bounds")
         named(case.get("source_id"), "source case ID")
-        if case.get("mode") not in ("application", "protocol"):
+        if case.get("mode") not in ("application", "protocol", "queue"):
             raise ValueError("unsupported archived case mode")
         if not isinstance(case.get("parameters"), dict):
             raise ValueError("case parameters must be an object")
