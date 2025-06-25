@@ -15,6 +15,7 @@ from .jsonutil import strict_json, validate_json
 from .parameters import expand, variants, parameter_name, variant_identity
 from .protocol import sample_request
 from .replay import validate
+from .queue_model import fixture_contract
 
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$")
 SHA = re.compile(r"^[0-9a-f]{64}$")
@@ -269,14 +270,22 @@ def compile_suite(definition, root="."):
                     )
                 secret_values.append(value)
             fixture = expand(fixture_template, runtime)
-            validate(fixture)
             mode = case.get("mode", definition.get("mode", "application"))
-            if mode not in ("application", "protocol"):
-                raise ValueError("case mode must be application or protocol")
+            if mode not in ("application", "protocol", "queue"):
+                raise ValueError("case mode must be application, protocol or queue")
+            if mode == "queue":
+                if secret_names:
+                    raise ValueError(
+                        "queue evidence requires synthetic inputs without secret_parameters"
+                    )
+                _, _, _, _, queue_rules = fixture_contract(fixture)
+                total_rules += len(queue_rules)
+            else:
+                validate(fixture)
             command = expand(
                 case.get("command", definition.get("command", [])), runtime
             )
-            if mode == "application":
+            if mode in ("application", "queue"):
                 if (
                     not isinstance(command, list)
                     or not command
