@@ -10,6 +10,7 @@ from .jsonutil import strict_json
 from .reports import write_reports
 from .suite_config import compile_suite, read_bounded
 from .suite_runner import run_suite
+from .queues import write_evidence
 
 
 def main(argv=None):
@@ -25,6 +26,11 @@ def main(argv=None):
         help="New report directory; existing destinations are preserved",
     )
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument(
+        "--queue-evidence",
+        type=Path,
+        help="New directory retaining complete per-case queue replay evidence",
+    )
     parser.add_argument("--fail-fast", action="store_true")
     parser.add_argument("--include-tag", action="append", default=[])
     parser.add_argument("--exclude-tag", action="append", default=[])
@@ -38,6 +44,8 @@ def main(argv=None):
         plan = compile_suite(definition, args.root or args.spec.resolve().parent)
         if args.output.exists():
             raise ValueError("report destination already exists")
+        if args.queue_evidence is not None:
+            args.queue_evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
         signal.signal(signal.SIGINT, lambda *_: cancelled.set())
         report = run_suite(
             plan,
@@ -46,6 +54,15 @@ def main(argv=None):
             include_tags=args.include_tag,
             exclude_tags=args.exclude_tag,
             should_cancel=cancelled.is_set,
+            on_queue=(
+                (
+                    lambda case, value: write_evidence(
+                        value, args.queue_evidence / (case.id + ".json")
+                    )
+                )
+                if args.queue_evidence is not None
+                else None
+            ),
         )
         manifest = write_reports(report, args.output)
         print(
