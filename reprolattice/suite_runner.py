@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .artifact_checks import check_artifacts
 from .harness import check_client
+from .queue_harness import check_queue
 from .parameters import scrub
 from .protocol import verify_protocol
 from .suite_config import SuitePlan, named
@@ -27,6 +28,13 @@ def utc_now():
 def compact_detail(detail):
     """Preserve check outcomes while bounding retained payload diagnostics."""
     result = dict(detail)
+    if "queue_evidence" in result:
+        evidence = result.pop("queue_evidence")
+        result["queue_evidence_summary"] = {
+            "sha256": evidence["sha256"],
+            "complete": evidence["complete"],
+            "commands": len(evidence["journal"]),
+        }
     if "application" in result:
         application = dict(result["application"])
         output = application.pop("output", None)
@@ -108,7 +116,7 @@ def case_metadata(case):
     }
 
 
-def run_case(case, workspace, should_cancel, on_state=None):
+def run_case(case, workspace, should_cancel, on_state=None, on_queue=None):
     started = time.monotonic()
     result = {**case_metadata(case), "started_at": utc_now()}
     if should_cancel():
@@ -133,14 +141,33 @@ def run_case(case, workspace, should_cancel, on_state=None):
             return should_cancel() or time.monotonic() >= deadline
 
         prepared = prepare_states(workspace, case.states, should_cancel=case_cancelled)
-        if case.mode == "application":
-            detail = check_client(
+        if case.mode in ("application", "queue"):
+            checker = check_queue if case.mode == "queue" else check_client
+            detail = checker(
                 case.fixture,
                 list(case.command),
                 max(0.001, deadline - time.monotonic()),
                 workspace,
                 should_cancel=case_cancelled,
             )
+            if case.mode == "queue" and on_queue is not None:
+                exported = on_queue(case, detail["queue_evidence"])
+                if exported is not None:
+                    from .jsonutil import validate_json
+
+                    validate_json(exported, max_bytes=16384, max_depth=3)
+                    if (
+                        not isinstance(exported, dict)
+                        or set(exported) != {"path", "sha256", "bytes"}
+                        or exported["sha256"] != detail["queue_evidence"]["sha256"]
+                        or not isinstance(exported["path"], str)
+                        or type(exported["bytes"]) is not int
+                        or exported["bytes"] < 1
+                    ):
+                        raise ValueError(
+                            "queue export callback requires matching path/hash/byte metadata"
+                        )
+                    detail["queue_evidence_export"] = exported
         else:
             detail = verify_protocol(case.fixture, should_cancel=case_cancelled)
         if time.monotonic() >= deadline and not should_cancel():
@@ -214,6 +241,7 @@ def run_suite(
     should_cancel=None,
     on_event=None,
     on_state=None,
+    on_queue=None,
 ):
     if not isinstance(plan, SuitePlan):
         raise ValueError("run_suite requires a compiled SuitePlan")
@@ -221,7 +249,7 @@ def run_suite(
         raise ValueError("jobs must be between one and eight")
     if type(fail_fast) is not bool:
         raise ValueError("fail_fast must be boolean")
-    for callback in (should_cancel, on_event, on_state):
+    for callback in (should_cancel, on_event, on_state, on_queue):
         if callback is not None and not callable(callback):
             raise ValueError("suite callbacks must be callable")
     for selection in (include_tags, exclude_tags):
@@ -287,7 +315,12 @@ def run_suite(
                     next_case += 1
                     emit("case_started", case.id)
                     future = executor.submit(
-                        run_case, case, Path(temporary) / case.id, cancelled, on_state
+                        run_case,
+                        case,
+                        Path(temporary) / case.id,
+                        cancelled,
+                        on_state,
+                        on_queue,
                     )
                     pending[future] = case
                 if not pending:
