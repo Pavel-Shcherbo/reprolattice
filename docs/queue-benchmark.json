@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "scope": "One local 200-message virtual-clock redelivery workload and a separate in-memory idempotent effect oracle; not a broker throughput or durable distributed service claim",
+  "messages": 200,
+  "deliveries": 400,
+  "commands": 601,
+  "independent_effect_count": 200,
+  "independent_unit_sum": 20100,
+  "every_message_observed_twice": true,
+  "final_acknowledged": 200,
+  "execution_seconds": 0.3134949590312317,
+  "fresh_replay_seconds": 0.3181185409775935,
+  "evidence_bytes": 300857,
+  "retained_evidence": "/var/folders/8_/kbqb5qpx3lbbg3zxc48xbhcr0000gn/T/queue-workload-32xt_k7n/queue.json"
+}
