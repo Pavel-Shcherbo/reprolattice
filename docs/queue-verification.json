@@ -1,0 +1,78 @@
+{
+  "passed": true,
+  "scope": "Installed local virtual-clock broker and real crashed workers; queue replay does not reexecute or authenticate the application",
+  "standalone": [
+    {
+      "behavior": "idempotent",
+      "independent_stock": 6,
+      "independent_processed_rows": [
+        [
+          "order-42",
+          4
+        ]
+      ],
+      "broker_assertions_passed": true,
+      "replay": {
+        "passed": true,
+        "complete": true,
+        "commands_replayed": 17,
+        "message_count": 3,
+        "deliveries": 5,
+        "event_head": "a2c9e3d3158471d84bac44a9d3e3ae622e0dd9dadbd0453fd7ef7d4a9e9b875b",
+        "source_authenticated": false,
+        "application_reexecuted": false,
+        "dropped_commands": 0
+      },
+      "sha256": "241f61c2f2ce06325f3b6904c021586a7410816d4a009f5924db1eae3120669d"
+    },
+    {
+      "behavior": "duplicate",
+      "independent_stock": 2,
+      "independent_processed_rows": [
+        [
+          "order-42",
+          4
+        ]
+      ],
+      "broker_assertions_passed": true,
+      "replay": {
+        "passed": true,
+        "complete": true,
+        "commands_replayed": 17,
+        "message_count": 3,
+        "deliveries": 5,
+        "event_head": "a2c9e3d3158471d84bac44a9d3e3ae622e0dd9dadbd0453fd7ef7d4a9e9b875b",
+        "source_authenticated": false,
+        "application_reexecuted": false,
+        "dropped_commands": 0
+      },
+      "sha256": "241f61c2f2ce06325f3b6904c021586a7410816d4a009f5924db1eae3120669d"
+    }
+  ],
+  "suite_counts": {
+    "passed": 1,
+    "failed": 1,
+    "error": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "negative_effect_detected_independently_of_broker": true,
+  "identical_broker_histories_different_database_effects": true,
+  "junit_tests": 2,
+  "junit_failures": 1,
+  "failed_baseline_rejected": true,
+  "passing_baseline_generation": 1,
+  "archive_audit_passed": true,
+  "create_only_private_evidence": true,
+  "queue_replay_after_worker_removal": {
+    "passed": true,
+    "complete": true,
+    "commands_replayed": 17,
+    "message_count": 3,
+    "deliveries": 5,
+    "event_head": "a2c9e3d3158471d84bac44a9d3e3ae622e0dd9dadbd0453fd7ef7d4a9e9b875b",
+    "source_authenticated": false,
+    "application_reexecuted": false,
+    "dropped_commands": 0
+  }
+}
