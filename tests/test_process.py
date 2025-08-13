@@ -1,12 +1,14 @@
 import os
 import signal
+import subprocess
+from unittest.mock import patch
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 
-from reprolattice.process import run_process
+from reprolattice.process import run_process, stop_process
 
 
 class ProcessTests(unittest.TestCase):
@@ -72,6 +74,25 @@ class ProcessTests(unittest.TestCase):
             self.assertLess(time.monotonic() - started, 1.5)
             time.sleep(0.8)
             self.assertFalse(marker.exists())
+
+    @unittest.skipUnless(os.name == "posix", "POSIX process group semantics")
+    def test_permission_error_is_ignored_only_after_the_exact_child_exits(self):
+        completed = subprocess.Popen(
+            [sys.executable, "-c", "pass"], start_new_session=True
+        )
+        completed.wait(timeout=5)
+        with patch("reprolattice.process.os.killpg", side_effect=PermissionError()):
+            stop_process(completed)
+        active = subprocess.Popen(
+            [sys.executable, "-c", "import time;time.sleep(5)"], start_new_session=True
+        )
+        try:
+            with patch("reprolattice.process.os.killpg", side_effect=PermissionError()):
+                with self.assertRaises(PermissionError):
+                    stop_process(active)
+        finally:
+            stop_process(active)
+            active.wait(timeout=5)
 
     def test_invalid_limits_do_not_start_process(self):
         for options in [
