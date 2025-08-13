@@ -1,5 +1,5 @@
 {
-  "unit_tests": 213,
+  "unit_tests": 241,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
@@ -26,14 +26,19 @@
     "reprolattice/migration_web.py": "e8f4a06b4be7e1b0d7e1e9622f29ef6deef3a3bc52bc6e96e9dd0e1d2a3d5689",
     "reprolattice/migrations.py": "adbd1c73bdf08d9ab5040f2fcebb2054166f9b066f602027a3d6035bd68389e7",
     "reprolattice/parameters.py": "1ee690d3db63f1187637688e886167e93e9d5dc4716da94df29e747384f0cc92",
-    "reprolattice/process.py": "5c064f061b2a328d217ca619a69ea19f734d8f7966bf8e78a698015ec7e4aa12",
+    "reprolattice/process.py": "de3cd2554ba5220b64ee6bd31194770b53119b3f456da1c8dced26d025e680da",
     "reprolattice/protocol.py": "8d6b49d3f17c06ad990bfb594a17546b719101c6d5991090918af25f9123749c",
+    "reprolattice/queue_engine.py": "6f02a568d4cf3aba65e2b24f0d85335e004f8d3ba0b1c011bd6d2751d07c6c2f",
+    "reprolattice/queue_harness.py": "7276b7b02f5bb1683c523321bf8e20c259ab4ca8c7d75d8c5977b8f438e761f9",
+    "reprolattice/queue_http.py": "2c752d4643b438d4c62e2b79725a5a5cdb22e4cd46eeb82ce172fc5ecc73cf0d",
+    "reprolattice/queue_model.py": "6488c51ee4a5d29c917df0de9f0f41f0e97c82f56faf2390730597c6e50fafe0",
+    "reprolattice/queues.py": "89a2ca2c0368a32fd461bbdd08a68f218f738d1c8bcf1dad08263188ee3ee18b",
     "reprolattice/redaction.py": "fb98e901a34d60df988b505f2b4377c50a4ff3d954ca6820df1c2915f1ed9ec1",
     "reprolattice/replay.py": "ccb6ccdd01e78f1f6921fcd5138e274c5f7646c0bfa527ba25d6a1e1790426a7",
     "reprolattice/reports.py": "ba3df84f2055fb4a3180ca3b1c510479d254b29cd550cedcbd3a7f23177a7ef2",
     "reprolattice/resources.py": "7b4881ac5e208822eea3c485114e2482ba81fc4336e113fdd301e87610b7d62e",
     "reprolattice/run_compare.py": "54874b92bcc405bb7ba25677b019866e0ba3684809db10d1daf6def0c81f72a8",
-    "reprolattice/run_contract.py": "714abbd586eabba0814e5ea37caf44bee654cb684d7507fa4f6585cccfcbd30e",
+    "reprolattice/run_contract.py": "c69a70a361c7e647c9fa5318928e7e42678d3b706965023f7dad75b3b4d55cfa",
     "reprolattice/run_registry.py": "1747bbbe839249aede92d8ce379cf77a29fddb78f09b39e24797e0620ba588d4",
     "reprolattice/runs.py": "6ed8d7d708c894290b156f828ce90ebea1f51b864e7faf959ecb23a2dfab1195",
     "reprolattice/sqlite_cli.py": "df3f9d39e44400ad3de28efe4b13ec266a50f0915fa2452b23fded951a17033c",
@@ -49,10 +54,10 @@
     "reprolattice/static/app.js": "609680ad581a762465d7b928c0728ad7630f44b1c8da462506a2e7a759e52958",
     "reprolattice/static/index.html": "63d7814e3a9615615b75444c88c5739d01ac1ff2fa99586ad07093e43d464037",
     "reprolattice/static/style.css": "17b82cfec413f8c6eca03953869ac575bc40a31cc8f6b19264af1da8b1c498d3",
-    "reprolattice/suite_config.py": "cddae0f73b10e54cad70fd159acceee476c88f634c34fed01e1c15672c51ba79",
-    "reprolattice/suite_runner.py": "d0f08301351df9fb4dee2c606b89ffde32db69107a3c4fee4848bac9b58ff889",
+    "reprolattice/suite_config.py": "16166ab475473bd3165d25a348d03d031774fce9a8b84948413312b1054ad598",
+    "reprolattice/suite_runner.py": "dad0e567d5b00a30399b9b864382cff6ae7eaf6480520986facada6cdc422e9b",
     "reprolattice/suite_web.py": "9132253109f759c2b986d36ef1950d56c8c581bd6a05f33516d7b5df78eaf9d3",
-    "reprolattice/suites.py": "f492c49dfb0425f135bed8782ccb8bc7addb18253d06c04c80a5228be4ed4832",
+    "reprolattice/suites.py": "db200ecfb823f69e987db773cc0b0e117f79b1c61a93b32fb5d76c6a3efb45d7",
     "reprolattice/web.py": "bdc12075da1224937f7ed644f71754647112cc92c0b57159e028c10d01f73c09"
   }
 }
