@@ -29,3 +29,7 @@ from reprolattice.reports import write_reports
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
+def load(name):
+    return json.loads((EXAMPLES / name).read_bytes())
+
+
