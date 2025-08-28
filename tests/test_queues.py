@@ -33,3 +33,7 @@ def load(name):
     return json.loads((EXAMPLES / name).read_bytes())
 
 
+def definition(**changes):
+    return {**load("queue-orders.json")["queue"], **changes}
+
+
