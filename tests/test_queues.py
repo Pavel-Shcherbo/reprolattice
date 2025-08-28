@@ -37,3 +37,12 @@ def definition(**changes):
     return {**load("queue-orders.json")["queue"], **changes}
 
 
+def resign(document):
+    document["sha256"] = fingerprint(
+        {k: v for k, v in document.items() if k != "sha256"}
+    )
+    return document
+
+
+class QueueEngineTests(unittest.TestCase):
+    pass
