@@ -45,4 +45,6 @@ def resign(document):
 
 
 class QueueEngineTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.engine = QueueEngine(definition())
+
