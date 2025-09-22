@@ -48,3 +48,8 @@ class QueueEngineTests(unittest.TestCase):
     def setUp(self):
         self.engine = QueueEngine(definition())
 
+    def op(self, operation, expected=200, **fields):
+        value = self.engine.execute({"operation": operation, **fields})
+        self.assertEqual(value["status"], expected, value)
+        return value["body"]
+
