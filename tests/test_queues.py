@@ -53,3 +53,6 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(value["status"], expected, value)
         return value["body"]
 
+    def receive(self, owner="one"):
+        return self.op("receive", owner=owner)["message"]
+
