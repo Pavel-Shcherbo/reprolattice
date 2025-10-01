@@ -56,3 +56,18 @@ class QueueEngineTests(unittest.TestCase):
     def receive(self, owner="one"):
         return self.op("receive", owner=owner)["message"]
 
+    def test_visibility_boundary_redelivery_and_stale_ack_fence(self):
+        first = self.receive()
+        self.assertEqual((first["attempt"], first["lease_until"]), (1, 5))
+        self.assertIsNone(self.receive("two"))
+        self.op("advance", seconds=4)
+        self.assertIsNone(self.receive("two"))
+        self.op("advance", seconds=1)
+        second = self.receive("two")
+        self.assertEqual((second["id"], second["attempt"]), ("order-42", 2))
+        self.op("ack", expected=400, owner="one", delivery=first["delivery"])
+        self.assertEqual(self.engine.snapshot()["counts"]["leased"], 1)
+        self.op("ack", owner="two", delivery=second["delivery"])
+        self.assertEqual(self.engine.snapshot()["counts"]["acknowledged"], 1)
+        self.assertTrue(verify_queue_evidence(self.engine.evidence())["complete"])
+
