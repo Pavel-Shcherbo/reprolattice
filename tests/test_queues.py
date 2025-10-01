@@ -71,3 +71,17 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(self.engine.snapshot()["counts"]["acknowledged"], 1)
         self.assertTrue(verify_queue_evidence(self.engine.evidence())["complete"])
 
+    def test_same_ack_receipt_is_observational_and_wrong_owner_or_operation_fails(self):
+        message = self.receive()
+        self.op("ack", expected=400, owner="other", delivery=message["delivery"])
+        original = self.op("ack", owner="one", delivery=message["delivery"])
+        self.op("advance", seconds=20)
+        repeated = self.op("ack", owner="one", delivery=message["delivery"])
+        self.assertEqual(
+            {k: v for k, v in original.items() if k != "reused"},
+            {k: v for k, v in repeated.items() if k != "reused"},
+        )
+        self.assertTrue(repeated["reused"])
+        self.op("nack", expected=400, owner="one", delivery=message["delivery"])
+        self.assertEqual(self.engine.snapshot()["counts"]["acknowledged"], 1)
+
