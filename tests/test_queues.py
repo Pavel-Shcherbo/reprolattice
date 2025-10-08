@@ -85,3 +85,27 @@ class QueueEngineTests(unittest.TestCase):
         self.op("nack", expected=400, owner="one", delivery=message["delivery"])
         self.assertEqual(self.engine.snapshot()["counts"]["acknowledged"], 1)
 
+    def test_delayed_nack_retries_and_exact_delivery_limit(self):
+        first = self.receive()
+        self.op("nack", owner="one", delivery=first["delivery"], delay_seconds=7)
+        self.assertTrue(
+            self.op("nack", owner="one", delivery=first["delivery"], delay_seconds=7)[
+                "reused"
+            ]
+        )
+        self.op(
+            "nack",
+            expected=400,
+            owner="one",
+            delivery=first["delivery"],
+            delay_seconds=8,
+        )
+        self.op("advance", seconds=6)
+        self.assertIsNone(self.receive())
+        self.op("advance", seconds=1)
+        second = self.receive("two")
+        self.op("nack", owner="two", delivery=second["delivery"])
+        self.assertIsNone(self.receive())
+        state = self.engine.snapshot()
+        self.assertEqual((state["deliveries"], state["counts"]["dead"]), (2, 1))
+
