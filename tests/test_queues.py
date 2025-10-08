@@ -109,3 +109,15 @@ class QueueEngineTests(unittest.TestCase):
         state = self.engine.snapshot()
         self.assertEqual((state["deliveries"], state["counts"]["dead"]), (2, 1))
 
+    def test_final_visibility_expiry_moves_to_dead_letter_without_an_extra_delivery(
+        self,
+    ):
+        first = self.receive()
+        self.op("advance", seconds=5)
+        second = self.receive("two")
+        self.op("advance", seconds=5)
+        self.assertIsNone(self.receive("three"))
+        self.op("ack", expected=400, owner="two", delivery=second["delivery"])
+        self.assertEqual(self.engine.snapshot()["counts"]["dead"], 1)
+        self.assertEqual(self.engine.deliveries, 2)
+
