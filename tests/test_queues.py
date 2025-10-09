@@ -121,3 +121,19 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(self.engine.snapshot()["counts"]["dead"], 1)
         self.assertEqual(self.engine.deliveries, 2)
 
+    def test_delayed_seed_and_publish_order_follow_readiness_then_insertion(self):
+        self.engine = QueueEngine(
+            definition(
+                messages=[
+                    {"id": "later", "body": {}, "delay_seconds": 5},
+                    {"id": "ready", "body": {}},
+                ]
+            )
+        )
+        first = self.receive()
+        self.assertEqual(first["id"], "ready")
+        self.op("ack", owner="one", delivery=first["delivery"])
+        self.assertIsNone(self.receive())
+        self.op("advance", seconds=5)
+        self.assertEqual(self.receive()["id"], "later")
+
