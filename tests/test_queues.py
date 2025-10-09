@@ -150,3 +150,22 @@ class QueueEngineTests(unittest.TestCase):
         self.assertIsNone(self.receive())
         self.assertEqual(self.engine.snapshot()["message_count"], 2)
 
+    def test_concurrent_receivers_never_own_the_same_attempt(self):
+        self.engine = QueueEngine(
+            definition(messages=[{"id": f"m-{n}", "body": {"n": n}} for n in range(20)])
+        )
+
+        def receive(n):
+            return self.engine.execute({"operation": "receive", "owner": f"w-{n}"})[
+                "body"
+            ]["message"]
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            values = list(pool.map(receive, range(30)))
+        received = [item for item in values if item]
+        self.assertEqual(len(received), 20)
+        self.assertEqual(len({item["id"] for item in received}), 20)
+        self.assertEqual(len({item["delivery"] for item in received}), 20)
+        self.assertEqual(self.engine.snapshot()["counts"]["leased"], 20)
+        self.assertTrue(verify_queue_evidence(self.engine.evidence())["passed"])
+
