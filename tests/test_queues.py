@@ -137,3 +137,16 @@ class QueueEngineTests(unittest.TestCase):
         self.op("advance", seconds=5)
         self.assertEqual(self.receive()["id"], "later")
 
+    def test_publication_idempotency_conflicts_and_no_terminal_requeue(self):
+        value = {"id": "new", "body": {"units": 2}, "request_key": "publish"}
+        self.assertFalse(self.op("publish", **value)["reused"])
+        self.op("publish", expected=400, **{**value, "body": {"units": 3}})
+        self.op("publish", expected=400, **{**value, "request_key": "another"})
+        self.assertTrue(self.op("publish", **value)["reused"])
+        for _ in range(2):
+            item = self.receive()
+            self.op("ack", owner="one", delivery=item["delivery"])
+        self.assertTrue(self.op("publish", **value)["reused"])
+        self.assertIsNone(self.receive())
+        self.assertEqual(self.engine.snapshot()["message_count"], 2)
+
