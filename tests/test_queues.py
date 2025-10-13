@@ -169,3 +169,12 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(self.engine.snapshot()["counts"]["leased"], 20)
         self.assertTrue(verify_queue_evidence(self.engine.evidence())["passed"])
 
+    def test_capacity_and_invalid_clock_do_not_partially_mutate_messages(self):
+        self.engine = QueueEngine(definition(max_messages=1))
+        self.op("publish", expected=400, id="overflow", body={}, request_key="overflow")
+        for seconds in (-1, True, 0.5, 86401):
+            self.op("advance", expected=400, seconds=seconds)
+        self.assertEqual(self.engine.clock, 0)
+        self.assertEqual(len(self.engine.messages), 1)
+        self.assertEqual(self.engine.messages["order-42"]["attempts"], 0)
+
