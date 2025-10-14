@@ -206,3 +206,16 @@ class QueueEngineTests(unittest.TestCase):
         self.assertFalse(proof["complete"])
         self.assertEqual(proof["message_count"], 100)
 
+    def test_caller_mutation_cannot_change_retained_state_or_journal(self):
+        item = self.receive()
+        item["body"]["units"] = 999
+        snapshot = self.engine.snapshot()
+        snapshot["messages"][0]["body"]["units"] = 999
+        exported = self.engine.evidence()
+        exported["journal"].clear()
+        exported["configuration"]["max_deliveries"] = 20
+        self.assertEqual(self.engine.configuration["max_deliveries"], 2)
+        self.assertEqual(self.engine.messages["order-42"]["body"]["units"], 4)
+        self.assertEqual(len(self.engine.journal), 1)
+        self.assertTrue(verify_queue_evidence(self.engine.evidence())["passed"])
+
