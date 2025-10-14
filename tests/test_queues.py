@@ -178,3 +178,15 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(len(self.engine.messages), 1)
         self.assertEqual(self.engine.messages["order-42"]["attempts"], 0)
 
+    def test_command_budget_marks_incomplete_without_an_unjournaled_ack(self):
+        self.engine = QueueEngine(definition(max_commands=1))
+        item = self.receive()
+        with self.assertRaises(QueueCapacity):
+            self.engine.execute(
+                {"operation": "ack", "owner": "one", "delivery": item["delivery"]}
+            )
+        self.assertEqual(self.engine.snapshot()["counts"]["leased"], 1)
+        value = self.engine.evidence()
+        self.assertEqual(value["dropped_commands"], 1)
+        self.assertFalse(verify_queue_evidence(value)["complete"])
+
