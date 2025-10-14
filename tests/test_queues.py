@@ -190,3 +190,19 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(value["dropped_commands"], 1)
         self.assertFalse(verify_queue_evidence(value)["complete"])
 
+    def test_combined_byte_budget_preserves_a_verifiable_prefix(self):
+        self.engine = QueueEngine(
+            definition(
+                messages=[
+                    {"id": f"m-{n}", "body": {"value": "x" * 8000}} for n in range(100)
+                ]
+            )
+        )
+        with self.assertRaises(QueueCapacity):
+            for _ in range(10):
+                self.engine.execute({"operation": "status"})
+        proof = verify_queue_evidence(self.engine.evidence())
+        self.assertTrue(proof["passed"])
+        self.assertFalse(proof["complete"])
+        self.assertEqual(proof["message_count"], 100)
+
