@@ -219,3 +219,21 @@ class QueueEngineTests(unittest.TestCase):
         self.assertEqual(len(self.engine.journal), 1)
         self.assertTrue(verify_queue_evidence(self.engine.evidence())["passed"])
 
+    def test_rehashed_forgery_of_response_state_or_chain_is_rejected(self):
+        self.receive()
+        original = self.engine.evidence()
+        malformed = copy.deepcopy(original)
+        malformed["journal"] = [{}]
+        with self.assertRaises(ValueError):
+            verify_queue_evidence(resign(malformed))
+        for field in ("response", "state", "chain"):
+            value = copy.deepcopy(original)
+            if field == "response":
+                value["journal"][0]["response"]["body"]["message"]["attempt"] = 2
+            elif field == "state":
+                value["state"]["messages"][0]["body"]["units"] = 999
+            else:
+                value["journal"][0]["previous_sha256"] = "0" * 64
+            with self.assertRaises(ValueError):
+                verify_queue_evidence(resign(value))
+
