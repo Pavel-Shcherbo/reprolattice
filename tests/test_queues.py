@@ -237,3 +237,21 @@ class QueueEngineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_queue_evidence(resign(value))
 
+    def test_configuration_and_command_preflight_are_strict(self):
+        for change in (
+            {"version": True},
+            {"max_deliveries": 0},
+            {"visibility_seconds": True},
+            {"messages": [{"id": "x", "body": {}}, {"id": "x", "body": {}}]},
+        ):
+            with self.assertRaises(ValueError):
+                configuration(definition(**change))
+        self.op("ack", expected=400, owner="one", delivery="unknown")
+        self.op("receive", expected=400, owner="one", extra=True)
+        with self.assertRaises(ValueError):
+            self.engine.execute({"value": float("nan")})
+        self.assertFalse(self.engine.evidence()["complete"])
+
+
+class QueueWireTests(unittest.TestCase):
+    pass
