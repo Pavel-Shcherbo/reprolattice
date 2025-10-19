@@ -254,4 +254,12 @@ class QueueEngineTests(unittest.TestCase):
 
 
 class QueueWireTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.server, self.engine, self.token, self.wire = make_queue_server(
+            definition()
+        )
+        self.thread = threading.Thread(
+            target=lambda: self.server.serve_forever(poll_interval=0.01), daemon=True
+        )
+        self.thread.start()
+
