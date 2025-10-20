@@ -263,3 +263,8 @@ class QueueWireTests(unittest.TestCase):
         )
         self.thread.start()
 
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=3)
+
