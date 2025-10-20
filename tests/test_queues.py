@@ -268,3 +268,20 @@ class QueueWireTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=3)
 
+    def request(
+        self, value=None, *, headers=None, path="/command", method="POST", raw=None
+    ):
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", self.server.server_port, timeout=4
+        )
+        self.addCleanup(connection.close)
+        head = {"Content-Type": "application/json", "X-Queue-Fixture": self.token}
+        if headers:
+            head.update(headers)
+        connection.request(
+            method, path, raw if raw is not None else json.dumps(value), head
+        )
+        response = connection.getresponse()
+        payload = response.read()
+        return response.status, json.loads(payload) if payload else None
+
