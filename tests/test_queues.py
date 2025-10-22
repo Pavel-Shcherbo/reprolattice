@@ -285,3 +285,14 @@ class QueueWireTests(unittest.TestCase):
         payload = response.read()
         return response.status, json.loads(payload) if payload else None
 
+    def test_valid_commands_are_journaled_but_capability_is_not_exported(self):
+        status, value = self.request({"operation": "receive", "owner": "worker"})
+        self.assertEqual(status, 200)
+        self.assertEqual(value["message"]["attempt"], 1)
+        self.assertNotIn(self.token, json.dumps(self.engine.evidence()))
+        self.assertTrue(
+            verify_queue_evidence(
+                self.engine.evidence(wire_errors=self.wire["errors"])
+            )["complete"]
+        )
+
