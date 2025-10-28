@@ -296,3 +296,18 @@ class QueueWireTests(unittest.TestCase):
             )["complete"]
         )
 
+    def test_foreign_host_origin_and_non_ascii_capability_are_counted(self):
+        for headers in (
+            {"Host": "outside.example"},
+            {"Origin": "https://outside.example"},
+            {"X-Queue-Fixture": "wrong"},
+            {"X-Queue-Fixture": "é"},
+        ):
+            self.assertEqual(
+                self.request({"operation": "status"}, headers=headers)[0], 403
+            )
+        self.assertEqual(self.wire["errors"], 4)
+        self.assertFalse(
+            self.engine.evidence(wire_errors=self.wire["errors"])["complete"]
+        )
+
