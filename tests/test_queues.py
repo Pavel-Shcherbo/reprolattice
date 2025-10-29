@@ -311,3 +311,14 @@ class QueueWireTests(unittest.TestCase):
             self.engine.evidence(wire_errors=self.wire["errors"])["complete"]
         )
 
+    def test_bad_wire_and_unsupported_methods_cannot_look_complete(self):
+        self.assertEqual(
+            self.request(raw='{"operation":"status","operation":"advance"}')[0], 400
+        )
+        self.assertEqual(self.request(raw="NaN")[0], 400)
+        self.assertEqual(self.request({}, path="/outside")[0], 404)
+        self.assertEqual(self.request({}, method="TRACE")[0], 501)
+        self.assertEqual(self.request({}, method="GET")[0], 405)
+        self.assertEqual(self.wire["errors"], 5)
+        self.assertEqual(len(self.engine.journal), 0)
+
