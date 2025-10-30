@@ -322,3 +322,9 @@ class QueueWireTests(unittest.TestCase):
         self.assertEqual(self.wire["errors"], 5)
         self.assertEqual(len(self.engine.journal), 0)
 
+    def wait_until_accepted(self):
+        deadline = time.monotonic() + 1
+        while self.wire["accepted"] == 0 and time.monotonic() < deadline:
+            time.sleep(0.005)
+        self.assertEqual(self.wire["accepted"], 1)
+
