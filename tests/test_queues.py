@@ -328,3 +328,33 @@ class QueueWireTests(unittest.TestCase):
             time.sleep(0.005)
         self.assertEqual(self.wire["accepted"], 1)
 
+    def test_partial_connection_has_a_total_deadline_before_shutdown(self):
+        connection = socket.create_connection(
+            ("127.0.0.1", self.server.server_port), timeout=3
+        )
+        stop = threading.Event()
+
+        def drip():
+            for _ in range(12):
+                if stop.wait(0.25):
+                    return
+                try:
+                    connection.sendall(b"x")
+                except OSError:
+                    return
+
+        thread = threading.Thread(target=drip, daemon=True)
+        try:
+            connection.sendall(b"POST /command HTTP/1.1\r\n")
+            self.wait_until_accepted()
+            thread.start()
+            started = time.monotonic()
+            self.server.shutdown()
+            self.assertLess(time.monotonic() - started, 3.5)
+            self.assertGreaterEqual(self.wire["errors"], 1)
+        finally:
+            stop.set()
+            connection.close()
+            if thread.ident is not None:
+                thread.join(timeout=1)
+
