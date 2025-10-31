@@ -362,3 +362,18 @@ class QueueWireTests(unittest.TestCase):
         self.assertEqual(self.request({}, headers={"Content-Length": "131073"})[0], 400)
         self.assertEqual(self.wire["errors"], 1)
 
+    def test_incomplete_headers_close_without_hanging_fixture_shutdown(self):
+        connection = socket.create_connection(
+            ("127.0.0.1", self.server.server_port), timeout=3
+        )
+        connection.sendall(b"POST /command HTTP/1.1\r\n")
+        self.wait_until_accepted()
+        started = time.monotonic()
+        connection.close()
+        self.server.shutdown()
+        self.assertLess(time.monotonic() - started, 3)
+        self.assertGreaterEqual(self.wire["errors"], 1)
+
+
+class QueueHarnessTests(unittest.TestCase):
+    pass
