@@ -358,3 +358,7 @@ class QueueWireTests(unittest.TestCase):
             if thread.ident is not None:
                 thread.join(timeout=1)
 
+    def test_oversized_content_length_rejected_before_reading(self):
+        self.assertEqual(self.request({}, headers={"Content-Length": "131073"})[0], 400)
+        self.assertEqual(self.wire["errors"], 1)
+
