@@ -376,4 +376,9 @@ class QueueWireTests(unittest.TestCase):
 
 
 class QueueHarnessTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.fixture = load("queue-orders.json")
+
