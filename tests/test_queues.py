@@ -406,3 +406,20 @@ class QueueHarnessTests(unittest.TestCase):
             {"queued": 0, "leased": 0, "acknowledged": 2, "dead": 1},
         )
 
+    def test_queue_protocol_alone_does_not_prove_exactly_once_side_effect(self):
+        result = check_queue(
+            self.fixture,
+            [
+                sys.executable,
+                str(EXAMPLES / "queue_worker.py"),
+                "--behavior",
+                "duplicate",
+            ],
+            cwd=self.root,
+        )
+        self.assertTrue(result["passed"])
+        with closing(sqlite3.connect(self.root / "queue-effects.sqlite")) as db:
+            self.assertEqual(
+                db.execute("SELECT available FROM inventory").fetchone()[0], 2
+            )
+
