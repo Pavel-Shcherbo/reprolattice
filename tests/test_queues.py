@@ -382,3 +382,27 @@ class QueueHarnessTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.fixture = load("queue-orders.json")
 
+    def test_actual_crashed_worker_and_independently_read_sqlite_effect(self):
+        result = check_queue(
+            self.fixture,
+            [sys.executable, str(EXAMPLES / "queue_worker.py")],
+            cwd=self.root,
+        )
+        self.assertTrue(result["passed"], result)
+        with closing(sqlite3.connect(self.root / "queue-effects.sqlite")) as db:
+            self.assertEqual(
+                db.execute("SELECT available FROM inventory").fetchone()[0], 6
+            )
+            self.assertEqual(
+                db.execute("SELECT job,units FROM processed").fetchall(),
+                [("order-42", 4)],
+            )
+        self.assertEqual(
+            (result["queue"]["deliveries"], result["queue"]["rejected_commands"]),
+            (5, 1),
+        )
+        self.assertEqual(
+            result["queue_evidence"]["state"]["counts"],
+            {"queued": 0, "leased": 0, "acknowledged": 2, "dead": 1},
+        )
+
