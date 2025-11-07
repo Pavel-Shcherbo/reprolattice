@@ -441,3 +441,11 @@ class QueueHarnessTests(unittest.TestCase):
         self.assertTrue(result["cancelled"])
         self.assertFalse(result["passed"])
 
+    def test_output_limit_and_wrong_application_output_are_retained_failures(self):
+        result = check_queue(
+            self.fixture, [sys.executable, "-c", "print('x'*1100000)"], cwd=self.root
+        )
+        self.assertFalse(result["checks"]["within_output_limit"])
+        self.assertFalse(result["passed"])
+        self.assertTrue(verify_queue_evidence(result["queue_evidence"])["passed"])
+
