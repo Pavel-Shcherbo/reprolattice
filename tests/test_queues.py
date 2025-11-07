@@ -423,3 +423,21 @@ class QueueHarnessTests(unittest.TestCase):
                 db.execute("SELECT available FROM inventory").fetchone()[0], 2
             )
 
+    def test_timeout_and_cancel_never_claim_success(self):
+        result = check_queue(
+            self.fixture,
+            [sys.executable, "-c", "import time;time.sleep(5)"],
+            timeout=0.05,
+            cwd=self.root,
+        )
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["checks"]["within_time_limit"])
+        result = check_queue(
+            self.fixture,
+            [sys.executable, "-c", "raise RuntimeError()"],
+            should_cancel=lambda: True,
+            cwd=self.root,
+        )
+        self.assertTrue(result["cancelled"])
+        self.assertFalse(result["passed"])
+
