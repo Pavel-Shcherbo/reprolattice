@@ -449,3 +449,57 @@ class QueueHarnessTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertTrue(verify_queue_evidence(result["queue_evidence"])["passed"])
 
+    def test_standalone_cli_exports_create_only_and_verifies_without_worker(self):
+        output = self.root / "queue.json"
+
+        def cli(*args):
+            return subprocess.run(
+                [sys.executable, "-m", "reprolattice.queues", *map(str, args)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+        result = cli(
+            "run",
+            EXAMPLES / "queue-orders.json",
+            "--cwd",
+            self.root,
+            "--output",
+            output,
+            "--command",
+            sys.executable,
+            EXAMPLES / "queue_worker.py",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        before = output.read_bytes()
+        self.assertEqual(
+            cli(
+                "run",
+                EXAMPLES / "queue-orders.json",
+                "--output",
+                output,
+                "--command",
+                "missing-command",
+            ).returncode,
+            2,
+        )
+        self.assertEqual(output.read_bytes(), before)
+        self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+        linked = self.root / "dangling-proof.json"
+        linked.symlink_to(self.root / "missing-target.json")
+        rejected = cli(
+            "run",
+            EXAMPLES / "queue-orders.json",
+            "--output",
+            linked,
+            "--command",
+            "must-not-start",
+        )
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn("destination already exists", rejected.stderr)
+        self.assertTrue(linked.is_symlink())
+        verified = cli("verify", output)
+        self.assertEqual(verified.returncode, 0, verified.stderr)
+        self.assertFalse(json.loads(verified.stdout)["application_reexecuted"])
+
