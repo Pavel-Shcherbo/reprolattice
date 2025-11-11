@@ -503,3 +503,36 @@ class QueueHarnessTests(unittest.TestCase):
         self.assertEqual(verified.returncode, 0, verified.stderr)
         self.assertFalse(json.loads(verified.stdout)["application_reexecuted"])
 
+    def test_suite_reports_and_archive_keep_queue_modes_and_database_failure(self):
+        retained = {}
+        report = run_suite(
+            compile_suite(load("queue-effects-suite.json"), EXAMPLES),
+            jobs=2,
+            on_queue=lambda case, value: retained.update({case.id: value}),
+        )
+        self.assertEqual(report["counts"]["passed"], 1)
+        self.assertEqual(report["counts"]["failed"], 1)
+        self.assertTrue(all(case["detail"]["passed"] for case in report["cases"]))
+        self.assertTrue(report["cases"][0]["sqlite"][0]["passed"])
+        self.assertFalse(report["cases"][1]["sqlite"][0]["passed"])
+        self.assertEqual(
+            report["cases"][1]["sqlite"][0]["checks"]["queries"][0]["actual"][0][
+                "available"
+            ]["value"],
+            2,
+        )
+        self.assertEqual(len(retained), 2)
+        self.assertEqual(len({value["sha256"] for value in retained.values()}), 1)
+        self.assertTrue(
+            all(verify_queue_evidence(value)["complete"] for value in retained.values())
+        )
+        validate_run(report)
+        manifest = write_reports(report, self.root / "reports")
+        self.assertTrue((self.root / "reports/junit.xml").exists())
+        registry = RunRegistry(self.root / "runs.sqlite", create=True)
+        registry.project("queue-project")
+        saved = registry.record(
+            "queue-project", report, revision="1" * 40, request_key="mixed"
+        )
+        self.assertEqual(registry.get("queue-project", saved["id"])["report"], report)
+
