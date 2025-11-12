@@ -536,3 +536,41 @@ class QueueHarnessTests(unittest.TestCase):
         )
         self.assertEqual(registry.get("queue-project", saved["id"])["report"], report)
 
+    def test_suite_cli_retains_full_queue_proofs_separately_from_compact_reports(self):
+        reports = self.root / "reports"
+        proofs = self.root / "proofs"
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "reprolattice.suites",
+                str(EXAMPLES / "queue-effects-suite.json"),
+                "--output",
+                str(reports),
+                "--queue-evidence",
+                str(proofs),
+                "--jobs",
+                "2",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        self.assertEqual(process.returncode, 1, process.stderr)
+        values = list(proofs.glob("*.json"))
+        self.assertEqual(len(values), 2)
+        self.assertTrue(
+            all(
+                verify_queue_evidence(json.loads(path.read_bytes()))["complete"]
+                for path in values
+            )
+        )
+        raw = json.loads((reports / "report.json").read_bytes())
+        self.assertTrue(
+            all(
+                "queue_evidence" not in case["detail"]
+                and case["detail"]["queue_evidence_summary"]["complete"]
+                for case in raw["cases"]
+            )
+        )
+
