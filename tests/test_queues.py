@@ -574,3 +574,20 @@ class QueueHarnessTests(unittest.TestCase):
             )
         )
 
+    def test_queue_preflight_rejects_undeclared_fields_and_secret_exports(self):
+        value = copy.deepcopy(self.fixture)
+        value["queue_assertions"] = []
+        with self.assertRaises(ValueError):
+            fixture_contract(value)
+        suite = load("queue-effects-suite.json")
+        suite["cases"][0]["secret_parameters"] = ["behavior"]
+        with self.assertRaisesRegex(ValueError, "secret_parameters"):
+            compile_suite(suite, EXAMPLES)
+        suite = load("queue-effects-suite.json")
+        suite["mode"] = "protocol"
+        with self.assertRaises(ValueError):
+            compile_suite(suite, EXAMPLES)
+
+
+if __name__ == "__main__":
+    unittest.main()
