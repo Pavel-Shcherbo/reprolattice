@@ -96,3 +96,7 @@ The **Migrations** workbench runs reviewed isolated round-trip and failure contr
 ## Queue workers and redelivery
 
 Run real workers against an isolated virtual-clock queue, retain delivery/acknowledgement histories and qualify their side effects with the same suite SQLite/artifact checks. The included regression control crashes after a committed effect and proves why a correct queue acknowledgement can still hide a duplicate database write. See [queue scenarios](docs/QUEUES.md) for commands, replay, CI/archive integration and limits.
+
+## Queue laboratory
+
+Open `/queues.html` to author saved virtual-clock queue scenarios, inspect delivery attempts, recover lost responses, fork histories and compare real crash-worker effects against SQLite observations. The [saved queue guide](docs/QUEUE_LAB.md) covers the CLI, portable evidence and limits.
