@@ -15,3 +15,6 @@ include examples/queue_worker.py
 include examples/queue-orders.json
 include examples/queue-effects-seed.json
 include examples/queue-effects-suite.json
+
+include examples/queue-lab-configuration.json
+include examples/queue-lab-commands.json
