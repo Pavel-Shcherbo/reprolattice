@@ -1,0 +1,14 @@
+[
+  {
+    "operation": "receive",
+    "owner": "worker-a"
+  },
+  {
+    "operation": "advance",
+    "seconds": 5
+  },
+  {
+    "operation": "receive",
+    "owner": "worker-b"
+  }
+]
