@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "order-events",
+  "visibility_seconds": 5,
+  "max_deliveries": 2,
+  "messages": [
+    {
+      "id": "order-42",
+      "body": {
+        "part": "part-42",
+        "units": 4
+      }
+    }
+  ]
+}
