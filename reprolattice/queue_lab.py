@@ -19,3 +19,9 @@ MAX_RECEIPTS = 10000
 FORMAT = "reprolattice.saved-queue.v1"
 
 
+def identity(value):
+    if not isinstance(value, str) or str(uuid.UUID(value)) != value:
+        raise ValueError("queue session requires a canonical UUID")
+    return value
+
+
