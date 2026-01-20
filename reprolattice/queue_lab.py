@@ -25,3 +25,14 @@ def identity(value):
     return value
 
 
+def label(value):
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or len(value) > 128
+        or any(ord(c) < 32 for c in value)
+    ):
+        raise ValueError("queue label requires 1–128 printable characters")
+    return value
+
+
