@@ -36,3 +36,12 @@ def label(value):
     return value
 
 
+def checked_document(kind, value):
+    validate_json(value, max_bytes=MAX_DOCUMENT, max_nodes=4000000)
+    if kind == "workers":
+        return verify_worker_control(value)
+    if kind not in ("simulation", "imported"):
+        raise ValueError("unknown retained queue kind")
+    return verify_queue_evidence(value)
+
+
