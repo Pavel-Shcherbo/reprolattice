@@ -45,3 +45,53 @@ def checked_document(kind, value):
     return verify_queue_evidence(value)
 
 
+def verify_export(value):
+    fields(value, ("format", "session", "document", "sha256"))
+    if value["format"] != FORMAT or value["sha256"] != fingerprint(
+        {k: v for k, v in value.items() if k != "sha256"}
+    ):
+        raise ValueError("saved queue export identity differs")
+    meta = value["session"]
+    fields(
+        meta,
+        (
+            "id",
+            "project",
+            "label",
+            "kind",
+            "generation",
+            "created",
+            "parent",
+            "document_sha256",
+        ),
+    )
+    identity(meta["id"])
+    name(meta["project"], "queue project")
+    label(meta["label"])
+    integer(meta["generation"], "generation", 1)
+    integer(meta["created"], "created", 0, 9223372036854775807)
+    if meta["parent"] is not None:
+        fields(meta["parent"], ("id", "generation", "document_sha256"))
+        identity(meta["parent"]["id"])
+        integer(meta["parent"]["generation"], "parent generation", 1)
+        if (
+            not isinstance(meta["parent"]["document_sha256"], str)
+            or len(meta["parent"]["document_sha256"]) != 64
+        ):
+            raise ValueError("invalid parent content identity")
+    if meta["document_sha256"] != fingerprint(value["document"]):
+        raise ValueError("saved queue document identity differs")
+    proof = checked_document(meta["kind"], value["document"])
+    return {
+        "passed": True,
+        "kind": meta["kind"],
+        "generation": meta["generation"],
+        "replay": proof,
+        "source_authenticated": False,
+        "application_reexecuted": False,
+        "parent_authenticated": False,
+    }
+
+
+class QueueLab:
+    pass
