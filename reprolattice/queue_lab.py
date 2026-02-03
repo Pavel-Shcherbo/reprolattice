@@ -94,4 +94,29 @@ def verify_export(value):
 
 
 class QueueLab:
-    pass
+    def __init__(self, path):
+        self.path = Path(path)
+        if self.path.is_symlink():
+            raise ValueError("queue lab database cannot be a symlink")
+        self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        new = not self.path.exists()
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version not in (0, 1):
+                raise ValueError("unsupported queue lab schema")
+            if version == 0:
+                if db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                ).fetchone():
+                    raise ValueError("refusing an unrelated queue lab database")
+                for sql in (
+                    "CREATE TABLE sessions(seq INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT UNIQUE NOT NULL,project TEXT NOT NULL,metadata BLOB NOT NULL,metadata_sha TEXT NOT NULL,document BLOB NOT NULL)",
+                    "CREATE INDEX scoped_queue_sessions ON sessions(project,seq)",
+                    "CREATE TABLE receipts(project TEXT NOT NULL,request_key TEXT NOT NULL,input_sha TEXT NOT NULL,response BLOB NOT NULL,response_sha TEXT NOT NULL,PRIMARY KEY(project,request_key))",
+                ):
+                    db.execute(sql)
+                db.execute("PRAGMA user_version=1")
+        if new:
+            os.chmod(self.path, 0o600)
+
