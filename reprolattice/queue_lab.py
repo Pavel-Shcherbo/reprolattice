@@ -120,3 +120,18 @@ class QueueLab:
         if new:
             os.chmod(self.path, 0o600)
 
+    @contextmanager
+    def connect(self, write=False):
+        db = sqlite3.connect(self.path, timeout=30, isolation_level=None)
+        db.row_factory = sqlite3.Row
+        try:
+            if write:
+                db.execute("BEGIN IMMEDIATE")
+            yield db
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
