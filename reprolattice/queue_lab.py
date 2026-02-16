@@ -135,3 +135,20 @@ class QueueLab:
         finally:
             db.close()
 
+    @staticmethod
+    def unpack(row):
+        meta = strict_json(row["metadata"], max_bytes=16384)
+        if (
+            fingerprint(meta) != row["metadata_sha"]
+            or meta["id"] != row["id"]
+            or meta["project"] != row["project"]
+        ):
+            raise ValueError("saved queue metadata identity differs")
+        document = strict_json(
+            row["document"], max_bytes=MAX_DOCUMENT, max_nodes=4000000
+        )
+        if meta["document_sha256"] != fingerprint(document):
+            raise ValueError("saved queue content identity differs")
+        proof = checked_document(meta["kind"], document)
+        return meta, document, proof
+
