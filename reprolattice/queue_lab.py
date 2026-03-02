@@ -152,3 +152,13 @@ class QueueLab:
         proof = checked_document(meta["kind"], document)
         return meta, document, proof
 
+    @staticmethod
+    def row(db, project, record):
+        identity(record)
+        row = db.execute(
+            "SELECT * FROM sessions WHERE project=? AND id=?", (project, record)
+        ).fetchone()
+        if row is None:
+            raise ValueError("queue session not found in this project")
+        return row
+
