@@ -162,3 +162,9 @@ class QueueLab:
             raise ValueError("queue session not found in this project")
         return row
 
+    @staticmethod
+    def fence(meta, generation):
+        integer(generation, "generation", 1)
+        if generation != meta["generation"]:
+            raise ValueError("queue generation changed; refresh the saved view")
+
