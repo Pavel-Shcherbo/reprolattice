@@ -168,3 +168,27 @@ class QueueLab:
         if generation != meta["generation"]:
             raise ValueError("queue generation changed; refresh the saved view")
 
+    def list(self, project, *, before=0, limit=25):
+        name(project, "queue project")
+        integer(before, "list cursor", 0, 9223372036854775807)
+        integer(limit, "list limit", 1, 100)
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT seq,id,project,metadata,metadata_sha FROM sessions WHERE project=? AND (?=0 OR seq<?) ORDER BY seq DESC LIMIT ?",
+                (project, before, before, limit + 1),
+            ).fetchall()
+            items = []
+            for row in rows[:limit]:
+                meta = strict_json(row["metadata"], max_bytes=16384)
+                if (
+                    fingerprint(meta) != row["metadata_sha"]
+                    or meta["id"] != row["id"]
+                    or meta["project"] != project
+                ):
+                    raise ValueError("queue list metadata identity differs")
+                items.append({**meta, "sequence": row["seq"]})
+            return {
+                "items": items,
+                "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
+            }
+
