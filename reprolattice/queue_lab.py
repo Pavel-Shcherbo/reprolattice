@@ -192,3 +192,82 @@ class QueueLab:
                 "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
             }
 
+    def view(
+        self,
+        project,
+        record,
+        *,
+        generation=None,
+        message_offset=0,
+        after=0,
+        limit=25,
+        case=None,
+    ):
+        name(project, "queue project")
+        integer(message_offset, "message offset", 0, 1000)
+        integer(after, "command cursor", 0, 5000)
+        integer(limit, "view limit", 1, 100)
+        with self.connect() as db:
+            meta, document, proof = self.unpack(self.row(db, project, record))
+        if generation is not None:
+            self.fence(meta, generation)
+        cases = []
+        if meta["kind"] == "workers":
+            cases = [
+                {
+                    "id": c["id"],
+                    "behavior": c["parameters"]["behavior"],
+                    "status": c["status"],
+                    "checks": c["sqlite"],
+                    "before": document["states"][c["id"]]["before"],
+                    "after": document["states"][c["id"]]["after"],
+                }
+                for c in document["report"]["cases"]
+            ]
+            selected = case or cases[0]["id"]
+            if selected not in document["proofs"]:
+                raise ValueError("queue worker case not found")
+            queue = document["proofs"][selected]
+        else:
+            if case is not None:
+                raise ValueError("simulation does not have worker cases")
+            selected = None
+            queue = document
+        messages = queue["state"]["messages"]
+        commands = [
+            {
+                **entry,
+                "command_json": canonical(entry["command"]).decode(),
+                "response_json": canonical(entry["response"]["body"]).decode(),
+            }
+            for entry in queue["journal"][after : after + limit]
+        ]
+        paged_messages = [
+            {**item, "body_json": canonical(item["body"]).decode()}
+            for item in messages[message_offset : message_offset + limit]
+        ]
+        return {
+            "session": meta,
+            "proof": proof,
+            "configuration": queue["configuration"],
+            "state": {k: v for k, v in queue["state"].items() if k != "messages"},
+            "complete": queue["complete"],
+            "event_head": queue["event_head"],
+            "messages": {
+                "items": paged_messages,
+                "next_offset": (
+                    message_offset + limit
+                    if len(messages) > message_offset + limit
+                    else None
+                ),
+            },
+            "commands": {
+                "items": commands,
+                "next_cursor": (
+                    after + limit if len(queue["journal"]) > after + limit else None
+                ),
+            },
+            "cases": cases,
+            "selected_case": selected,
+        }
+
