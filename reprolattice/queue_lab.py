@@ -271,3 +271,15 @@ class QueueLab:
             "selected_case": selected,
         }
 
+    def receipt(self, project, key):
+        name(project, "queue project")
+        name(key, "request key")
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT * FROM receipts WHERE project=? AND request_key=?",
+                (project, key),
+            ).fetchone()
+        if row is None:
+            raise ValueError("queue receipt not found")
+        return self.read_receipt(row)
+
