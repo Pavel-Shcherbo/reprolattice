@@ -283,3 +283,10 @@ class QueueLab:
             raise ValueError("queue receipt not found")
         return self.read_receipt(row)
 
+    @staticmethod
+    def read_receipt(row):
+        value = strict_json(row["response"], max_bytes=MAX_DOCUMENT, max_nodes=4000000)
+        if fingerprint(value) != row["response_sha"]:
+            raise ValueError("queue response receipt identity differs")
+        return value
+
