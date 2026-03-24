@@ -290,3 +290,17 @@ class QueueLab:
             raise ValueError("queue response receipt identity differs")
         return value
 
+    def budget(self, db, extra=0):
+        sessions = db.execute(
+            "SELECT count(*),COALESCE(sum(length(document)+length(metadata)),0) FROM sessions"
+        ).fetchone()
+        receipts = db.execute(
+            "SELECT count(*),COALESCE(sum(length(response)),0) FROM receipts"
+        ).fetchone()
+        if (
+            sessions[0] > MAX_SESSIONS
+            or receipts[0] >= MAX_RECEIPTS
+            or sessions[1] + receipts[1] + extra > MAX_RETAINED
+        ):
+            raise ValueError("queue lab retained session/response quota exceeded")
+
