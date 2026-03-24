@@ -304,3 +304,27 @@ class QueueLab:
         ):
             raise ValueError("queue lab retained session/response quota exceeded")
 
+    def apply(self, project, key, action, payload):
+        name(project, "queue project")
+        name(key, "request key")
+        validate_json(payload, max_bytes=MAX_DOCUMENT, max_nodes=4000000)
+        binding = fingerprint({"action": action, "payload": payload})
+        with self.connect(write=True) as db:
+            prior = db.execute(
+                "SELECT * FROM receipts WHERE project=? AND request_key=?",
+                (project, key),
+            ).fetchone()
+            if prior:
+                if prior["input_sha"] != binding:
+                    raise ValueError("queue request key identifies different inputs")
+                return self.read_receipt(prior)
+            self.budget(db)
+            result = self.operate(db, project, action, payload)
+            raw = canonical(result)
+            self.budget(db, len(raw))
+            db.execute(
+                "INSERT INTO receipts VALUES(?,?,?,?,?)",
+                (project, key, binding, raw, fingerprint(result)),
+            )
+            return result
+
