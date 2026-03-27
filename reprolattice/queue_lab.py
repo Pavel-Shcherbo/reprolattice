@@ -328,3 +328,21 @@ class QueueLab:
             )
             return result
 
+    def save(self, db, meta, document, *, create=False):
+        checked_document(meta["kind"], document)
+        raw = canonical(document)
+        if len(raw) > MAX_DOCUMENT:
+            raise ValueError("queue lab document exceeds 24 MiB")
+        meta["document_sha256"] = fingerprint(document)
+        if create:
+            db.execute(
+                "INSERT INTO sessions(id,project,metadata,metadata_sha,document) VALUES(?,?,?,?,?)",
+                (meta["id"], meta["project"], canonical(meta), fingerprint(meta), raw),
+            )
+        else:
+            db.execute(
+                "UPDATE sessions SET metadata=?,metadata_sha=?,document=? WHERE id=? AND project=?",
+                (canonical(meta), fingerprint(meta), raw, meta["id"], meta["project"]),
+            )
+        return {"session": meta}
+
