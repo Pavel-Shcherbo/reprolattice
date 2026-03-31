@@ -346,3 +346,89 @@ class QueueLab:
             )
         return {"session": meta}
 
+    def operate(self, db, project, action, payload):
+        if action == "commands":
+            fields(payload, ("record", "generation", "commands"))
+            meta, document, _ = self.unpack(self.row(db, project, payload["record"]))
+            self.fence(meta, payload["generation"])
+            if meta["kind"] != "simulation":
+                raise ValueError(
+                    "only authored simulations accept commands; fork complete queue evidence first"
+                )
+            commands = payload["commands"]
+            if not isinstance(commands, list) or not 1 <= len(commands) <= 50:
+                raise ValueError("queue command batch requires 1–50 commands")
+            engine = QueueEngine(document["configuration"])
+            for entry in document["journal"]:
+                engine.execute(entry["command"])
+            responses = [engine.execute(command) for command in commands]
+            meta["generation"] += 1
+            return {**self.save(db, meta, engine.evidence()), "responses": responses}
+        fields(
+            payload,
+            ("label",),
+            ("configuration", "evidence", "record", "generation", "case"),
+        )
+        title = label(payload["label"])
+        parent = None
+        if action == "create":
+            fields(payload, ("label", "configuration"))
+            document = QueueEngine(configuration(payload["configuration"])).evidence()
+            kind = "simulation"
+        elif action == "import":
+            fields(payload, ("label", "evidence"))
+            document = payload["evidence"]
+            if isinstance(document, dict) and document.get("format") == FORMAT:
+                verify_export(document)
+                origin = document["session"]
+                parent = {
+                    "id": origin["id"],
+                    "generation": origin["generation"],
+                    "document_sha256": origin["document_sha256"],
+                }
+                kind = "workers" if origin["kind"] == "workers" else "imported"
+                document = document["document"]
+            else:
+                verify_queue_evidence(document)
+                kind = "imported"
+        elif action == "workers":
+            fields(payload, ("label",))
+            document = run_worker_control()
+            kind = "workers"
+        elif action == "fork":
+            fields(payload, ("label", "record", "generation"), ("case",))
+            old, value, _ = self.unpack(self.row(db, project, payload["record"]))
+            self.fence(old, payload["generation"])
+            if old["kind"] == "workers":
+                case = payload.get("case")
+                if case not in value["proofs"]:
+                    raise ValueError("choose a worker case to fork")
+                document = value["proofs"][case]
+            else:
+                if "case" in payload:
+                    raise ValueError("simulation fork does not take a worker case")
+                document = value
+            if not document["complete"]:
+                raise ValueError(
+                    "incomplete imported histories cannot become active simulations"
+                )
+            parent = {
+                "id": old["id"],
+                "generation": old["generation"],
+                "document_sha256": old["document_sha256"],
+            }
+            kind = "simulation"
+        else:
+            raise ValueError("unknown queue lab operation")
+        meta = {
+            "id": str(uuid.uuid4()),
+            "project": project,
+            "label": title,
+            "kind": kind,
+            "generation": 1,
+            "created": int(time.time()),
+            "parent": parent,
+            "document_sha256": "",
+        }
+        return self.save(db, meta, document, create=True)
+
