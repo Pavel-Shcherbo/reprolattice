@@ -432,3 +432,12 @@ class QueueLab:
         }
         return self.save(db, meta, document, create=True)
 
+    def export(self, project, record, generation):
+        name(project, "queue project")
+        with self.connect() as db:
+            meta, document, _ = self.unpack(self.row(db, project, record))
+        self.fence(meta, generation)
+        value = {"format": FORMAT, "session": meta, "document": document}
+        value["sha256"] = fingerprint(value)
+        verify_export(value)
+        return value
