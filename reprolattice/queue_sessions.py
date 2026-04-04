@@ -10,3 +10,10 @@ from .queue_lab import QueueLab, MAX_DOCUMENT, verify_export
 from .queue_model import canonical
 
 
+def load(path):
+    with Path(path).open("rb") as stream:
+        return strict_json(
+            stream.read(MAX_DOCUMENT + 1), max_bytes=MAX_DOCUMENT, max_nodes=4000000
+        )
+
+
