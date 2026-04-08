@@ -1,0 +1,193 @@
+.queue-lab .sidebar h2 {
+  font-size: 15px;
+  margin: 32px 0 12px;
+}
+.queue-lab .session-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.queue-lab .session-list button {
+  text-align: left;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.queue-lab .session-list button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+.queue-lab .session-list small {
+  display: block;
+  color: var(--secondary);
+  margin-top: 4px;
+}
+.queue-lab .panel {
+  margin-bottom: 24px;
+}
+.queue-lab .panelbody {
+  padding: 24px;
+}
+.queue-lab details > summary {
+  cursor: pointer;
+  padding: 20px 24px;
+  font-weight: 500;
+}
+.queue-lab .author-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 32px;
+}
+.queue-lab label {
+  display: grid;
+  gap: 8px;
+  color: var(--secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.queue-lab textarea,
+.queue-lab input,
+.queue-lab select {
+  width: 100%;
+  min-width: 0;
+}
+.queue-lab textarea {
+  resize: vertical;
+  line-height: 1.5;
+  font-size: 13px;
+  font-family: ui-monospace, monospace;
+}
+.queue-lab .author-grid h2,
+.queue-lab .pending h2 {
+  font-size: 20px;
+  margin-top: 0;
+}
+.queue-lab .import {
+  margin-top: 24px;
+}
+.queue-lab .import summary {
+  padding: 12px 0;
+}
+.queue-lab .selected-head {
+  margin-top: 32px;
+}
+.queue-lab .queue-clock {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  margin: 24px 0;
+}
+.queue-lab .queue-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.queue-lab .queue-grid > * {
+  min-width: 0;
+}
+.queue-lab .quick-commands {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+.queue-lab .quick-commands label {
+  margin: 0;
+}
+.queue-lab td {
+  vertical-align: top;
+}
+.queue-lab td details > summary {
+  font-size: 14px;
+  padding: 8px 0;
+}
+.queue-lab pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.queue-lab .caption,
+.queue-lab .secondary,
+.queue-lab #session-meta {
+  overflow-wrap: anywhere;
+}
+.queue-lab #head {
+  max-width: 320px;
+  overflow-wrap: anywhere;
+}
+.queue-lab .journal .panelhead {
+  gap: 16px;
+  align-items: start;
+}
+.queue-lab .positive {
+  color: var(--positive);
+}
+.queue-lab .negative {
+  color: var(--negative);
+}
+.queue-lab .command-panel details > summary {
+  padding: 16px 0;
+}
+.queue-lab .boundary {
+  margin: 32px 0;
+  max-width: 80ch;
+}
+.queue-lab .notice {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .queue-lab .queue-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .queue-lab .author-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .queue-lab .panelbody {
+    padding: 16px;
+  }
+  .queue-lab details > summary {
+    padding: 16px;
+  }
+  .queue-lab .quick-commands {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .queue-lab .quick-commands button {
+    margin-bottom: 8px;
+  }
+  .queue-lab .selected-head,
+  .queue-lab .selected-head .actions {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .queue-lab .selected-head .actions {
+    gap: 8px;
+  }
+  .queue-lab .journal .panelhead {
+    flex-direction: column;
+  }
+  .queue-lab .sidebar .session-list {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+}
+.queue-lab input[type="text"],
+.queue-lab input:not([type]) {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+}
+.queue-lab td small {
+  display: block;
+  margin-top: 4px;
+}
+.queue-lab .sidebar nav a[aria-current="page"] {
+  background: var(--raised);
+}
