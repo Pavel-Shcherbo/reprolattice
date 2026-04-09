@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Saved queue scenarios and independently checked worker effects"
+    />
+    <title>Queue laboratory · Reprolattice</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/queues.css" />
+    <script src="/queues.js" defer></script>
+  </head>
+  <body class="queue-lab">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">Reprolattice</div>
+        <p class="caption">Repeatable application failures</p>
+        <nav aria-label="Workspace">
+          <a href="/">HTTP and saved runs</a
+          ><a href="/queues.html" aria-current="page">Queue laboratory</a>
+        </nav>
+        <h2>Saved scenarios</h2>
+        <div id="sessions" class="session-list"></div>
+        <button id="older" hidden>Load older scenarios</button>
+        <p class="caption">Local retained state<br />Explicit virtual clock</p>
+      </aside>
+      <main class="workspace">
+        <div class="topline">
+          <span>Delivery, retries and worker effects</span
+          ><span>Local environment</span>
+        </div>
+        <header class="pagehead">
+          <div>
+            <h1>Queue laboratory</h1>
+            <p>Follow each delivery through its lease and acknowledgement</p>
+          </div>
+          <button id="refresh">Refresh</button>
+        </header>
+        <p id="status" class="secondary" role="status">Reading saved queues</p>
+        <div id="error" class="error" role="alert" hidden></div>
+        <section id="pending" class="panel pending" hidden>
+          <div class="panelbody">
+            <h2>Recover an unfinished response</h2>
+            <p id="pending-description"></p>
+            <button id="recover">Recover saved response</button>
+          </div>
+        </section>
+        <details id="author" class="panel" open>
+          <summary>Create or import a scenario</summary>
+          <div class="panelbody author-grid">
+            <div>
+              <label
+                >Scenario label<input
+                  id="label"
+                  value="Order redelivery"
+                  maxlength="128" /></label
+              ><label
+                >Queue configuration<textarea
+                  id="configuration"
+                  rows="12"
+                  spellcheck="false"
+                  aria-describedby="payload-policy"
+                ></textarea>
+              </label>
+              <p id="payload-policy" class="caption">
+                Use synthetic payloads. Message bodies and delivery identities
+                are retained locally and included in exports.
+              </p>
+              <button id="create" class="primary mutation">Create queue</button>
+            </div>
+            <div>
+              <h2>Compare real crash workers</h2>
+              <p>
+                Both workers write an inventory change, crash before
+                acknowledgement and receive the order again. The database check
+                detects a duplicate side effect even when both broker histories
+                pass.
+              </p>
+              <button id="workers" class="mutation">
+                Run worker comparison
+              </button>
+              <details class="import">
+                <summary>Import saved or broker evidence</summary>
+                <label
+                  >Queue evidence or laboratory export JSON<textarea
+                    id="import-json"
+                    rows="6"
+                    spellcheck="false"
+                  ></textarea></label
+                ><button id="import" class="mutation">Import for review</button>
+              </details>
+              <p class="caption">
+                Imported evidence is read-only. Fork a complete history to
+                continue it as a simulation.
+              </p>
+            </div>
+          </div>
+        </details>
+        <section id="selected" hidden>
+          <header class="pagehead selected-head">
+            <div>
+              <h2 id="session-title"></h2>
+              <p id="session-meta" class="secondary"></p>
+            </div>
+            <div class="actions">
+              <button id="fork" class="mutation">Fork this history</button
+              ><button id="export">Export saved evidence</button>
+            </div>
+          </header>
+          <p id="audit" class="notice"></p>
+          <p id="counts" class="queue-clock"></p>
+          <section id="worker-panel" class="panel" hidden>
+            <div class="panelhead">
+              <h2>Queue history and application effects</h2>
+            </div>
+            <div class="panelbody">
+              <p id="worker-result"></p>
+              <label>Worker case<select id="worker-case"></select></label>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Worker</th>
+                      <th>Application check</th>
+                      <th>Inventory before</th>
+                      <th>Inventory after</th>
+                    </tr>
+                  </thead>
+                  <tbody id="worker-cases"></tbody>
+                </table>
+              </div>
+              <details>
+                <summary>Retained database checks and typed snapshots</summary>
+                <pre id="worker-state"></pre>
+              </details>
+            </div>
+          </section>
+          <div class="queue-grid">
+            <section class="panel">
+              <div class="panelhead"><h2>Messages</h2></div>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Message</th>
+                      <th>State</th>
+                      <th>Attempt</th>
+                      <th>Owner and lease</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="messages"></tbody>
+                </table>
+              </div>
+              <div class="panelbody">
+                <button id="more-messages" hidden>Load more messages</button>
+              </div>
+            </section>
+            <section class="panel command-panel">
+              <div class="panelhead"><h2>Next command</h2></div>
+              <div class="panelbody">
+                <p id="write-policy" class="caption"></p>
+                <div class="quick-commands">
+                  <label
+                    >Consumer identity<input
+                      id="owner"
+                      value="worker-a"
+                      maxlength="96" /></label
+                  ><button id="receive" class="mutation">Receive message</button
+                  ><label
+                    >Advance clock, seconds<input
+                      id="seconds"
+                      type="number"
+                      value="5"
+                      min="0"
+                      max="86400" /></label
+                  ><button id="advance" class="mutation">Advance clock</button>
+                </div>
+                <label
+                  >Command batch<textarea
+                    id="commands"
+                    rows="7"
+                    spellcheck="false"
+                  ></textarea></label
+                ><button id="send" class="primary mutation">
+                  Execute command batch
+                </button>
+                <details>
+                  <summary>Publish and retry example</summary>
+                  <pre>
+[{"operation":"publish","id":"order-43","body":{"units":2},"request_key":"publish-43","delay_seconds":0}]</pre>
+                </details>
+                <details id="response-details">
+                  <summary>Last saved response</summary>
+                  <pre id="response"></pre>
+                </details>
+              </div>
+            </section>
+          </div>
+          <section class="panel journal">
+            <div class="panelhead">
+              <h2>Command history</h2>
+              <span id="head" class="caption"></span>
+            </div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sequence</th>
+                    <th>Clock</th>
+                    <th>Command</th>
+                    <th>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody id="journal"></tbody>
+              </table>
+            </div>
+            <div class="panelbody">
+              <button id="more-commands" hidden>Load more commands</button>
+            </div>
+          </section>
+          <details class="panel metadata">
+            <summary>Saved configuration and lineage</summary>
+            <div class="panelbody"><pre id="definition"></pre></div>
+          </details>
+        </section>
+        <p id="empty" class="notice">
+          Create a queue, import evidence or run the crash-worker comparison to
+          begin.
+        </p>
+        <p class="caption boundary">
+          Simulation replay checks queue semantics and retained content. It does
+          not rerun workers or authenticate a source system. Real worker
+          database observations are shown separately.
+        </p>
+      </main>
+    </div>
+  </body>
+</html>
