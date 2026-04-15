@@ -9,6 +9,7 @@ from .suite_web import evaluate_suite
 from .archive_web import evaluate_archive
 from .state_web import evaluate_state
 from .migration_web import evaluate_migrations
+from .queue_web import evaluate_queue
 
 
 def example():
@@ -16,6 +17,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "queue":
+        return evaluate_queue(params)
     if params.get("mode") == "migration":
         return evaluate_migrations(params)
     if params.get("mode") == "state":
