@@ -140,3 +140,5 @@ controls and independent SQLite/JUnit checks. `queue-benchmark.json` records a
 HTTP, state, migration and workbench checks remain part of the full local test run.
 
 A retained synthetic broker proof is included at `docs/queue-example-evidence.json`. Replay it with `python3 -m reprolattice.queues verify docs/queue-example-evidence.json`. This checks the broker history; it does not rerun the worker or its database effects.
+
+The [saved queue laboratory](QUEUE_LAB.md) adds browser/CLI authoring, retained command batches, scoped receipts, forks, imported history review and the independently observed crash-worker comparison.
