@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "1f392cbc7426d596b2b103e7fcbd6a616546f79385834d89b0b28691a3a78fab",
+  "wheel_sha256": "9610e24636c3d195d9701bd1dfb790693d8ee8f2750f8470dc1a7be48b48d941",
   "examples_exported": [
     "dynamic-order.json",
     "inventory-migrations.json",
@@ -10,6 +10,8 @@
     "inventory_state_client.py",
     "queue-effects-seed.json",
     "queue-effects-suite.json",
+    "queue-lab-commands.json",
+    "queue-lab-configuration.json",
     "queue-orders.json",
     "queue_worker.py",
     "retry.json",
@@ -23,6 +25,7 @@
   "retained_migration_workbench_cli_http_passed": true,
   "isolated_migrations_and_offline_sql_replay_passed": true,
   "queue_workers_redelivery_and_independent_effects_passed": true,
+  "saved_queue_lab_recovery_and_worker_review_passed": true,
   "suite_cli_and_report_hashes_passed": true,
   "suite_http_healthy_and_faulty_passed": true,
   "sqlite_state_suites_and_standalone_snapshots_passed": true,
