@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "scope": "Observed browser/retained-state and separately checked worker SQLite outputs; not hosted broker, authenticated source or full product acceptance",
+  "simulation_session": "4d691711-d046-4fa2-8a31-d94028334611",
+  "worker_session": "e8acffb8-86ec-4738-93b0-f22c574f5ab4",
+  "lost_response_after_create_commit_recovered_once": true,
+  "lost_response_before_delivery_commit_retried_once": true,
+  "stale_generation_rejected": true,
+  "expired_delivery_acknowledgement_rejected": true,
+  "large_integer_and_float_spelling_preserved": true,
+  "original_session_unchanged_by_branch": true,
+  "imported_export_read_only_and_forkable": true,
+  "history_paging_resets_on_generation_change": true,
+  "late_old_view_cannot_replace_selection": true,
+  "row_nack_to_dead_letter": true,
+  "two_page_sidebar_unique_ids": 32,
+  "independent_worker_inventory": {
+    "idempotent": 6,
+    "duplicate": 2
+  },
+  "simulation_download_replay": {
+    "passed": true,
+    "kind": "simulation",
+    "generation": 7,
+    "replay": {
+      "passed": true,
+      "complete": true,
+      "commands_replayed": 6,
+      "message_count": 1,
+      "deliveries": 2,
+      "event_head": "db6abb55f98a38f20881c30fc9a9ea1cfbf3606dcbe9483e3451d20805652655",
+      "source_authenticated": false,
+      "application_reexecuted": false,
+      "dropped_commands": 0
+    },
+    "source_authenticated": false,
+    "application_reexecuted": false,
+    "parent_authenticated": false
+  },
+  "worker_download_replay": {
+    "passed": true,
+    "kind": "workers",
+    "generation": 1,
+    "replay": {
+      "passed": true,
+      "inventory_by_behavior": {
+        "idempotent": 6,
+        "duplicate": 2
+      },
+      "protocol_histories_equal": true,
+      "observed_suite_passed": false,
+      "application_reexecuted": false,
+      "source_authenticated": false
+    },
+    "source_authenticated": false,
+    "application_reexecuted": false,
+    "parent_authenticated": false
+  },
+  "unexpected_page_errors": [],
+  "expected_induced_network_or_http_errors": 5,
+  "visual_batches": 3,
+  "visual_review": "Desktop full page and focused 390px worker/message views inspected; corrected text-input appearance and owner/availability spacing. Initial mobile full-page raster repeated its first band despite one DOM sidebar; final focused viewport captures show actual content.",
+  "document_overflow": false,
+  "artifacts": {
+    "queue-lab-desktop.png": "030a65b61d5b319e0b711e2020da2796d2c771a0235e72e77a93b75026bfd607",
+    "queue-lab-mobile.png": "cafd2fb38d805405eab27b7754ae29811feda3268f517d5da21dc12ed3f8b4f4",
+    "queue-lab-mobile-messages.png": "f2c24d9c8f3d189e7014fb29516a6c3d2d7c84df7cf4065ba91643cd39a8907d",
+    "queue-lab-browser-example.json": "2ed1b70d58d1c6177dd5e1ad59b2055814a2f21b3f5091e1a42e125f1c5f8df2",
+    "queue-lab-browser-workers.json": "ca11919eb07653618cbcdcc8fad674531148c9eb884843e682ed73afe4aa8114"
+  }
+}
