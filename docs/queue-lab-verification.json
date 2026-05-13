@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "scope": "Clean installed CLI/API, replayable saved histories and retained real-worker observations; not hosted broker qualification or authenticated source provenance",
+  "same_key_retry_did_not_duplicate_delivery": true,
+  "generations_and_expired_delivery_fenced": true,
+  "independently_read_deliveries": 2,
+  "independently_read_clock": 5,
+  "independently_read_rejected_commands": 1,
+  "numeric_payload_text_preserved": true,
+  "create_only_export_preserved": true,
+  "imported_history_read_only_and_forkable": true,
+  "offline_replay_after_database_removal": {
+    "passed": true,
+    "kind": "simulation",
+    "generation": 5,
+    "replay": {
+      "passed": true,
+      "complete": true,
+      "commands_replayed": 5,
+      "message_count": 1,
+      "deliveries": 2,
+      "event_head": "2a8c2018b15115d44869638c42d242e0c9338e5106b715676d48631a94b1d8d7",
+      "source_authenticated": false,
+      "application_reexecuted": false,
+      "dropped_commands": 0
+    },
+    "source_authenticated": false,
+    "application_reexecuted": false,
+    "parent_authenticated": false
+  },
+  "worker_inventory_independently_read": {
+    "idempotent": 6,
+    "duplicate": 2
+  },
+  "worker_offline_replay": {
+    "passed": true,
+    "kind": "workers",
+    "generation": 1,
+    "replay": {
+      "passed": true,
+      "inventory_by_behavior": {
+        "idempotent": 6,
+        "duplicate": 2
+      },
+      "protocol_histories_equal": true,
+      "observed_suite_passed": false,
+      "application_reexecuted": false,
+      "source_authenticated": false
+    },
+    "source_authenticated": false,
+    "application_reexecuted": false,
+    "parent_authenticated": false
+  },
+  "export_sha256": "1572fe92c6f43c4cb0d39e731026bd447e589d43b19d9b67d21f38ad446cc014",
+  "full_portfolio_acceptance": false
+}
