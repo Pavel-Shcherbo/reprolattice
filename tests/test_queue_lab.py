@@ -23,3 +23,13 @@ from reprolattice.queue_controls import run_worker_control, verify_worker_contro
 from reprolattice.queue_web import evaluate_queue
 
 
+def config():
+    return {
+        "version": 1,
+        "name": "orders",
+        "visibility_seconds": 5,
+        "max_deliveries": 2,
+        "messages": [{"id": "order-42", "body": {"units": 4}}],
+    }
+
+
