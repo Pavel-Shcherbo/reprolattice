@@ -33,3 +33,9 @@ def config():
     }
 
 
+def rehash(value):
+    value["sha256"] = fingerprint({k: v for k, v in value.items() if k != "sha256"})
+
+
+class QueueLabTests(unittest.TestCase):
+    pass
