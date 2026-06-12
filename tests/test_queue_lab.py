@@ -38,4 +38,16 @@ def rehash(value):
 
 
 class QueueLabTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.path = Path(self.temporary.name) / "queue.sqlite"
+        self.lab = QueueLab(self.path)
+        self.created = self.lab.apply(
+            "one",
+            "create",
+            "create",
+            {"label": "Order redelivery", "configuration": config()},
+        )
+        self.record = self.created["session"]["id"]
+
