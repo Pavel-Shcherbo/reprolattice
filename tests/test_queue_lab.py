@@ -51,3 +51,13 @@ class QueueLabTests(unittest.TestCase):
         )
         self.record = self.created["session"]["id"]
 
+    def apply(self, key, commands, generation=None):
+        if generation is None:
+            generation = self.lab.view("one", self.record)["session"]["generation"]
+        return self.lab.apply(
+            "one",
+            key,
+            "commands",
+            {"record": self.record, "generation": generation, "commands": commands},
+        )
+
