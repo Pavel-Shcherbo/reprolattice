@@ -61,3 +61,6 @@ class QueueLabTests(unittest.TestCase):
             {"record": self.record, "generation": generation, "commands": commands},
         )
 
+    def receive(self):
+        return self.apply("receive", [{"operation": "receive", "owner": "worker-a"}])
+
