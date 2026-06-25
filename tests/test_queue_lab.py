@@ -64,3 +64,26 @@ class QueueLabTests(unittest.TestCase):
     def receive(self):
         return self.apply("receive", [{"operation": "receive", "owner": "worker-a"}])
 
+    def test_real_redelivery_stale_ack_and_new_ack_have_independent_generations(self):
+        first = self.receive()
+        old = first["responses"][0]["body"]["message"]["delivery"]
+        self.apply("expire", [{"operation": "advance", "seconds": 5}])
+        second = self.apply("second", [{"operation": "receive", "owner": "worker-b"}])
+        new = second["responses"][0]["body"]["message"]["delivery"]
+        self.assertNotEqual(old, new)
+        result = self.apply(
+            "finish",
+            [
+                {"operation": "ack", "owner": "worker-a", "delivery": old},
+                {"operation": "ack", "owner": "worker-b", "delivery": new},
+            ],
+        )
+        self.assertEqual([r["status"] for r in result["responses"]], [400, 200])
+        view = self.lab.view("one", self.record)
+        self.assertEqual(
+            view["state"]["counts"],
+            {"queued": 0, "leased": 0, "acknowledged": 1, "dead": 0},
+        )
+        self.assertEqual(view["session"]["generation"], 5)
+        self.assertEqual(view["state"]["rejected_commands"], 1)
+
