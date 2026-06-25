@@ -87,3 +87,15 @@ class QueueLabTests(unittest.TestCase):
         self.assertEqual(view["session"]["generation"], 5)
         self.assertEqual(view["state"]["rejected_commands"], 1)
 
+    def test_retry_after_restart_returns_original_delivery_without_another_receive(
+        self,
+    ):
+        first = self.receive()
+        self.lab = QueueLab(self.path)
+        self.assertEqual(
+            first,
+            self.apply("receive", [{"operation": "receive", "owner": "worker-a"}], 1),
+        )
+        self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
+        self.assertEqual(self.lab.receipt("one", "receive"), first)
+
