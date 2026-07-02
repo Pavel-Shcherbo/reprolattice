@@ -99,3 +99,9 @@ class QueueLabTests(unittest.TestCase):
         self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
         self.assertEqual(self.lab.receipt("one", "receive"), first)
 
+    def test_changed_request_binding_rejected_even_when_generation_would_match(self):
+        self.receive()
+        with self.assertRaisesRegex(ValueError, "different inputs"):
+            self.apply("receive", [{"operation": "receive", "owner": "changed"}], 1)
+        self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
+
