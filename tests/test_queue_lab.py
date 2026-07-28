@@ -105,3 +105,17 @@ class QueueLabTests(unittest.TestCase):
             self.apply("receive", [{"operation": "receive", "owner": "changed"}], 1)
         self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
 
+    def test_concurrent_same_request_is_one_delivery_and_one_generation(self):
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            values = list(
+                pool.map(
+                    lambda _: self.apply(
+                        "simultaneous", [{"operation": "receive", "owner": "a"}], 1
+                    ),
+                    range(4),
+                )
+            )
+        self.assertTrue(all(v == values[0] for v in values))
+        self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 2)
+        self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
+
