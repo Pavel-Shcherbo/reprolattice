@@ -119,3 +119,15 @@ class QueueLabTests(unittest.TestCase):
         self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 2)
         self.assertEqual(self.lab.view("one", self.record)["state"]["deliveries"], 1)
 
+    def test_concurrent_different_generation_requests_only_one_commits(self):
+        def attempt(key):
+            try:
+                return self.apply(key, [{"operation": "receive", "owner": key}], 1)
+            except ValueError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(attempt, ["a", "b"]))
+        self.assertEqual(sum(v is not None for v in results), 1)
+        self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 2)
+
