@@ -131,3 +131,29 @@ class QueueLabTests(unittest.TestCase):
         self.assertEqual(sum(v is not None for v in results), 1)
         self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 2)
 
+    def test_capacity_failure_rolls_back_entire_batch_and_receipt(self):
+        value = config()
+        value["max_commands"] = 1
+        created = self.lab.apply(
+            "one", "small", "create", {"label": "Bounded", "configuration": value}
+        )["session"]["id"]
+        with self.assertRaisesRegex(ValueError, "quota"):
+            self.lab.apply(
+                "one",
+                "too-many",
+                "commands",
+                {
+                    "record": created,
+                    "generation": 1,
+                    "commands": [
+                        {"operation": "receive", "owner": "a"},
+                        {"operation": "advance", "seconds": 1},
+                    ],
+                },
+            )
+        view = self.lab.view("one", created)
+        self.assertEqual(view["session"]["generation"], 1)
+        self.assertEqual(view["commands"]["items"], [])
+        with self.assertRaisesRegex(ValueError, "not found"):
+            self.lab.receipt("one", "too-many")
+
