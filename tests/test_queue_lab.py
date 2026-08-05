@@ -157,3 +157,23 @@ class QueueLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not found"):
             self.lab.receipt("one", "too-many")
 
+    def test_failure_after_document_save_does_not_commit_document_without_receipt(self):
+        original = self.lab.budget
+        calls = 0
+
+        def reject(db, extra=0):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise ValueError("simulated response failure")
+            return original(db, extra)
+
+        with (
+            patch.object(self.lab, "budget", side_effect=reject),
+            self.assertRaisesRegex(ValueError, "simulated"),
+        ):
+            self.receive()
+        self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 1)
+        with self.assertRaisesRegex(ValueError, "not found"):
+            self.lab.receipt("one", "receive")
+
