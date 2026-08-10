@@ -177,3 +177,29 @@ class QueueLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not found"):
             self.lab.receipt("one", "receive")
 
+    def test_project_scoping_applies_to_views_receipts_commands_forks_exports(self):
+        for callback in [
+            lambda: self.lab.view("other", self.record),
+            lambda: self.lab.receipt("other", "create"),
+            lambda: self.lab.export("other", self.record, 1),
+            lambda: self.lab.apply(
+                "other",
+                "write",
+                "commands",
+                {
+                    "record": self.record,
+                    "generation": 1,
+                    "commands": [{"operation": "status"}],
+                },
+            ),
+            lambda: self.lab.apply(
+                "other",
+                "fork",
+                "fork",
+                {"record": self.record, "generation": 1, "label": "foreign"},
+            ),
+        ]:
+            with self.assertRaisesRegex(ValueError, "not found"):
+                callback()
+        self.assertEqual(self.lab.list("other")["items"], [])
+
