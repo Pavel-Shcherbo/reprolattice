@@ -203,3 +203,35 @@ class QueueLabTests(unittest.TestCase):
                 callback()
         self.assertEqual(self.lab.list("other")["items"], [])
 
+    def test_fork_retains_state_and_command_chain_but_does_not_mutate_parent(self):
+        self.receive()
+        fork = self.lab.apply(
+            "one",
+            "branch",
+            "fork",
+            {"record": self.record, "generation": 2, "label": "Branch"},
+        )["session"]
+        self.assertEqual(fork["parent"]["id"], self.record)
+        self.lab.apply(
+            "one",
+            "branch-time",
+            "commands",
+            {
+                "record": fork["id"],
+                "generation": 1,
+                "commands": [{"operation": "advance", "seconds": 5}],
+            },
+        )
+        self.assertEqual(self.lab.view("one", fork["id"])["state"]["clock"], 5)
+        self.assertEqual(self.lab.view("one", self.record)["state"]["clock"], 0)
+        self.assertEqual(
+            self.lab.view("one", self.record)["state"]["counts"]["leased"], 1
+        )
+        with self.assertRaisesRegex(ValueError, "generation changed"):
+            self.lab.apply(
+                "one",
+                "old-fork",
+                "fork",
+                {"record": self.record, "generation": 1, "label": "Stale"},
+            )
+
