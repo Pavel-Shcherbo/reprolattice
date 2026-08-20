@@ -235,3 +235,27 @@ class QueueLabTests(unittest.TestCase):
                 {"record": self.record, "generation": 1, "label": "Stale"},
             )
 
+    def test_imported_history_is_read_only_but_complete_history_can_be_forked(self):
+        proof = QueueEngine(config()).evidence()
+        record = self.lab.apply(
+            "one", "imported", "import", {"label": "Imported", "evidence": proof}
+        )["session"]["id"]
+        with self.assertRaisesRegex(ValueError, "only authored"):
+            self.lab.apply(
+                "one",
+                "edit-import",
+                "commands",
+                {
+                    "record": record,
+                    "generation": 1,
+                    "commands": [{"operation": "status"}],
+                },
+            )
+        fork = self.lab.apply(
+            "one",
+            "fork-import",
+            "fork",
+            {"record": record, "generation": 1, "label": "Authored continuation"},
+        )["session"]
+        self.assertEqual(fork["kind"], "simulation")
+
