@@ -259,3 +259,18 @@ class QueueLabTests(unittest.TestCase):
         )["session"]
         self.assertEqual(fork["kind"], "simulation")
 
+    def test_portable_saved_export_import_uses_new_project_and_read_only_history(self):
+        self.receive()
+        value = self.lab.export("one", self.record, 2)
+        record = self.lab.apply(
+            "two", "restored", "import", {"label": "Restored", "evidence": value}
+        )["session"]
+        self.assertNotEqual(record["id"], self.record)
+        self.assertEqual(record["kind"], "imported")
+        self.assertEqual(record["project"], "two")
+        self.assertEqual(record["parent"]["id"], self.record)
+        self.assertEqual(
+            self.lab.view("two", record["id"])["state"],
+            self.lab.view("one", self.record)["state"],
+        )
+
