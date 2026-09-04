@@ -274,3 +274,20 @@ class QueueLabTests(unittest.TestCase):
             self.lab.view("one", self.record)["state"],
         )
 
+    def test_incomplete_import_stays_explicit_and_cannot_be_forked(self):
+        proof = QueueEngine(config()).evidence(wire_errors=1)
+        record = self.lab.apply(
+            "one", "incomplete", "import", {"label": "Incomplete", "evidence": proof}
+        )["session"]["id"]
+        self.assertFalse(self.lab.view("one", record)["complete"])
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            self.lab.apply(
+                "one",
+                "bad-fork",
+                "fork",
+                {"record": record, "generation": 1, "label": "Cannot continue"},
+            )
+        self.assertFalse(
+            verify_export(self.lab.export("one", record, 1))["replay"]["complete"]
+        )
+
