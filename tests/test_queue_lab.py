@@ -291,3 +291,17 @@ class QueueLabTests(unittest.TestCase):
             verify_export(self.lab.export("one", record, 1))["replay"]["complete"]
         )
 
+    def test_corrupt_queue_hash_and_rehashed_impossible_state_rejected(self):
+        for rehashed in [False, True]:
+            proof = QueueEngine(config()).evidence()
+            proof["state"]["clock"] = 5
+            if rehashed:
+                rehash(proof)
+            with self.subTest(rehashed=rehashed), self.assertRaises(ValueError):
+                self.lab.apply(
+                    "one",
+                    "bad" + str(rehashed),
+                    "import",
+                    {"label": "Bad", "evidence": proof},
+                )
+
