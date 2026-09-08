@@ -305,3 +305,25 @@ class QueueLabTests(unittest.TestCase):
                     {"label": "Bad", "evidence": proof},
                 )
 
+    def test_receipt_and_stored_document_corruption_are_detected(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute(
+                "UPDATE receipts SET response_sha='bad' WHERE request_key='create'"
+            )
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "receipt identity"):
+            self.lab.receipt("one", "create")
+        with closing(sqlite3.connect(self.path)) as db:
+            row = db.execute(
+                "select document from sessions where id=?", (self.record,)
+            ).fetchone()
+            value = json.loads(row[0])
+            value["state"]["clock"] = 1
+            db.execute(
+                "update sessions set document=? where id=?",
+                (canonical(value), self.record),
+            )
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "content identity"):
+            self.lab.view("one", self.record)
+
