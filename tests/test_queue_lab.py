@@ -362,3 +362,19 @@ class QueueLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "generation changed"):
             self.lab.view("one", record, generation=2, after=25)
 
+    def test_export_offline_without_database_preserves_json_numbers(self):
+        value = config()
+        value["messages"][0]["body"] = {"value": 1.0}
+        record = self.lab.apply(
+            "one",
+            "float",
+            "create",
+            {"label": "Numeric payload", "configuration": value},
+        )["session"]["id"]
+        export = self.lab.export("one", record, 1)
+        serialized = canonical(export).decode()
+        outer = json.loads(json.dumps({"content": serialized}))
+        self.path.unlink()
+        self.assertIn("1.0", outer["content"])
+        self.assertTrue(verify_export(json.loads(outer["content"]))["passed"])
+
