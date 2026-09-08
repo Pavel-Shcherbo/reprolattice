@@ -327,3 +327,38 @@ class QueueLabTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "content identity"):
             self.lab.view("one", self.record)
 
+    def test_newest_first_list_and_message_command_pagination(self):
+        value = config()
+        value["messages"] = [{"id": f"item-{i}", "body": i} for i in range(30)]
+        record = self.lab.apply(
+            "one", "many", "create", {"label": "Many", "configuration": value}
+        )["session"]["id"]
+        for i in range(2):
+            self.lab.apply(
+                "one",
+                "advance" + str(i),
+                "commands",
+                {
+                    "record": record,
+                    "generation": i + 1,
+                    "commands": [{"operation": "advance", "seconds": 1}] * 20,
+                },
+            )
+        first = self.lab.view("one", record)
+        last = self.lab.view("one", record, generation=3, message_offset=25, after=25)
+        self.assertEqual(len(first["messages"]["items"]), 25)
+        self.assertEqual(len(last["messages"]["items"]), 5)
+        self.assertEqual(
+            [e["sequence"] for e in last["commands"]["items"]], list(range(26, 41))
+        )
+        listing = self.lab.list("one", limit=1)
+        self.assertEqual(listing["items"][0]["id"], record)
+        self.assertEqual(
+            self.lab.list("one", before=listing["next_cursor"], limit=1)["items"][0][
+                "id"
+            ],
+            self.record,
+        )
+        with self.assertRaisesRegex(ValueError, "generation changed"):
+            self.lab.view("one", record, generation=2, after=25)
+
