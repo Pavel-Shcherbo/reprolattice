@@ -396,3 +396,19 @@ class QueueLabTests(unittest.TestCase):
         ):
             self.receive()
 
+    def test_bad_fields_and_batch_shape_cannot_mutate_state(self):
+        for commands in [[], {}, [{}] * 51]:
+            with self.assertRaises(ValueError):
+                self.apply("bad" + str(type(commands)), commands)
+        for generation in [0, True, "1"]:
+            with self.assertRaises(ValueError):
+                self.apply("bad-generation", [{"operation": "status"}], generation)
+        with self.assertRaises(ValueError):
+            self.lab.apply(
+                "one",
+                "path",
+                "create",
+                {"label": "Bad", "configuration": config(), "path": "/tmp/unwanted"},
+            )
+        self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 1)
+
