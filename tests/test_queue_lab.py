@@ -378,3 +378,21 @@ class QueueLabTests(unittest.TestCase):
         self.assertIn("1.0", outer["content"])
         self.assertTrue(verify_export(json.loads(outer["content"]))["passed"])
 
+    def test_retained_quota_rejects_new_sessions_without_partial_rows(self):
+        with (
+            patch("reprolattice.queue_lab.MAX_SESSIONS", 1),
+            self.assertRaisesRegex(ValueError, "quota"),
+        ):
+            self.lab.apply(
+                "one",
+                "overflow",
+                "create",
+                {"label": "Overflow", "configuration": config()},
+            )
+        self.assertEqual(len(self.lab.list("one")["items"]), 1)
+        with (
+            patch("reprolattice.queue_lab.MAX_RETAINED", 1),
+            self.assertRaisesRegex(ValueError, "quota"),
+        ):
+            self.receive()
+
