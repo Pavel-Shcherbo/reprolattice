@@ -412,3 +412,27 @@ class QueueLabTests(unittest.TestCase):
             )
         self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 1)
 
+    def test_killed_process_cannot_leave_delivery_without_retry_receipt(self):
+        script = """
+import os,sys
+from reprolattice.queue_lab import QueueLab
+lab=QueueLab(sys.argv[1])
+original=lab.save
+def die(*args,**kwargs):
+ original(*args,**kwargs)
+ os._exit(17)
+lab.save=die
+lab.apply('one','killed','commands',{'record':sys.argv[2],'generation':1,'commands':[{'operation':'receive','owner':'a'}]})
+"""
+        process = subprocess.run(
+            [sys.executable, "-c", script, str(self.path), self.record],
+            capture_output=True,
+            timeout=10,
+        )
+        self.assertEqual(process.returncode, 17, process.stderr)
+        self.assertEqual(self.lab.view("one", self.record)["session"]["generation"], 1)
+        with self.assertRaisesRegex(ValueError, "not found"):
+            self.lab.receipt("one", "killed")
+        value = self.apply("killed", [{"operation": "receive", "owner": "a"}], 1)
+        self.assertEqual(value["responses"][0]["body"]["message"]["attempt"], 1)
+
