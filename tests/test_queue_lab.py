@@ -436,3 +436,19 @@ lab.apply('one','killed','commands',{'record':sys.argv[2],'generation':1,'comman
         value = self.apply("killed", [{"operation": "receive", "owner": "a"}], 1)
         self.assertEqual(value["responses"][0]["body"]["message"]["attempt"], 1)
 
+    def test_session_metadata_identity_and_unrelated_database_guard(self):
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute("UPDATE sessions SET metadata_sha='bad'")
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "metadata"):
+            self.lab.list("one")
+        unrelated = Path(self.temporary.name) / "unrelated.sqlite"
+        with closing(sqlite3.connect(unrelated)) as db:
+            db.execute("create table foreign_data(value)")
+            db.commit()
+        with self.assertRaisesRegex(ValueError, "unrelated"):
+            QueueLab(unrelated)
+
+
+class QueueWorkerControlTests(unittest.TestCase):
+    pass
