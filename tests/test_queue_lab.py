@@ -455,3 +455,14 @@ class QueueWorkerControlTests(unittest.TestCase):
     def setUpClass(cls):
         cls.control = run_worker_control()
 
+    def test_real_worker_observations_reconcile_without_confusing_protocol_and_effects(
+        self,
+    ):
+        proof = verify_worker_control(self.control)
+        self.assertEqual(
+            proof["inventory_by_behavior"], {"idempotent": 6, "duplicate": 2}
+        )
+        self.assertTrue(proof["protocol_histories_equal"])
+        self.assertFalse(proof["observed_suite_passed"])
+        self.assertFalse(proof["application_reexecuted"])
+
