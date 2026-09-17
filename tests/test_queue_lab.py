@@ -451,4 +451,7 @@ lab.apply('one','killed','commands',{'record':sys.argv[2],'generation':1,'comman
 
 
 class QueueWorkerControlTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.control = run_worker_control()
+
