@@ -466,3 +466,17 @@ class QueueWorkerControlTests(unittest.TestCase):
         self.assertFalse(proof["observed_suite_passed"])
         self.assertFalse(proof["application_reexecuted"])
 
+    def test_rehashed_snapshot_change_cannot_qualify_duplicate_effect(self):
+        value = copy.deepcopy(self.control)
+        case = next(
+            c
+            for c in value["report"]["cases"]
+            if c["parameters"]["behavior"] == "duplicate"
+        )
+        value["states"][case["id"]]["after"]["tables"]["inventory"]["rows"][0][
+            "available"
+        ]["value"] = 6
+        rehash(value)
+        with self.assertRaises(ValueError):
+            verify_worker_control(value)
+
