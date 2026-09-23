@@ -480,3 +480,35 @@ class QueueWorkerControlTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_worker_control(value)
 
+    def test_worker_save_retry_does_not_launch_another_process_and_allows_case_fork(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            lab = QueueLab(Path(temporary) / "queues.sqlite")
+            with patch(
+                "reprolattice.queue_lab.run_worker_control", return_value=self.control
+            ) as runner:
+                result = lab.apply("one", "workers", "workers", {"label": "Workers"})
+                self.assertEqual(
+                    result, lab.apply("one", "workers", "workers", {"label": "Workers"})
+                )
+                self.assertEqual(runner.call_count, 1)
+            record = result["session"]["id"]
+            view = lab.view("one", record)
+            self.assertEqual(len(view["cases"]), 2)
+            fork = lab.apply(
+                "one",
+                "fork",
+                "fork",
+                {
+                    "label": "Worker continuation",
+                    "record": record,
+                    "generation": 1,
+                    "case": view["selected_case"],
+                },
+            )
+            self.assertEqual(
+                lab.view("one", fork["session"]["id"])["state"], view["state"]
+            )
+            self.assertTrue(verify_export(lab.export("one", record, 1))["passed"])
+
