@@ -512,3 +512,41 @@ class QueueWorkerControlTests(unittest.TestCase):
             )
             self.assertTrue(verify_export(lab.export("one", record, 1))["passed"])
 
+    def test_web_fields_and_overview_are_scoped_without_database_creation(self):
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch(
+                "reprolattice.queue_web.state_directory", return_value=Path(temporary)
+            ),
+        ):
+            self.assertEqual(
+                evaluate_queue({"mode": "queue", "action": "overview"})["items"], []
+            )
+            self.assertFalse(
+                (Path(temporary) / "queue-workbench/queues.sqlite").exists()
+            )
+            with self.assertRaises(ValueError):
+                evaluate_queue(
+                    {"mode": "queue", "action": "overview", "path": "/tmp/elsewhere"}
+                )
+            created = evaluate_queue(
+                {
+                    "mode": "queue",
+                    "action": "create",
+                    "request_key": "new",
+                    "payload": {"label": "Web queue", "configuration": config()},
+                }
+            )
+            exported = evaluate_queue(
+                {
+                    "mode": "queue",
+                    "action": "export",
+                    "record": created["session"]["id"],
+                    "generation": 1,
+                }
+            )
+            self.assertTrue(verify_export(json.loads(exported["content"]))["passed"])
+
+
+class QueueLabHTTPTests(unittest.TestCase):
+    pass
