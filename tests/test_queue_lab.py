@@ -578,3 +578,9 @@ class QueueLabHTTPTests(unittest.TestCase):
         cls.process.terminate()
         raise RuntimeError("queue HTTP server did not start")
 
+    @classmethod
+    def tearDownClass(cls):
+        cls.process.terminate()
+        cls.process.communicate(timeout=5)
+        cls.temp.cleanup()
+
