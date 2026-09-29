@@ -584,3 +584,21 @@ class QueueLabHTTPTests(unittest.TestCase):
         cls.process.communicate(timeout=5)
         cls.temp.cleanup()
 
+    def request(self, value, *, headers=None, raw=False):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+        body = value if raw else json.dumps(value)
+        connection.request(
+            "POST",
+            "/api/evaluate",
+            body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Local-Request": "1",
+                **(headers or {}),
+            },
+        )
+        response = connection.getresponse()
+        payload = json.loads(response.read())
+        connection.close()
+        return response.status, payload
+
