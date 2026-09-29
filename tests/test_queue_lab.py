@@ -549,4 +549,32 @@ class QueueWorkerControlTests(unittest.TestCase):
 
 
 class QueueLabHTTPTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.temp = tempfile.TemporaryDirectory()
+        with closing(socket.socket()) as sock:
+            sock.bind(("127.0.0.1", 0))
+            cls.port = sock.getsockname()[1]
+        env = {**os.environ, "REPROLATTICE_STATE_DIR": cls.temp.name}
+        cls.process = subprocess.Popen(
+            [sys.executable, "-m", "reprolattice.web", "--port", str(cls.port)],
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        for _ in range(100):
+            try:
+                connection = http.client.HTTPConnection(
+                    "127.0.0.1", cls.port, timeout=1
+                )
+                connection.request("GET", "/health")
+                r = connection.getresponse()
+                r.read()
+                connection.close()
+                if r.status == 200:
+                    return
+            except OSError:
+                time.sleep(0.02)
+        cls.process.terminate()
+        raise RuntimeError("queue HTTP server did not start")
+
