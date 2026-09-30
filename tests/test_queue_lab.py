@@ -643,3 +643,13 @@ class QueueLabHTTPTests(unittest.TestCase):
             400,
         )
 
+    def test_foreign_host_origin_and_missing_capability_are_rejected(self):
+        value = {"mode": "queue", "action": "overview"}
+        for headers in [
+            {"Host": "example.com"},
+            {"Origin": "https://example.com"},
+            {"X-Local-Request": "0"},
+        ]:
+            with self.subTest(headers=headers):
+                self.assertEqual(self.request(value, headers=headers)[0], 403)
+
