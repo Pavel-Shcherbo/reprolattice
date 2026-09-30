@@ -602,3 +602,44 @@ class QueueLabHTTPTests(unittest.TestCase):
         connection.close()
         return response.status, payload
 
+    def test_json_text_keeps_large_integers_and_strict_json_rejects_duplicates(self):
+        value = config()
+        value["messages"][0]["body"] = {"large": 9007199254740993, "number": 1.0}
+        code, result = self.request(
+            {
+                "mode": "queue",
+                "action": "create",
+                "request_key": "precise",
+                "payload": {
+                    "label": "Exact numeric payload",
+                    "configuration_json": json.dumps(value),
+                },
+            }
+        )
+        self.assertEqual(code, 200)
+        code, view = self.request(
+            {"mode": "queue", "action": "view", "record": result["session"]["id"]}
+        )
+        self.assertIn("9007199254740993", view["messages"]["items"][0]["body_json"])
+        self.assertIn("1.0", view["messages"]["items"][0]["body_json"])
+        for raw in [
+            '{"mode":"queue","mode":"queue","action":"overview"}',
+            '{"mode":"queue","action":"overview","before":NaN}',
+        ]:
+            self.assertEqual(self.request(raw, raw=True)[0], 400)
+        self.assertEqual(
+            self.request(
+                {
+                    "mode": "queue",
+                    "action": "create",
+                    "request_key": "ambiguous",
+                    "payload": {
+                        "label": "Ambiguous",
+                        "configuration_json": json.dumps(value),
+                        "configuration": value,
+                    },
+                }
+            )[0],
+            400,
+        )
+
