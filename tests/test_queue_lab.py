@@ -653,3 +653,28 @@ class QueueLabHTTPTests(unittest.TestCase):
             with self.subTest(headers=headers):
                 self.assertEqual(self.request(value, headers=headers)[0], 403)
 
+    def test_local_assets_and_old_protocol_routes_still_work(self):
+        for path in [
+            "/queues.html",
+            "/queues.js",
+            "/queues.css",
+            "/api/example",
+            "/health",
+        ]:
+            connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+            connection.request("GET", path)
+            response = connection.getresponse()
+            body = response.read()
+            connection.close()
+            self.assertEqual(response.status, 200, path)
+            self.assertTrue(body)
+        self.assertEqual(
+            self.request(
+                {"mode": "queue", "action": "overview", "path": "/tmp/elsewhere"}
+            )[0],
+            400,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
