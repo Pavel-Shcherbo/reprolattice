@@ -60,3 +60,17 @@ Verified queue-adapter increment: 28 new checks, 241 Reprolattice tests and 763 
 Verified queue-laboratory increment: 27 new checks, 268 Reprolattice tests and 836 portfolio tests passed. Scoped saved simulations retain atomic generation-fenced command batches and input-bound retry receipts; killed-process, quota and response failures leave no partial delivery. Complete histories can be forked, imports remain read-only and incomplete prefixes cannot become active simulations. Exact JSON text preserves large integers and export hashes. Reviewed real crash workers retain identical passing broker histories but independently observed SQLite stock 6/2 and distinct application outcomes. Clean installed CLI/API, create-only export, independent database reads and replay after database removal passed. Actual desktop/mobile controls passed network loss before/after commit, stale generation/acknowledgement, imports/forks, delayed selection, generation-aware history paging, row retry to dead letter and 32 unique records across sidebar pages. Downloaded simulation/worker exports replayed independently. A retained 40-session/1600-command/80-receipt workload matched the independent acknowledged-unit sum 8400. Evidence: docs/QUEUE_LAB.md, docs/queue-lab-verification.json, docs/queue-lab-benchmark.json and docs/queue-lab-browser-verification.json. Current project-specific production source: 13795 SLOC. Hosted/provider protocols, retention/deletion, source-database archive capture, signed provenance and full product/20000 useful-SLOC scope remain open. No publication.
 
 | Saved queue laboratory and worker-effect review | Verified local increment; 27 checks, clean installed CLI/API, browser/download and 40-session workload | `docs/QUEUE_LAB.md`, `docs/queue-lab-verification.json`, `docs/queue-lab-browser-verification.json` | Hosted/provider protocols, retention and full size/scope remain open |
+
+
+## Scope update — 2026-11-04
+
+Pavel withdrew the mandatory 20,000-SLOC threshold: it was indicative. Earlier
+size requirements in this log are superseded. Do not expand solely for line count.
+Prioritize useful verified behavior and meaningful reconstructed history. Existing
+verification evidence remains scoped to the versions it records; final acceptance
+and full history reconstruction remain open. No publication is authorized.
+
+History audit: actual local Git objects, ownership and nonempty stages were checked;
+implementation/tests/examples match the last verified source version. The proposed
+2019–2026 calendar remains a plan, not a completed activity record. The central
+planning register retains the actual commit/calendar audit and outstanding work.
