@@ -1,5 +1,16 @@
 # Tasks
 
+## Current local qualification — 2026-11-04
+
+Implemented scope: HTTP matching, real application output, SQLite postconditions, migration/reversal failures, queue redelivery/worker effects and saved portable histories. Full project suites passed on CPython
+3.10–3.14: 269 tests per version. Clean wheel installation and CLI/API controls
+passed on 3.10 and 3.14. [Current evidence](docs/VERIFICATION.md) supersedes old
+size requirements and historical test totals below. Final package identities are maintained in the central review register;
+no publication is authorized. Future provider/hosted/distributed
+features in the original roadmap remain optional backlog.
+
+---
+
 Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed.
 
 | Task | Status | Evidence | Remaining work |
@@ -84,3 +95,12 @@ Dates are illustrative labels; intermediate stages are not individually qualifie
 releases. Calendar/object/final-tree evidence and packaging status are maintained
 in the central planning register (P-047). Original main history is retained.
 Publication and final portfolio acceptance remain pending; no upload is authorized.
+
+## Supported-Python final check — 2026-11-04
+
+A real Python 3.10 run exposed unsupported authorizer disabling with None across
+SQLite inspection/migration boundaries. A shared compatibility reset preserves
+query-only and transaction controls; each user SQL execution reinstalls its policy.
+The regression checks coherent inspection after success/rejection and denied
+writes on the same read-only connection. Full version qualification is in progress.
+No publication performed.
