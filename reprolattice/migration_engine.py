@@ -3,6 +3,8 @@
 import copy
 import sqlite3
 
+from .sqlite_compat import clear_authorizer
+
 from .migration_history import STACK, append_history, history, initialize_history
 from .migration_model import MigrationPlan, compact_checks
 from .migration_sql import execute_statement, writer
@@ -115,7 +117,7 @@ class MigrationDatabase:
                 history(db, self.plan)
                 if not db.in_transaction:
                     raise ValueError("migration ended the runner-owned transaction")
-                db.set_authorizer(None)
+                clear_authorizer(db)
                 result["postconditions"] = compact_checks(
                     check_queries(
                         None,
@@ -175,7 +177,7 @@ class MigrationDatabase:
                     if budget.reason
                     else str(error)[:2048]
                 )
-                db.set_authorizer(None)
+                clear_authorizer(db)
                 db.set_progress_handler(None, 0)
                 diagnostic = Budget(2)
                 try:
