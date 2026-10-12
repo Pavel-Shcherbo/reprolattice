@@ -3,6 +3,8 @@
 from contextlib import closing, contextmanager
 import sqlite3
 
+from .sqlite_compat import clear_authorizer
+
 from .migration_model import PREFIX
 from .sqlite_inspect import Budget, FUNCTIONS, file_budget
 from .sqlite_seed import MAX_DATABASE, sqlite_value
@@ -111,7 +113,7 @@ def writer(path, budget):
         try:
             yield db
         finally:
-            db.set_authorizer(None)
+            clear_authorizer(db)
             db.set_progress_handler(None, 0)
             if db.in_transaction:
                 db.rollback()
@@ -148,10 +150,10 @@ def execute_statement(db, budget, statement):
             "rowcount": cursor.rowcount,
             "returned_rows": rows,
         }
-    except sqlite3.Error as error:
+    except (sqlite3.Error, sqlite3.Warning) as error:
         message = "migration " + budget.reason if budget.reason else str(error)
         if policy.denial:
             message += "; operation denied by migration SQL policy"
         raise ValueError(message) from error
     finally:
-        db.set_authorizer(None)
+        clear_authorizer(db)
