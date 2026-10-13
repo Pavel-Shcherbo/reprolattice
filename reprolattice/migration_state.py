@@ -4,6 +4,8 @@ from contextlib import closing
 from pathlib import Path
 import sqlite3
 
+from .sqlite_compat import clear_authorizer
+
 from .migration_model import PREFIX
 from .migration_history import STACK, EVENTS
 from .sqlite_inspect import Budget, database_snapshot, reader, verify_database_snapshot
@@ -50,7 +52,7 @@ def verify_migration_snapshot(value):
 
 
 def app_snapshot(db, budget, *, diagnostic=False):
-    db.set_authorizer(None)
+    clear_authorizer(db)
     value = database_snapshot(
         None, _view=(db, budget), allow_foreign_key_errors=diagnostic
     )
