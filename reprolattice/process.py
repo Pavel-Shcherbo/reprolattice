@@ -29,11 +29,14 @@ def stop_process(process):
             process.kill()
     except ProcessLookupError:
         pass
-    except PermissionError:
-        # macOS may report EPERM for the departed group of an exited leader.
-        # Reap/check that exact child; never suppress failure for a live leader.
+    except PermissionError as error:
+        # macOS can retire a group just before waitpid observes its leader's exit.
+        # Confirm that exact child's exit; never hide failure for a live leader.
         if process.poll() is None:
-            raise
+            try:
+                process.wait(timeout=0.1)
+            except subprocess.TimeoutExpired:
+                raise error from None
 
 
 def run_process(
