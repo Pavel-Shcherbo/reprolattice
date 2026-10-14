@@ -3,11 +3,13 @@
 import copy
 import math
 import sqlite3
+
 import time
 from collections import Counter
 from contextlib import contextmanager, closing, nullcontext
 from pathlib import Path
 
+from .sqlite_compat import clear_authorizer
 from .jsonutil import validate_json
 from .sqlite_seed import MAX_DATABASE, canonical, identity, quoted, sqlite_value, typed
 
@@ -106,7 +108,7 @@ def reader(path, *, timeout=2, should_cancel=None):
                 raise ValueError("SQLite inspection " + budget.reason) from error
             raise ValueError("SQLite inspection failed: " + str(error)) from error
         finally:
-            db.set_authorizer(None)
+            clear_authorizer(db)
             db.set_progress_handler(None, 0)
 
 
@@ -264,7 +266,7 @@ def check_queries(path, definitions, *, timeout=2, should_cancel=None, _view=Non
                     expected=expected[:20],
                     diagnostics_complete=len(actual) <= 20 and len(expected) <= 20,
                 )
-            except (sqlite3.Error, ValueError) as error:
+            except (sqlite3.Error, sqlite3.Warning, ValueError) as error:
                 report["error"] = (
                     ("SQLite inspection " + budget.reason)
                     if budget.reason
@@ -272,7 +274,7 @@ def check_queries(path, definitions, *, timeout=2, should_cancel=None, _view=Non
                 )
             reports.append(report)
             budget.check()
-        db.set_authorizer(None)
+        clear_authorizer(db)
     return {"passed": all(item["passed"] for item in reports), "queries": reports}
 
 
