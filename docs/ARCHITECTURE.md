@@ -26,9 +26,12 @@ authorization or organization model yet.
 
 `process` drains stdout and stderr concurrently into capped buffers, enforces a wall-clock deadline and reports invalid UTF-8 separately. POSIX process groups are terminated on timeout or output overflow, including descendants holding pipes after the leader exits. The harness combines output conditions, exit status, resource limits and interaction consumption. Windows descendant termination is not implemented or qualified; the harness is not an OS sandbox.
 
-## Next architectural increment
+## Remaining boundaries
 
-Expose archived run/SQLite/baseline state in management views, then qualify additional providers, migrations, signed provenance and scalable retained-history audits. Streaming, concurrent replay scheduling and distributed execution remain outside the current core.
+Saved-run, SQLite-state, migration and queue management views are implemented.
+Additional database engines, signed remote provenance, streaming, concurrent
+protocol replay scheduling and distributed execution remain outside the current
+local tool. Bounded complete audits refuse an incomplete green result.
 
 ## Suite execution and CI reports
 
@@ -43,3 +46,38 @@ Expose archived run/SQLite/baseline state in management views, then qualify addi
 ## Immutable run archive and comparisons
 
 `run_contract` validates bounded execution evidence and separates test-condition identities from subject identities. The runner records original environment and parameter/assertion fingerprints; workspace files explicitly declare fixture/subject roles. `run_registry` transactionally archives canonical reports and indexed outcomes, with project scoping, idempotent imports and generation-checked baseline events. `run_compare` pairs cases by source/parameter identity and emits explicit status/input/coverage/context findings under a declared gate policy. `runs` supplies local operator commands and create-only comparison/export outputs. Imports never infer the execution environment from the importing host. See RUNS.md for trust boundaries and current bounds.
+
+
+## Retained SQLite and migration review
+
+`state_archive` retains bounded logical before/after evidence and typed table
+changes for actual suite cases. `state_web` exposes scoped rows and portable
+exports without accepting arbitrary filesystem paths over HTTP.
+
+`migration_model` and `migration_sql` validate explicit ordered forward/reverse
+plans. `migration_engine` applies them to an isolated SQLite seed or read-only
+source copy, retaining failure candidates and restoration checks.
+`migration_bundle` repeats the retained SQL/state proof offline.
+`migration_archive` stores attempts and generations; `migration_web` runs reviewed
+round-trip, statement-failure and broken-rollback controls. Neither the browser
+nor rehearsal deploys SQL to the original user database. See
+[state review](STATE_WORKBENCH.md), [migrations](MIGRATIONS.md) and
+[migration workbench](MIGRATION_WORKBENCH.md).
+
+## Queue delivery and actual worker effects
+
+`queue_model` validates retained virtual-clock inputs. `queue_engine` controls
+visibility, delivery tokens, expiry, deduplication and acknowledgement/redelivery.
+`queue_http` exposes an isolated loopback worker protocol; `queue_harness` runs
+trusted real workers under bounded process controls and reuses SQLite/artifact
+postconditions. The crash control commits an effect before acknowledgement, then
+checks whether redelivery duplicates that effect. Queue acknowledgement alone
+never proves application idempotency.
+
+`queue_lab` and `queue_sessions` retain saved scenarios, command histories,
+generations, durable response receipts, read-only imports and explicit forks.
+The browser preserves exact JSON text and exports server-produced evidence;
+it does not round large integer inputs through a browser number conversion.
+`queue_web` limits the application to its fixed local project and reviewed worker
+controls. This is a reproducibility tool, not a hosted production broker. See
+[queue scenarios](QUEUES.md) and [queue laboratory](QUEUE_LAB.md).
