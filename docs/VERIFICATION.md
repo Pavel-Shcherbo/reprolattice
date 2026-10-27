@@ -1,27 +1,50 @@
-# Initial-core verification
+# Verified local delivery
 
-Verified locally on 2026-11-04. This is not full product acceptance.
+This summary records the final local qualification on 2026-11-04. It covers
+HTTP matching, real application output, SQLite postconditions, migration/reversal failures, queue redelivery/worker effects and saved portable histories. Synthetic inputs and explicit model assumptions remain marked in the
+guides; no live provider, hosted service, market performance or deployment is claimed.
 
-- 241 current domain, integration and negative-path tests passed.
-- The documented CLI control scenario completed and its result was checked.
-- Local HTTP success/failure scenarios and foreign-Origin rejection were checked.
-- Desktop and mobile workbench screens were inspected; the review includes defect corrections.
-- Broader product scope and the 20,000 useful production-SLOC requirement remain incomplete.
+## Supported Python checks
 
-Run `python3 -m unittest discover -s tests -v` from this checkout. The examples and README describe supported behavior and limits. No remote publication or hosted deployment was performed.
+| CPython minor | Tests | Result |
+|---|---:|---|
+| 3.10 | 269 | Passed |
+| 3.11 | 269 | Passed |
+| 3.12 | 269 | Passed |
+| 3.13 | 269 | Passed |
+| 3.14 | 269 | Passed |
 
-Version 0.2 wheel installation was checked in an independent virtual environment from an unrelated working directory. Example export, CLI, static files and public workbench calculations passed. Installed code matched the source files, and runtime state remained outside the package. See installed-verification.json for the wheel identity.
+These are actual unit/integration runs on macOS arm64. Every version's log and
+runtime identity are retained in the central review evidence. The compact
+[compatibility record](python-compatibility.json) contains their hashes. Windows,
+other operating systems and future Python versions are not qualified by this matrix.
 
-The current increment adds typed JSON-pointer rules, dynamic request matching, shared protocol verification, bounded stdout/stderr, UTF-8 detection and POSIX descendant cleanup. New checks include real HTTP samples and subprocess failure cases. The installed dynamic example passes through CLI and the workbench API; an injected mismatch fails. Windows process-tree behavior is not qualified.
+## Clean installed entry points
 
-Suite verification covers typed matrix expansion, all-case preflight, file snapshots and pins, isolated concurrent cases, deterministic case ordering and event cursors, fail-fast, cancellation, CLI Ctrl-C reports, process/inspection deadlines, artifact hashes and assertions, tag-filter scope, secret canaries, XML/HTML escaping, report-count integrity and no-overwrite manifests. The bundled five-case suite passes; its faulty-client variant has three failures. Clean installed suite/HTTP checks and browser JSON/JUnit consistency passed. Desktop, 390-pixel mobile, keyboard case details and standalone HTML were inspected; full product acceptance remains open.
+Wheels were installed outside the source checkouts under Python 3.10 and 3.14.
+Checks confirmed actual installed import paths, matching source bytes, bundled
+examples, refusal to overwrite an export destination, CLI results and HTTP controls.
+Independent accounting/state/control values and portable replay are checked by
+the retained subsystem verification. See
+[Python 3.10 installation](installed-verification-python-3.10.json) and
+[Python 3.14 installation](installed-verification-python-3.14.json).
 
-Verified increment: structured SQLite fixtures, typed read-only postconditions, bounded logical snapshots and differences, and suite/JSON/JUnit/HTML integration. 19 new state tests and 108 total Reprolattice tests passed. Clean installed healthy suites passed; omitted-write suites failed despite correct HTTP results. Standalone snapshots/differences and report hashes passed. Evidence: `docs/SQLITE_STATE.md`, `docs/sqlite-state-verification.json`. Browser state inspection, other database providers, run collections and ≥20,000 useful SLOC remain open.
+## Browser and workload evidence
 
-State checks cover type distinctions, BLOB/null handling, relational seed preflight, read-only authorizer denial, recursive-query/row/byte/cancellation limits, logical insertion-order independence, schema/data differences, corrupted state, source pins and create-only exports. The installed suite checks demonstrate correct HTTP output with failed persistence. Prior browser evidence concerns the existing protocol/client/suite screens; SQLite state management has no browser UI yet.
+The subsystem guides retain actual desktop/mobile controls, delayed/lost-response
+checks, downloaded replay evidence and bounded synthetic workloads. Their detailed
+reports describe the version/increment originally exercised; old test totals in
+those reports are historical, not the current project total of 269.
+The final compatibility changes do not alter browser assets. No broad throughput,
+production capacity or remote identity claim follows from these local workloads.
 
-Verified increment: immutable local run archives, indexed case histories, generation-fenced passing baselines, source/parameter pairing, subject/fixture roles and explicit regression/coverage/context gates. 21 new checks and 129 total Reprolattice tests passed. Installed archive/retry/baseline/regression/fix/history/export/audit controls passed; current workbench suite HTTP remains healthy. Evidence: `docs/RUNS.md`, `docs/run-registry-verification.json`, `docs/run-registry-workbench-http.json`. Browser archive/baseline management, signed provenance, retention/paged full audit and ≥20,000 useful SLOC remain open.
+## Reproduce source tests
 
-Registry controls include real healthy/faulty suite classification, stable matrix pairing after reordering/redaction, changed subject versus changed test conditions, partial/removed/cancelled coverage, legacy/unknown environment handling, finite extreme timing ratios, import immutability, concurrent baseline moves, cursor boundaries, archive/index/pointer corruption, safe export symlinks and operator exit codes. Installed controls archive two real local runs and verify three regressions, three fixes, stale-generation rejection, six case-history entries, ten indexed cases and regenerated export hashes. Registry management is CLI/library only; live workbench HTTP evidence covers the existing reviewed suite endpoint.
+```sh
+python3 -m unittest discover -s tests -v
+```
 
-Verified queue-adapter increment: 28 new checks, 241 Reprolattice tests and 763 portfolio tests passed. A bounded virtual-clock loopback queue provides ready-time delivery ordering, lease/owner tokens, delayed nack, exact publish/finish retries and dead-letter transitions. Known dropped commands and wire failures remain incomplete; slow headers have a total deadline. Existing suites support queue cases with independent SQLite/artifact checks, compact CI reports, separate create-only replay proofs and archive/baseline qualification. Real workers commit an effect then exit 17 before acknowledgement: both variants have identical passing queue histories, while independent SQLite checks retain stock 6 for the idempotent worker and detect stock 2 for the duplicate-effect variant. Clean installed standalone/suite/JUnit/archive controls passed, including failed-baseline rejection, passing-baseline promotion and broker replay after removing the worker. A 200-message/400-delivery/601-command workload matched a separate 200-effect/unit-sum-20100 oracle and replayed. Fixed macOS departed-process-group cleanup without suppressing errors for a live leader. Evidence: docs/QUEUES.md, docs/queue-verification.json and docs/queue-benchmark.json. Current project-specific production source: 12156 SLOC. Queue browser, hosted/provider wire adapters, retention/deletion, source-database archive capture, signed provenance and full product/20,000 useful-SLOC scope remain open. No external publication.
+The [architecture](ARCHITECTURE.md) and subsystem guides describe the local trust,
+resource and model limits. Review histories have disclosed reconstructed dates;
+intermediate commits are not individually qualified releases. No upload, push or
+deployment was performed. Source-line volume is not an acceptance gate.
