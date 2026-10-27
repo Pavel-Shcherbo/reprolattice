@@ -82,3 +82,14 @@ python3 -m reprolattice.sqlite_cli compare before.json before.json
 ## Remaining work
 
 Only SQLite is implemented here. PostgreSQL/MySQL, containerized providers, externally hosted test databases, migration orchestration, database-level sandboxing, full schema-equivalence rules and browser state inspection remain open. Run collections and full product scope remain open, as does the 20,000 useful production-SLOC acceptance.
+
+
+## Python binding compatibility
+
+Python 3.10 uses a permissive callback for internal authorizer reset because
+`set_authorizer(None)` was added in Python 3.11. User-supplied queries still receive
+the restrictive read-only function/operation policy, and inspection connections
+remain query-only. VM/time, input and output budgets apply on every supported
+version. Per-connection SQLite engine limits via `setlimit` additionally apply on
+Python 3.11 and later; that binding is unavailable on Python 3.10. See the
+[Python authorizer reference](https://docs.python.org/3.11/library/sqlite3.html#sqlite3.Connection.set_authorizer).
