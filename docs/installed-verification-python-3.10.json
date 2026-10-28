@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "runtime": "Python 3.10.22 (main, Oct  9 2026, 15:10:41) [Clang 22.1.3 ]",
+  "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
+  "project": "reprolattice",
+  "checks": {
+    "wheel_sha256": "9ad3a52281216b9abaab52c7f05ef1954454b9b98b3b2dbcb5ad56768418e32b",
+    "examples_exported": [
+      "dynamic-order.json",
+      "inventory-migrations.json",
+      "inventory-seed.json",
+      "inventory-state-suite.json",
+      "inventory-suite.json",
+      "inventory_client.py",
+      "inventory_state_client.py",
+      "queue-effects-seed.json",
+      "queue-effects-suite.json",
+      "queue-lab-commands.json",
+      "queue-lab-configuration.json",
+      "queue-orders.json",
+      "queue_worker.py",
+      "retry.json",
+      "run-gate-policy.json"
+    ],
+    "existing_destination_preserved": true,
+    "installed_import": true,
+    "cli_passed": true,
+    "workbench_http_passed": true,
+    "state_outside_package": true,
+    "retained_migration_workbench_cli_http_passed": true,
+    "isolated_migrations_and_offline_sql_replay_passed": true,
+    "queue_workers_redelivery_and_independent_effects_passed": true,
+    "saved_queue_lab_recovery_and_worker_review_passed": true,
+    "suite_cli_and_report_hashes_passed": true,
+    "suite_http_healthy_and_faulty_passed": true,
+    "sqlite_state_suites_and_standalone_snapshots_passed": true,
+    "run_registry_baseline_and_regression_control_passed": true,
+    "saved_run_workbench_and_fenced_baseline_http_passed": true,
+    "retained_sqlite_state_cli_http_and_portable_verification_passed": true
+  }
+}
