@@ -83,6 +83,12 @@ class ProcessTests(unittest.TestCase):
         completed.wait(timeout=5)
         with patch("reprolattice.process.os.killpg", side_effect=PermissionError()):
             stop_process(completed)
+        with (
+            patch("reprolattice.process.os.killpg", side_effect=PermissionError()),
+            patch.object(completed, "poll", return_value=None),
+        ):
+            stop_process(completed)
+        self.assertEqual(completed.returncode, 0)
         active = subprocess.Popen(
             [sys.executable, "-c", "import time;time.sleep(5)"], start_new_session=True
         )
