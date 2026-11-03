@@ -12,6 +12,7 @@ from pathlib import Path
 
 from reprolattice.sqlite_seed import compile_seed, create_database, identity
 from reprolattice.sqlite_inspect import (
+    reader,
     check_queries,
     compare_snapshots,
     database_snapshot,
@@ -77,6 +78,26 @@ class SQLiteStateTests(unittest.TestCase):
             ][0]["id"]["type"],
             "integer",
         )
+
+    def test_shared_read_view_restores_internal_access_without_leaking_sql_policy(self):
+        self.create()
+        with reader(self.path) as view:
+            db, _ = view
+            self.assertTrue(check_queries(self.path, checks(), _view=view)["passed"])
+            snapshot = database_snapshot(self.path, _view=view)
+            self.assertEqual(len(snapshot["tables"]["items"]["rows"]), 2)
+            for sql in (
+                "PRAGMA writable_schema=ON",
+                "SELECT id FROM items; DELETE FROM items",
+            ):
+                rejected = [{"id": "unsafe", "sql": sql, "expected": []}]
+                self.assertFalse(
+                    check_queries(self.path, rejected, _view=view)["passed"]
+                )
+            self.assertEqual(database_snapshot(self.path, _view=view), snapshot)
+            with self.assertRaises(sqlite3.OperationalError):
+                db.execute("INSERT INTO items VALUES(3, 'forbidden')")
+            self.assertTrue(check_queries(self.path, checks(), _view=view)["passed"])
 
     def test_binary_real_and_integer_results_are_distinct(self):
         definition = {
