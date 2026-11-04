@@ -1,5 +1,17 @@
 # Request register
 
+## Public repository status — 2026-11-04
+
+Published with Pavel's explicit authorization at https://github.com/Pavel-Shcherbo/reprolattice.
+The initial remote main matched qualified snapshot ff9e3a542093684fe235cb1a60776dd80a03226a.
+The implemented local scope is qualified as recorded in docs/VERIFICATION.md.
+This status supersedes earlier publication holds in the historical register below.
+Earlier dates are a disclosed reconstruction; this publication record uses its actual date.
+GitHub contribution-calendar rendering is checked separately and is not implied by a push.
+No remaining local delivery blocker; future scope remains backlog.
+
+---
+
 ## Current local qualification — 2026-11-04
 
 Implemented scope: HTTP matching, real application output, SQLite postconditions, migration/reversal failures, queue redelivery/worker effects and saved portable histories. Full project suites passed on CPython
