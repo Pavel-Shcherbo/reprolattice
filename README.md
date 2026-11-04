@@ -1,6 +1,8 @@
 # Reprolattice
 
 Turn an HTTP failure case into a portable, verifiable scenario.
+[Quick start](#run-the-workbench) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
+
 
 ## Run the workbench
 
@@ -21,7 +23,12 @@ Bundled examples are included in the wheel. Runtime state is stored outside the 
 
 ## Workbench preview
 
+<details>
+<summary>Open the workbench screenshot</summary>
+
 ![Saved run comparison](docs/archive-desktop.png)
+
+</details>
 
 ## Command line
 
