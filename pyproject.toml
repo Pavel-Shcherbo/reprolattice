@@ -9,6 +9,16 @@ description = "Reproduce HTTP, queue and database regressions with retained evid
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
+authors = [{name = "Pavel Shcherbo"}]
+license = {file = "LICENSE"}
+keywords = ["regression-testing", "http", "sqlite", "message-queues"]
+
+[project.urls]
+Homepage = "https://github.com/Pavel-Shcherbo/reprolattice"
+Repository = "https://github.com/Pavel-Shcherbo/reprolattice"
+Documentation = "https://github.com/Pavel-Shcherbo/reprolattice/blob/main/docs/README.md"
+Issues = "https://github.com/Pavel-Shcherbo/reprolattice/issues"
+Discussions = "https://github.com/Pavel-Shcherbo/reprolattice/discussions"
 
 [tool.setuptools]
 packages = ["reprolattice"]

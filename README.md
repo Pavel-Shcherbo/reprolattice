@@ -3,6 +3,10 @@
 Turn an HTTP failure case into a portable, verifiable scenario.
 [Quick start](#run-the-workbench) · [Screenshots](#screenshots) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
 
+## Try the retry example
+
+[Install the preview and reproduce the faulty/corrected client](docs/START_HERE.md). The example runs locally with synthetic inputs and requires no service account or API key.
+
 ## Screenshots
 
 ![An intentionally faulty HTTP client detected by replay assertions](docs/workbench.png)
@@ -99,6 +103,16 @@ This exports the reviewed examples to a new directory without overwriting an exi
 [Product scope](docs/PRODUCT_SCOPE.md) describes the broader proposed subsystems.
 [Weekly roadmap](docs/proposed-weekly-roadmap.csv) is a planning scenario.
 [Tasks](TASKS.md) and [request register](REQUESTS.md) track actual status.
+
+## Questions and updates
+
+Ask setup questions or describe a use case in [project Discussions](https://github.com/Pavel-Shcherbo/reprolattice/discussions/categories/q-a). Include the command you ran, your Python/operating-system version and a small synthetic example. For a reproducible defect, use the [issue templates](https://github.com/Pavel-Shcherbo/reprolattice/issues/new/choose).
+
+Follow [Pavel Shcherbo](https://github.com/Pavel-Shcherbo) for work across these tools. To follow only published versions of this project, use **Watch → Custom → Releases** on GitHub.
+
+## License
+
+[MIT](LICENSE), copyright 2026 Pavel Shcherbo.
 
 ## History note
 

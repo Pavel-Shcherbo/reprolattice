@@ -4,6 +4,8 @@ Reproduce a failure with an explicit fixture, inspect the real application effec
 
 [Install and run](../README.md#run-the-workbench) · [Architecture](ARCHITECTURE.md) · [Verified scope](VERIFICATION.md)
 
+Start with [Reproduce a retry failure](START_HERE.md) for a complete installed-example walkthrough.
+
 ## Choose a task
 
 | Task | Guide | What to expect |
