@@ -1,8 +1,36 @@
 # Reprolattice
 
 Turn an HTTP failure case into a portable, verifiable scenario.
-[Quick start](#run-the-workbench) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
+[Quick start](#run-the-workbench) · [Screenshots](#screenshots) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
 
+## Screenshots
+
+![An intentionally faulty HTTP client detected by replay assertions](docs/workbench.png)
+
+An intentionally faulty demo client fails the retained retry scenario. The workbench shows the consumed interactions and failed application checks. [Guide](docs/ASSERTIONS.md).
+
+<details>
+<summary>More screenshots: comparisons, database state and mobile queues</summary>
+
+### Saved regression comparison
+
+![Saved comparison distinguishing regressions from stable passing cases](docs/archive-desktop.png)
+
+Compare an intentionally regressed run with its accepted baseline and inspect changed case outcomes. [Guide](docs/ARCHIVE_WORKBENCH.md).
+
+### Database side effects
+
+![Retained SQLite before and after rows with independently checked side effects](docs/state-desktop-final.png)
+
+Follow a synthetic inventory write from the scenario check to its retained database row. [Guide](docs/STATE_WORKBENCH.md).
+
+### Mobile queue laboratory
+
+<img src="docs/queue-lab-mobile.png" alt="Mobile queue history and application effect comparison" width="390">
+
+Compare idempotent and duplicate worker effects separately from broker delivery history. [Guide](docs/QUEUE_LAB.md).
+
+</details>
 
 ## Run the workbench
 
@@ -21,15 +49,6 @@ Open http://127.0.0.1:8413. No third-party runtime packages are required.
 Use `--port 0` to choose a free local port, or an explicit port from 1 to 65535. Invalid values are reported as command-line usage errors.
 The workbench is a local development application, not a hosted multi-user service. Process-execution controls are qualified on macOS arm64; Windows descendant termination is not qualified.
 Bundled examples are included in the wheel. Runtime state is stored outside the installed package.
-
-## Workbench preview
-
-<details>
-<summary>Open the workbench screenshot</summary>
-
-![Saved run comparison](docs/archive-desktop.png)
-
-</details>
 
 ## Command line
 
@@ -57,7 +76,6 @@ The **Saved runs** workbench retains executed suite reports and explains regress
 ## Boundaries
 
 The application harness accepts a trusted local command and checks its final JSON result; it is not an operating-system sandbox and does not prevent that process from making independent network calls. Explicit HTTP/JSON capture is available through `python3 -m reprolattice.capture`. Additional database engines, tracing, concurrent protocol replay, SDKs and remote test export remain planned. Named-field redaction cannot detect every secret or personal datum. JSON bodies are bounded; streaming and arbitrary protocol replay are unsupported.
-
 
 ## Capture dependencies
 
