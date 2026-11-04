@@ -1,5 +1,16 @@
 # Request register
 
+## Final acceptance review — 2026-11-04
+
+Pavel explicitly requested skipping PR and review events and completing the final project/profile review. The previous historical-event blocker is withdrawn from acceptance. No new PR or review was created.
+
+Verified source revision: `654942ff494dea2228dcebc775efb759d1af2218`. All 269 tests passed again on the local CPython interpreter. Browser client replay: two interactions consumed and zero unexpected calls. Inventory suite: five passing cases, zero failures/errors. The application was visually inspected on desktop and at a 390 px viewport without horizontal page overflow. Published README navigation and the screenshot disclosure were inspected on GitHub. No runtime correction was required.
+
+The current local scope is accepted; future platform features remain backlog. Final logs, screenshots and remote-blob comparisons are retained in the central final-review evidence. The existing verification guide records supported-version/platform qualification; this final control does not claim a hosted or multi-user deployment.
+
+---
+
+
 ## Repository usability — 2026-11-04
 
 Request: Pavel asked for further visual polish and repository collaboration features; pull requests and reviews must retain historical dates.
